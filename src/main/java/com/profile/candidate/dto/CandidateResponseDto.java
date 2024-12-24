@@ -1,8 +1,6 @@
 package com.profile.candidate.dto;
 
 
-import java.util.StringJoiner;
-
 public class CandidateResponseDto {
 
     private String message;

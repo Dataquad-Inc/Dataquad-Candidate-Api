@@ -1,11 +1,62 @@
 package com.profile.candidate.dto;
-import javax.validation.constraints.*;
+
+import com.profile.candidate.model.CandidateDetails;
+
 import java.util.List;
 
-public class CandidateDto {
+public class CandidateGetResponseDto {
 
-    @NotBlank(message = "Job ID is required")
+    private String candidateId;
     private String jobId;
+    private String userId;
+    private String fullName;
+    private String emailId;
+    private String contactNumber;
+    private String currentOrganization;
+    private String qualification;
+    private Integer totalExperience;
+    private String relevantExperience;
+    private Double currentCTC;
+    private Double expectedCTC;
+    private String noticePeriod;
+    private String currentLocation;
+    private String preferredLocation;
+    private List<String> skills;
+    private String communicationSkills;
+    private Double requiredTechnologiesRating;
+    private String overallFeedback;
+
+    // Constructor that takes a CandidateDetails object
+    public CandidateGetResponseDto(CandidateDetails candidate) {
+        this.candidateId = candidate.getCandidateId();
+        this.jobId = candidate.getJobId();
+        this.userId = candidate.getUserId();
+        this.fullName = candidate.getFullName();
+        this.emailId = candidate.getEmailId();
+        this.contactNumber = candidate.getContactNumber();
+        this.currentOrganization = candidate.getCurrentOrganization();
+        this.qualification = candidate.getQualification();
+        this.totalExperience = candidate.getTotalExperience();
+        this.relevantExperience = candidate.getRelevantExperience();
+        this.currentCTC = candidate.getCurrentCTC();
+        this.expectedCTC = candidate.getExpectedCTC();
+        this.noticePeriod = candidate.getNoticePeriod();
+        this.currentLocation = candidate.getCurrentLocation();
+        this.preferredLocation = candidate.getPreferredLocation();
+        this.skills = candidate.getSkills();
+        this.communicationSkills = candidate.getCommunicationSkills();
+        this.requiredTechnologiesRating = candidate.getRequiredTechnologiesRating();
+        this.overallFeedback = candidate.getOverallFeedback();
+    }
+
+    // Getters and Setters
+    public String getCandidateId() {
+        return candidateId;
+    }
+
+    public void setCandidateId(String candidateId) {
+        this.candidateId = candidateId;
+    }
 
     public String getJobId() {
         return jobId;
@@ -22,89 +73,6 @@ public class CandidateDto {
     public void setUserId(String userId) {
         this.userId = userId;
     }
-
-    @NotBlank(message = "User ID is required")
-    private String userId;
-
-    @NotBlank(message = "Full name is required")
-    @Size(max = 100, message = "Full name must not exceed 100 characters")
-    private String fullName;
-
-    @NotBlank(message = "Email ID is required")
-    @Email(message = "Invalid email format")
-    private String emailId;
-
-    @NotBlank(message = "Contact number is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Contact number must be exactly 10 digits and numeric")
-    private String contactNumber;
-
-    private String currentOrganization;
-
-    @NotBlank(message = "Qualification is required")
-    private String qualification;
-
-    @NotNull(message = "Total experience is required")
-    @Min(value = 0, message = "Total experience cannot be negative")
-    private Integer totalExperience;
-
-    private String relevantExperience;
-
-    @NotNull(message = "Current CTC is required")
-    @Min(value = 0, message = "Current CTC cannot be negative")
-    private Double currentCTC;
-
-    @NotNull(message = "Expected CTC is required")
-    @Min(value = 0, message = "Expected CTC cannot be negative")
-    private Double expectedCTC;
-
-    @NotBlank(message = "Notice period is required")
-    private String noticePeriod;
-
-    @NotBlank(message = "Current location is required")
-    private String currentLocation;
-
-    @NotBlank(message = "Preferred location is required")
-    private String preferredLocation;
-
-    @NotEmpty(message = "Skills are required")
-    private List<String> skills;
-
-
-    private String communicationSkills;
-    private Double requiredTechnologiesRating;
-    private String overallFeedback;
-
-
-    // Getters and Setters
-
-    public String getCommunicationSkills() {
-        return communicationSkills;
-    }
-
-    public void setCommunicationSkills(String communicationSkills) {
-        this.communicationSkills = communicationSkills;
-    }
-
-    public Double getRequiredTechnologiesRating() {
-        return requiredTechnologiesRating;
-    }
-
-    public void setRequiredTechnologiesRating(Double requiredTechnologiesRating) {
-        this.requiredTechnologiesRating = requiredTechnologiesRating;
-    }
-
-    public String getOverallFeedback() {
-        return overallFeedback;
-    }
-
-    public void setOverallFeedback(String overallFeedback) {
-        this.overallFeedback = overallFeedback;
-    }
-
-
-
-
-    // Getters and Setters
 
     public String getFullName() {
         return fullName;
@@ -210,6 +178,27 @@ public class CandidateDto {
         this.skills = skills;
     }
 
+    public String getCommunicationSkills() {
+        return communicationSkills;
+    }
 
+    public void setCommunicationSkills(String communicationSkills) {
+        this.communicationSkills = communicationSkills;
+    }
 
+    public Double getRequiredTechnologiesRating() {
+        return requiredTechnologiesRating;
+    }
+
+    public void setRequiredTechnologiesRating(Double requiredTechnologiesRating) {
+        this.requiredTechnologiesRating = requiredTechnologiesRating;
+    }
+
+    public String getOverallFeedback() {
+        return overallFeedback;
+    }
+
+    public void setOverallFeedback(String overallFeedback) {
+        this.overallFeedback = overallFeedback;
+    }
 }

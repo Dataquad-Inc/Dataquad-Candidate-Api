@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 
 import javax.validation.constraints.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 
 @Entity
 @Table(name = "candidates")
@@ -16,25 +16,17 @@ public class CandidateDetails {
     @Column(unique = true, nullable = false)
     private String candidateId;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     @NotBlank(message = "Job ID is required")
     private String jobId;
 
-    public String getJobId() {
-        return jobId;
-    }
+    // New field userEmail
+    @Column(name = "user_email")
+    private String userEmail;
 
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+    // New field clientEmail
+    @Column(name = "client_email")
+    private String clientEmail;
 
     @Column(unique = true, nullable = false)
     @NotBlank(message = "User ID is required")
@@ -51,7 +43,6 @@ public class CandidateDetails {
     @NotBlank(message = "Contact number is required")
     @Pattern(regexp = "^[0-9]{10}$", message = "Contact number must be exactly 10 digits and numeric")
     private String contactNumber;
-
 
     private String currentOrganization;
 
@@ -85,34 +76,36 @@ public class CandidateDetails {
 
     private String overallFeedback;
 
+    private LocalDateTime interviewDateTime;
 
-    // Getters and Setters
+    private Integer duration; // in minutes
 
-    public String getCommunicationSkills() {
-        return communicationSkills;
+    private LocalDateTime timestamp;
+
+    public String getClientName() {
+        return clientName;
     }
 
-    public void setCommunicationSkills(String communicationSkills) {
-        this.communicationSkills = communicationSkills;
+    public void setClientName(String clientName) {
+        this.clientName = clientName;
     }
 
-    public Double getRequiredTechnologiesRating() {
-        return requiredTechnologiesRating;
+    public String getInterviewLevel() {
+        return interviewLevel;
     }
 
-    public void setRequiredTechnologiesRating(Double requiredTechnologiesRating) {
-        this.requiredTechnologiesRating = requiredTechnologiesRating;
+    public void setInterviewLevel(String interviewLevel) {
+        this.interviewLevel = interviewLevel;
     }
 
-    public String getOverallFeedback() {
-        return overallFeedback;
-    }
+    private String zoomLink;
 
-    public void setOverallFeedback(String overallFeedback) {
-        this.overallFeedback = overallFeedback;
-    }
+    private String clientName;
+
+    private String interviewLevel;
 
 
+    // New field profileReceivedDate
     @Column(nullable = false)
     private LocalDate profileReceivedDate;
 
@@ -134,16 +127,55 @@ public class CandidateDetails {
         }
     }
 
+    // Getters and Setters for new fields
 
-    // Auto-generated date
+    public String getUserEmail() {
+        return userEmail;
+    }
 
-    // Getters and Setters
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public String getClientEmail() {
+        return clientEmail;
+    }
+
+    public void setClientEmail(String clientEmail) {
+        this.clientEmail = clientEmail;
+    }
+
+    public LocalDate getProfileReceivedDate() {
+        return profileReceivedDate;
+    }
+
+    public void setProfileReceivedDate(LocalDate profileReceivedDate) {
+        this.profileReceivedDate = profileReceivedDate;
+    }
+
+    // Getters and Setters for existing fields
     public String getCandidateId() {
         return candidateId;
     }
 
     public void setCandidateId(String candidateId) {
         this.candidateId = candidateId;
+    }
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getFullName() {
@@ -250,12 +282,59 @@ public class CandidateDetails {
         this.skills = skills;
     }
 
-
-    public LocalDate getProfileReceivedDate() {
-        return profileReceivedDate;
+    public String getCommunicationSkills() {
+        return communicationSkills;
     }
 
-    public void setProfileReceivedDate(LocalDate profileReceivedDate) {
-        this.profileReceivedDate = profileReceivedDate;
+    public void setCommunicationSkills(String communicationSkills) {
+        this.communicationSkills = communicationSkills;
+    }
+
+    public Double getRequiredTechnologiesRating() {
+        return requiredTechnologiesRating;
+    }
+
+    public void setRequiredTechnologiesRating(Double requiredTechnologiesRating) {
+        this.requiredTechnologiesRating = requiredTechnologiesRating;
+    }
+
+    public String getOverallFeedback() {
+        return overallFeedback;
+    }
+
+    public void setOverallFeedback(String overallFeedback) {
+        this.overallFeedback = overallFeedback;
+    }
+
+    public LocalDateTime getInterviewDateTime() {
+        return interviewDateTime;
+    }
+
+    public void setInterviewDateTime(LocalDateTime interviewDateTime) {
+        this.interviewDateTime = interviewDateTime;
+    }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public String getZoomLink() {
+        return zoomLink;
+    }
+
+    public void setZoomLink(String zoomLink) {
+        this.zoomLink = zoomLink;
     }
 }
