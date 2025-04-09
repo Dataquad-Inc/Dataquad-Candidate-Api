@@ -37,4 +37,20 @@ public interface CandidateRepository extends JpaRepository<CandidateDetails, Str
     String findUserNameByEmail(@Param("email") String email);
 
 
+
+
+    @Query("SELECT c FROM CandidateDetails c WHERE c.profileReceivedDate BETWEEN :startDate AND :endDate")
+    List<CandidateDetails> findByProfileReceivedDateBetween(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT c FROM CandidateDetails c " +
+            "WHERE c.interviewDateTime IS NOT NULL " +
+            "AND FUNCTION('DATE', c.timestamp) BETWEEN :startDate AND :endDate")
+    List<CandidateDetails> findScheduledInterviewsByDateOnly(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
+
 }
