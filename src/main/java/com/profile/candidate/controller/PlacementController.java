@@ -1,29 +1,23 @@
 package com.profile.candidate.controller;
 
-import com.profile.candidate.dto.DashboardCountsProjection;
-import com.profile.candidate.dto.PlacementDto;
-import com.profile.candidate.dto.PlacementResponseDto;
 import com.profile.candidate.exceptions.ResourceNotFoundException;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.service.PlacementService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-
-@CrossOrigin(origins = {
-        "http://35.188.150.92", "http://192.168.0.140:3000", "http://192.168.0.139:3000",
-        "https://mymulya.com", "http://localhost:3000", "http://192.168.0.135:8080",
-        "http://192.168.0.135:80", "http://localhost/", "http://mymulya.com:443",
-        "http://182.18.177.16:443", "http://localhost/"
+@CrossOrigin(origins = {"http://35.188.150.92", "http://192.168.0.140:3000", "http://192.168.0.139:3000","https://mymulya.com", "http://localhost:3000", "http://192.168.0.135:8080",
+        "http://192.168.0.135:80",
+        "http://localhost/",
+        "http://mymulya.com:443",
+        "http://182.18.177.16:443",
+        "http://localhost/",
 })
 @RestController
 @RequestMapping("/candidate")
@@ -31,33 +25,42 @@ public class PlacementController {
 
     @Autowired
     private PlacementService service;
-    private static final Logger logger = LoggerFactory.getLogger(PlacementController.class);
 
+    // Helper method to format response payload
+    private Map<String, Object> buildPlacementPayload(PlacementDetails placement) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("id", placement.getId());
+        payload.put("consultantName", placement.getConsultantName());
+        payload.put("phone", placement.getPhone());
+        payload.put("email", placement.getConsultantEmail());
+        return payload;
+    }
 
     // Save placement
     @PostMapping("/placement/create-placement")
-    public ResponseEntity<?> savePlacement(@Valid @RequestBody PlacementDto placementDto) {
-        PlacementResponseDto savedPlacement = service.savePlacement(placementDto);
+    public ResponseEntity<?> savePlacement(@Valid @RequestBody PlacementDetails placement) {
+        PlacementDetails savedPlacement = service.savePlacement(placement);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("message", "Placement saved successfully");
         response.put("timestamp", LocalDateTime.now());
-        response.put("data", savedPlacement);
+        response.put("data", buildPlacementPayload(savedPlacement));
+
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // Update placement by ID
     @PutMapping("/placement/update-placement/{id}")
-    public ResponseEntity<?> updatePlacement(@PathVariable String id, @Valid @RequestBody PlacementDto placementDto) {
+    public ResponseEntity<?> updatePlacement(@PathVariable String id, @Valid @RequestBody PlacementDetails placement) {
         try {
-            PlacementResponseDto updated = service.updatePlacement(id, placementDto);
+            PlacementDetails updated = service.updatePlacement(id, placement);
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", true);
             response.put("message", "Placement updated successfully");
             response.put("timestamp", LocalDateTime.now());
-            response.put("data", updated);
+            response.put("data", buildPlacementPayload(updated));
 
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
@@ -88,31 +91,26 @@ public class PlacementController {
         }
     }
 
+    // Get all placements (full details)
     @GetMapping("/placement/placements-list")
     public ResponseEntity<?> getAllPlacements() {
-        // Fetch PlacementDetails entities directly from the service
         List<PlacementDetails> placements = service.getAllPlacements();
 
-        // Prepare the response structure
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("message", "Placements fetched successfully");
-        response.put("timestamp", LocalDateTime.now());
-        response.put("data", placements); // Directly return PlacementDetails entities
+        return ResponseEntity.ok(Map.of(
 
-        return ResponseEntity.ok(response);
+                "data", placements
+        ));
     }
-
     // Get placement by ID
     @GetMapping("/placement/{id}")
     public ResponseEntity<?> getPlacementById(@PathVariable String id) {
         try {
-            PlacementResponseDto placement = service.getPlacementById(id);
+            PlacementDetails placement = service.getPlacementById(id);
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", true);
             response.put("message", "Placement fetched successfully");
             response.put("timestamp", LocalDateTime.now());
-            response.put("data", placement);
+            response.put("data", buildPlacementPayload(placement));
             return ResponseEntity.ok(response);
         } catch (ResourceNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
@@ -122,48 +120,5 @@ public class PlacementController {
             ));
         }
     }
-    @GetMapping("/dashboardcounts")
-    public ResponseEntity<Map<String, Long>> getDashboardCounts() {
-        Map<String, Long> counts = service.getCounts();
-        return ResponseEntity.ok(counts);
-    }
-    @GetMapping("/placement/filterByDate")
-    public ResponseEntity<List<PlacementDetails>> getPlacementsByDateRange(
-            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
-        List<PlacementDetails> placements = service.getPlacementsByDateRange(startDate, endDate);
-        return ResponseEntity.ok(placements);
-    }
-
-    @GetMapping("/dashboardcounts/filterByDate")
-    public ResponseEntity<?> getDashboardCountsByDateRange(
-            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-
-        try {
-            if (endDate.isBefore(startDate)) {
-                logger.warn("End date {} is before start date {}", endDate, startDate);
-                return ResponseEntity.badRequest()
-                        .body(Collections.singletonMap("message", "End date cannot be before start date"));
-            }
-
-            Map<String, Long> counts = service.getCountsByDateRange(startDate, endDate);
-
-            if (counts.values().stream().allMatch(count -> count == 0)) {
-                logger.warn("No dashboard data found between {} and {}", startDate, endDate);
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Collections.singletonMap("message", "No data found between " + startDate + " and " + endDate));
-            }
-
-            return ResponseEntity.ok(counts);
-
-        } catch (Exception e) {
-            logger.error("Error fetching dashboard counts between {} and {}", startDate, endDate, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.singletonMap("message", "An error occurred while fetching dashboard counts"+e.getMessage()));
-        }
-    }
-
 
 }
