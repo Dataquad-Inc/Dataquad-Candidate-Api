@@ -32,6 +32,9 @@ public class BenchDetailsDto {
         this.technology=technology;
     }
 
+    public BenchDetailsDto() {
+
+    }
 
     public BenchDetailsDto() {
 

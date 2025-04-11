@@ -201,7 +201,6 @@ public class BenchController {
             return ResponseEntity.notFound().build();
         }
     }
-
     @PutMapping("/bench/updatebench/{id}")
     public ResponseEntity<Object> updateBenchDetails(
             @PathVariable String id,
