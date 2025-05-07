@@ -1,15 +1,21 @@
 package com.profile.candidate.controller;
 
+import com.profile.candidate.dto.DashboardCountsProjection;
 import com.profile.candidate.dto.PlacementDto;
 import com.profile.candidate.dto.PlacementResponseDto;
 import com.profile.candidate.exceptions.ResourceNotFoundException;
+import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.service.PlacementService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -25,6 +31,8 @@ public class PlacementController {
 
     @Autowired
     private PlacementService service;
+    private static final Logger logger = LoggerFactory.getLogger(PlacementController.class);
+
 
     // Save placement
     @PostMapping("/placement/create-placement")
@@ -82,13 +90,15 @@ public class PlacementController {
 
     @GetMapping("/placement/placements-list")
     public ResponseEntity<?> getAllPlacements() {
-        List<PlacementDto> placements = service.getAllPlacements();
+        // Fetch PlacementDetails entities directly from the service
+        List<PlacementDetails> placements = service.getAllPlacements();
 
+        // Prepare the response structure
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("message", "Placements fetched successfully");
         response.put("timestamp", LocalDateTime.now());
-        response.put("data", placements);
+        response.put("data", placements); // Directly return PlacementDetails entities
 
         return ResponseEntity.ok(response);
     }
@@ -113,8 +123,60 @@ public class PlacementController {
         }
     }
     @GetMapping("/dashboardcounts")
-    public ResponseEntity<Map<String, Long>> getDashboardCounts() {
-        Map<String, Long> counts = service.getCounts();
+    public ResponseEntity<?> getDashboardCounts(@RequestParam(required = false) String recruiterId) {
+        Map<String, Long> counts;
+
+        // If recruiterId is provided, use it, otherwise fetch counts without filtering by recruiter
+        if (recruiterId != null && !recruiterId.trim().isEmpty()) {
+            counts = service.getCounts(recruiterId);
+        } else {
+            counts = service.getCountsForAll(); // Fetch counts without recruiter-specific filter
+        }
+
         return ResponseEntity.ok(counts);
+    }
+
+    @GetMapping("/placement/filterByDate")
+    public ResponseEntity<List<PlacementDetails>> getPlacementsByDateRange(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        List<PlacementDetails> placements = service.getPlacementsByDateRange(startDate, endDate);
+        return ResponseEntity.ok(placements);
+    }
+
+    @GetMapping("/dashboardcounts/filterByDate")
+    public ResponseEntity<?> getDashboardCountsByDateRange(
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String recruiterId) {
+
+        if (recruiterId == null || recruiterId.trim().isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "Missing required parameter: recruiterId"));
+        }
+
+        if (endDate.isBefore(startDate)) {
+            logger.warn("End date {} is before start date {}", endDate, startDate);
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "End date cannot be before start date"));
+        }
+
+        try {
+            Map<String, Long> counts = service.getCountsByDateRange(startDate, endDate, recruiterId);
+
+            if (counts.values().stream().allMatch(count -> count == 0)) {
+                logger.warn("No dashboard data found between {} and {}", startDate, endDate);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("message", "No data found between " + startDate + " and " + endDate));
+            }
+
+            return ResponseEntity.ok(counts);
+
+        } catch (Exception e) {
+            logger.error("Error fetching dashboard counts between {} and {}", startDate, endDate, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "An error occurred while fetching dashboard counts"));
+        }
     }
 }
