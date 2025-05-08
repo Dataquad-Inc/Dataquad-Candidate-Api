@@ -53,7 +53,7 @@ public class PlacementDetails {
     private LocalDate endDate;
 
     @Column(name = "recruiter")
-    private String recruiter;
+    private String recruiterName;
 
     @Column(name = "sales")
     private String sales;
@@ -166,12 +166,12 @@ public class PlacementDetails {
         this.endDate = endDate;
     }
 
-    public String getRecruiter() {
-        return recruiter;
+    public String getRecruiterName() {
+        return recruiterName;
     }
 
-    public void setRecruiter(String recruiter) {
-        this.recruiter = recruiter;
+    public void setRecruiterName(String recruiterName) {
+        this.recruiterName = recruiterName;
     }
 
     public String getSales() {
