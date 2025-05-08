@@ -22,7 +22,7 @@ public class PlacementDto {
     private String vendorName;
     private String startDate;
     private String endDate;
-    private String recruiter;
+    private String recruiterName;
     private String sales;
     private String employmentType;
     private String remarks;
@@ -117,16 +117,18 @@ public class PlacementDto {
         this.endDate = endDate;
     }
 
-    public String getRecruiter() {
-        return recruiter;
-    }
 
-    public void setRecruiter(String recruiter) {
-        this.recruiter = recruiter;
-    }
 
     public String getSales() {
         return sales;
+    }
+
+    public String getRecruiterName() {
+        return recruiterName;
+    }
+
+    public void setRecruiterName(String recruiterName) {
+        this.recruiterName = recruiterName;
     }
 
     public void setSales(String sales) {
