@@ -121,4 +121,5 @@ public interface SubmissionRepository extends JpaRepository<Submissions,String> 
     List<Tuple> findSelfSubmissionsByTeamleadAndDateRange( @Param("userId") String userId,@Param("startDate") LocalDateTime startDate,@Param("endDate") LocalDateTime endDate);
 
 
+    List<Submissions> findByJobId(String jobId);
 }
