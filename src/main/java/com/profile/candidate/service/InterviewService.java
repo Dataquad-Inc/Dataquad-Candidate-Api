@@ -22,6 +22,8 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -39,16 +41,17 @@ public class InterviewService {
     @Autowired
     CandidateRepository candidateRepository;
     @Autowired
-    private  InterviewRepository interviewRepository;
+    private InterviewRepository interviewRepository;
     @Autowired
     SubmissionRepository submissionRepository;
+
 
     private static final Logger logger = LoggerFactory.getLogger(InterviewService.class);
 
     public InterviewResponseDto scheduleInterview(String userId, String candidateId, OffsetDateTime interviewDateTime, Integer duration,
                                                   String zoomLink, String userEmail, List<String> clientEmails,
                                                   String clientName, String interviewLevel, String externalInterviewDetails, String jobId, String fullName,
-                                                  String contactNumber, String candidateEmailId, boolean skipNotification,String assignedTo,String comments) throws JsonProcessingException {
+                                                  String contactNumber, String candidateEmailId, boolean skipNotification, String assignedTo, String comments) throws JsonProcessingException {
 
         System.out.println("Starting to schedule interview for userId: " + userId + " and candidateId: " + candidateId);
         if (candidateId == null)
@@ -82,8 +85,8 @@ public class InterviewService {
         }
         interviewDetails.setInterviewLevel(interviewLevel);
 
-            interviewDetails.setClientEmailList(clientEmails);
-            interviewDetails.setZoomLink(zoomLink);
+        interviewDetails.setClientEmailList(clientEmails);
+        interviewDetails.setZoomLink(zoomLink);
 //
         interviewDetails.setCandidateId(candidateId);
         interviewDetails.setUserId(userId);
@@ -110,11 +113,11 @@ public class InterviewService {
         interviewDetails.setInterviewId(interviewId);
         interviewDetails.setJobId(jobId);
 
-        Submissions submissions=submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId,jobId);
+        Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
         submissions.setStatus("MOVED TO INTERVIEW");
-           if(interviewLevel.equalsIgnoreCase("INTERNAL")){
-                interviewDetails.setComments(comments);
-           }
+        if (interviewLevel.equalsIgnoreCase("INTERNAL")) {
+            interviewDetails.setComments(comments);
+        }
         ObjectMapper objectMapper = new ObjectMapper();
         ArrayNode statusArray = objectMapper.createArrayNode();
         ObjectNode statusEntry = objectMapper.createObjectNode();
@@ -125,13 +128,12 @@ public class InterviewService {
         statusArray.add(statusEntry);
         interviewDetails.setInterviewStatus(objectMapper.writeValueAsString(statusArray));
 
-        if(assignedTo!=null && interviewLevel.equals("INTERNAL")){
+        if (assignedTo != null && interviewLevel.equals("INTERNAL")) {
             interviewDetails.setAssignedTo(assignedTo);
             interviewDetails.setCoordinatorName(interviewRepository.findUsernameByUserId(assignedTo));
-        }
-        else if(assignedTo!=null && !interviewLevel.equals("INTERNAL")){
+        } else if (assignedTo != null && !interviewLevel.equals("INTERNAL")) {
             throw new InterviewNotScheduledException("For INTERNAL Interviews Only we Can Assign to Co-Ordinators");
-        }else{
+        } else {
             interviewDetails.setAssignedTo(null);
             interviewDetails.setCoordinatorName(null);
         }
@@ -149,27 +151,27 @@ public class InterviewService {
 
         // Sending Emails
         if (!skipNotification) {
-                String jobTitle = interviewRepository.findJobTitleByJobId(jobId);
-                String subject = "Interview Scheduled for " + interviewDetails.getFullName();
-                // Convert the interview time to IST timezone
-                ZoneOffset istOffset = ZoneOffset.of("+05:30");
-                OffsetDateTime interviewTimeInIST = interviewDateTime.withOffsetSameInstant(istOffset);
-                DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
-                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
-                String formattedDate = interviewTimeInIST.format(dateFormatter);  // formatted date in IST
-                String formattedTime = interviewTimeInIST.format(timeFormatter);  // formatted time in IST
-                String userName = interviewRepository.findUsernameByUserId(userId);
-            if(!interviewLevel.equalsIgnoreCase("INTERNAL")) {
+            String jobTitle = interviewRepository.findJobTitleByJobId(jobId);
+            String subject = "Interview Scheduled for " + interviewDetails.getFullName();
+            // Convert the interview time to IST timezone
+            ZoneOffset istOffset = ZoneOffset.of("+05:30");
+            OffsetDateTime interviewTimeInIST = interviewDateTime.withOffsetSameInstant(istOffset);
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
+            DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
+            String formattedDate = interviewTimeInIST.format(dateFormatter);  // formatted date in IST
+            String formattedTime = interviewTimeInIST.format(timeFormatter);  // formatted time in IST
+            String userName = interviewRepository.findUsernameByUserId(userId);
+            if (!interviewLevel.equalsIgnoreCase("INTERNAL")) {
                 emailService.sendEmailToUser(userEmail, subject, buildUserScheduleEmailBody(userName, clientName,
                         formattedDate, formattedTime, duration, zoomLink, jobTitle, interviewDetails.getFullName()));
                 emailService.sendEmailsToClients(interviewDetails.getClientEmailList(), subject, buildClientScheduleEmailBody(clientName,
                         formattedDate, formattedTime, duration, zoomLink, jobTitle, interviewDetails.getFullName()));
                 emailService.sendEmailToCandidate(interviewDetails.getCandidateEmailId(), subject, buildCandidateScheduleEmailBody(interviewDetails.getFullName(),
                         formattedDate, formattedTime, duration, zoomLink, jobTitle, clientName));
-            }else{
-                String coordinatorName=interviewRepository.findUsernameByUserId(assignedTo);
-                String coordinatorEmail=interviewRepository.findUserEmailByUserId(assignedTo);
-                logger.info("CoOrdinator Name {} and email {}",coordinatorName,coordinatorEmail);
+            } else {
+                String coordinatorName = interviewRepository.findUsernameByUserId(assignedTo);
+                String coordinatorEmail = interviewRepository.findUserEmailByUserId(assignedTo);
+                logger.info("CoOrdinator Name {} and email {}", coordinatorName, coordinatorEmail);
                 emailService.sendEmailToCoordinator(coordinatorEmail, subject, buildCoordinatorScheduleEmailBody(coordinatorName,
                         formattedDate, formattedTime, duration, zoomLink, jobTitle, interviewDetails.getFullName()));
                 emailService.sendEmailToCandidate(interviewDetails.getCandidateEmailId(), subject, buildCandidateScheduleEmailBody(interviewDetails.getFullName(),
@@ -279,18 +281,18 @@ public class InterviewService {
         if (comments != null && !comments.isEmpty()) {
             interviewDetails.setComments(comments);
         }
-          if(interviewLevel.equalsIgnoreCase("INTERNAL") && interviewStatus.equalsIgnoreCase("REJECTED")){
+        if (interviewLevel.equalsIgnoreCase("INTERNAL") && interviewStatus.equalsIgnoreCase("REJECTED")) {
 
-              Submissions submissions=submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId,jobId);
-              submissions.setStatus("SCREEN REJECT");
-          }
-          if(interviewLevel.equalsIgnoreCase("EXTERNAL") ||
-                  interviewLevel.equalsIgnoreCase("EXTERNAL-L1") ||
-                  interviewLevel.equalsIgnoreCase("EXTERNAL-L2") ||
-                  interviewLevel.equalsIgnoreCase("FINAL") && interviewStatus.equalsIgnoreCase("REJECTED")){
-              Submissions submissions=submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId,jobId);
-              submissions.setStatus("CLIENT REJECT");
-          }
+            Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
+            submissions.setStatus("SCREEN REJECT");
+        }
+        if (interviewLevel.equalsIgnoreCase("EXTERNAL") ||
+                interviewLevel.equalsIgnoreCase("EXTERNAL-L1") ||
+                interviewLevel.equalsIgnoreCase("EXTERNAL-L2") ||
+                interviewLevel.equalsIgnoreCase("FINAL") && interviewStatus.equalsIgnoreCase("REJECTED")) {
+            Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
+            submissions.setStatus("CLIENT REJECT");
+        }
         // Handle the interview status update if provided
         if (interviewStatus != null && !interviewStatus.isEmpty()) {
             ObjectMapper objectMapper = new ObjectMapper();
@@ -336,8 +338,8 @@ public class InterviewService {
         if (interviewDetails.getInterviewLevel() == null) {
             interviewDetails.setInterviewLevel(determineInterviewType(clientEmails, zoomLink));
         }
-            interviewDetails.setClientEmailList(clientEmails);
-            interviewDetails.setZoomLink(zoomLink);
+        interviewDetails.setClientEmailList(clientEmails);
+        interviewDetails.setZoomLink(zoomLink);
         // Update timestamp
         interviewDetails.setTimestamp(LocalDateTime.now());
         // Save updated candidate details
@@ -397,9 +399,9 @@ public class InterviewService {
                                 default:
                                     logger.warn("Unknown interview status: {}", interviewStatus);
                             }
-                        }else{
-                            String coordinatorName=interviewRepository.findUsernameByUserId(assignedTo);
-                            String coordinatorEmail=interviewRepository.findUserEmailByUserId(assignedTo);
+                        } else {
+                            String coordinatorName = interviewRepository.findUsernameByUserId(assignedTo);
+                            String coordinatorEmail = interviewRepository.findUserEmailByUserId(assignedTo);
                             switch (interviewStatus.toLowerCase()) {
                                 case "scheduled":
                                 case "rescheduled":
@@ -488,16 +490,16 @@ public class InterviewService {
         if (comments != null && !comments.isEmpty()) {
             interviewDetails.setComments(internalFeedback);
         }
-        if(interviewLevel.equalsIgnoreCase("INTERNAL") && interviewStatus.equalsIgnoreCase("REJECTED")){
+        if (interviewLevel.equalsIgnoreCase("INTERNAL") && interviewStatus.equalsIgnoreCase("REJECTED")) {
 
-            Submissions submissions=submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId,jobId);
+            Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
             submissions.setStatus("SCREEN REJECT");
         }
-        if(interviewLevel.equalsIgnoreCase("EXTERNAL") ||
+        if (interviewLevel.equalsIgnoreCase("EXTERNAL") ||
                 interviewLevel.equalsIgnoreCase("EXTERNAL-L1") ||
                 interviewLevel.equalsIgnoreCase("EXTERNAL-L2") ||
-                interviewLevel.equalsIgnoreCase("FINAL") && interviewStatus.equalsIgnoreCase("REJECTED")){
-            Submissions submissions=submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId,jobId);
+                interviewLevel.equalsIgnoreCase("FINAL") && interviewStatus.equalsIgnoreCase("REJECTED")) {
+            Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
             submissions.setStatus("CLIENT REJECT");
         }
         // Handle the interview status update if provided
@@ -546,8 +548,8 @@ public class InterviewService {
         if (interviewDetails.getInterviewLevel() == null) {
             interviewDetails.setInterviewLevel(determineInterviewType(clientEmails, zoomLink));
         }
-            interviewDetails.setClientEmailList(clientEmails);
-            interviewDetails.setZoomLink(zoomLink);
+        interviewDetails.setClientEmailList(clientEmails);
+        interviewDetails.setZoomLink(zoomLink);
         // Update timestamp
         interviewDetails.setTimestamp(LocalDateTime.now());
         // Save updated candidate details
@@ -565,7 +567,6 @@ public class InterviewService {
         String formattedZoomLink = (zoomLink != null && !zoomLink.isEmpty()) ? "<a href='" + zoomLink + "'>Click here to join</a>" : "N/A";
 
         String subject = "Interview Update for " + interviewDetails.getFullName();
-
 
 
         String jobTitle = interviewRepository.findJobTitleByJobId(jobId);
@@ -625,6 +626,7 @@ public class InterviewService {
                 null
         );
     }
+
     public GetInterviewResponse getAllInterviews() {
 
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
@@ -807,7 +809,7 @@ public class InterviewService {
     public InterviewResponseDto scheduleInterviewWithOutUserId(String candidateId, OffsetDateTime interviewDateTime, Integer duration,
                                                                String zoomLink, List<String> clientEmail,
                                                                String clientName, String interviewLevel, String externalInterviewDetails, String jobId, String fullName,
-                                                               String contactNumber, String candidateEmailId, boolean skipNotification,String assignedTo,String comments) throws JsonProcessingException {
+                                                               String contactNumber, String candidateEmailId, boolean skipNotification, String assignedTo, String comments) throws JsonProcessingException {
 
         System.out.println("Starting to schedule interview for userId: " + " and candidateId: " + candidateId);
         if (candidateId == null) {
@@ -842,8 +844,8 @@ public class InterviewService {
         }
         interviewDetails.setInterviewLevel(interviewLevel);
 
-            interviewDetails.setClientEmailList(clientEmail);
-            interviewDetails.setZoomLink(zoomLink);
+        interviewDetails.setClientEmailList(clientEmail);
+        interviewDetails.setZoomLink(zoomLink);
 
         interviewDetails.setCandidateId(candidateId);
         interviewDetails.setInterviewDateTime(interviewDateTime);
@@ -858,7 +860,7 @@ public class InterviewService {
         interviewDetails.setCandidateEmailId(candidateEmailId);
         interviewDetails.setTimestamp(LocalDateTime.now());
 
-        if(interviewLevel.equalsIgnoreCase("INTERNAL")){
+        if (interviewLevel.equalsIgnoreCase("INTERNAL")) {
             interviewDetails.setComments(comments);
         }
 
@@ -870,7 +872,7 @@ public class InterviewService {
         interviewDetails.setInterviewId(interviewId);
         interviewDetails.setJobId(jobId);
 
-        Submissions submissions=submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId,jobId);
+        Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
         submissions.setStatus("MOVED TO INTERVIEW");
         // Set interview details
         ObjectMapper objectMapper = new ObjectMapper();
@@ -883,13 +885,12 @@ public class InterviewService {
         statusArray.add(statusEntry);
         interviewDetails.setInterviewStatus(objectMapper.writeValueAsString(statusArray));
 
-        if(assignedTo!=null && interviewLevel.equals("INTERNAL")){
+        if (assignedTo != null && interviewLevel.equals("INTERNAL")) {
             interviewDetails.setAssignedTo(assignedTo);
             interviewDetails.setCoordinatorName(interviewRepository.findUsernameByUserId(assignedTo));
-        }
-        else if(assignedTo!=null && !interviewLevel.equals("INTERNAL")){
+        } else if (assignedTo != null && !interviewLevel.equals("INTERNAL")) {
             throw new InterviewNotScheduledException("For INTERNAL Interviews Only we Can Assign to Co-Ordinators");
-        }else{
+        } else {
             interviewDetails.setAssignedTo(null);
             interviewDetails.setCoordinatorName(null);
         }
@@ -900,7 +901,7 @@ public class InterviewService {
         } catch (Exception e) {
             throw new RuntimeException("Error while saving candidate data.", e);
         }
-        if (!skipNotification ) {
+        if (!skipNotification) {
             //sending mails
             String jobTitle = interviewRepository.findJobTitleByJobId(jobId);
             ZoneOffset istOffset = ZoneOffset.of("+05:30");
@@ -911,20 +912,20 @@ public class InterviewService {
             String formattedDate = (interviewTimeInIST != null) ? interviewTimeInIST.format(dateFormatter) : "N/A";
             String formattedTime = (interviewTimeInIST != null) ? interviewTimeInIST.format(timeFormatter) : "N/A";
             String subject = "Interview Scheduled for " + interviewDetails.getFullName();
-              if(!interviewLevel.equalsIgnoreCase("INTERNAL")) {
-                  emailService.sendEmailsToClients(interviewDetails.getClientEmailList(), subject, buildClientScheduleEmailBody(clientName,
-                          formattedDate, formattedTime, duration, zoomLink, jobTitle, interviewDetails.getFullName()));
-                  emailService.sendEmailToCandidate(interviewDetails.getCandidateEmailId(), subject, buildCandidateScheduleEmailBody(interviewDetails.getFullName(),
-                          formattedDate, formattedTime, duration, zoomLink, jobTitle, clientName));
-              } else{
-                  String coordinatorName=interviewRepository.findUsernameByUserId(assignedTo);
-                  String coordinatorEmail=interviewRepository.findUserEmailByUserId(assignedTo);
-                  logger.info("CoOrdinator Name {} and email {}",coordinatorName,coordinatorEmail);
-                  emailService.sendEmailToCoordinator(coordinatorEmail, subject, buildCoordinatorScheduleEmailBody(coordinatorName,
-                          formattedDate, formattedTime, duration, zoomLink, jobTitle, interviewDetails.getFullName()));
-                  emailService.sendEmailToCandidate(interviewDetails.getCandidateEmailId(), subject, buildCandidateScheduleEmailBody(interviewDetails.getFullName(),
-                          formattedDate, formattedTime, duration, zoomLink, jobTitle, clientName));
-              }
+            if (!interviewLevel.equalsIgnoreCase("INTERNAL")) {
+                emailService.sendEmailsToClients(interviewDetails.getClientEmailList(), subject, buildClientScheduleEmailBody(clientName,
+                        formattedDate, formattedTime, duration, zoomLink, jobTitle, interviewDetails.getFullName()));
+                emailService.sendEmailToCandidate(interviewDetails.getCandidateEmailId(), subject, buildCandidateScheduleEmailBody(interviewDetails.getFullName(),
+                        formattedDate, formattedTime, duration, zoomLink, jobTitle, clientName));
+            } else {
+                String coordinatorName = interviewRepository.findUsernameByUserId(assignedTo);
+                String coordinatorEmail = interviewRepository.findUserEmailByUserId(assignedTo);
+                logger.info("CoOrdinator Name {} and email {}", coordinatorName, coordinatorEmail);
+                emailService.sendEmailToCoordinator(coordinatorEmail, subject, buildCoordinatorScheduleEmailBody(coordinatorName,
+                        formattedDate, formattedTime, duration, zoomLink, jobTitle, interviewDetails.getFullName()));
+                emailService.sendEmailToCandidate(interviewDetails.getCandidateEmailId(), subject, buildCandidateScheduleEmailBody(interviewDetails.getFullName(),
+                        formattedDate, formattedTime, duration, zoomLink, jobTitle, clientName));
+            }
         }
         // Prepare the response with interview details
         InterviewResponseDto.InterviewData data = new InterviewResponseDto.InterviewData(
@@ -935,6 +936,7 @@ public class InterviewService {
         );
         return new InterviewResponseDto(true, "Interview scheduled successfully and email notifications sent.", data, null);
     }
+
     public GetInterviewResponse getScheduledInterviewsByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate, String interviewLevelFilter) {
         logger.info("Fetching interviews for userId: {} between {} and {}", userId, startDate, endDate);
 
@@ -992,7 +994,8 @@ public class InterviewService {
                             ObjectMapper objectMapper = new ObjectMapper();
                             List<String> clientEmails = new ArrayList<>();
                             try {
-                                clientEmails = objectMapper.readValue(tuple.get("client_email", String.class), new TypeReference<>() {});
+                                clientEmails = objectMapper.readValue(tuple.get("client_email", String.class), new TypeReference<>() {
+                                });
                             } catch (JsonProcessingException e) {
                                 logger.warn("Failed to parse client emails for interview ID {}", tuple.get("interview_id", String.class));
                             }
@@ -1092,7 +1095,6 @@ public class InterviewService {
     }
 
 
-
     public static String latestInterviewStatusFromJson(String interviewStatusJson) {
         String latestInterviewStatus = null;
         ObjectMapper objectMapper = new ObjectMapper();
@@ -1169,9 +1171,10 @@ public class InterviewService {
                         + "<p>The Coordination Team</p>",
                 clientName, jobTitle, candidateName, formattedDate, formattedTime, formattedDuration);
     }
+
     private String buildCoordinatorScheduleEmailBody(String coordinatorName, String formattedDate, String formattedTime,
-                                                int formattedDuration, String formattedZoomLink, String jobTitle,
-                                                String candidateName) {
+                                                     int formattedDuration, String formattedZoomLink, String jobTitle,
+                                                     String candidateName) {
         return String.format(
                 "<p>Hello %s,</p>"
                         + "<p>Hope you are doing well!</p>"
@@ -1400,7 +1403,8 @@ public class InterviewService {
                                 String timestampStr = tuple.get("timestamp", String.class);
                                 LocalDateTime timestamp = timestampStr != null ? LocalDateTime.parse(timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")) : null;
 
-                                List<String> clientEmails = objectMapper.readValue(tuple.get("client_email", String.class), new TypeReference<>() {});
+                                List<String> clientEmails = objectMapper.readValue(tuple.get("client_email", String.class), new TypeReference<>() {
+                                });
                                 String skills = tuple.get("skills", String.class);
                                 Float totalExperience = tuple.get("total_experience", Float.class);
                                 Float relevantExperience = tuple.get("relevant_experience", Float.class);
@@ -1475,7 +1479,8 @@ public class InterviewService {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            List<Map<String, Object>> statusList = mapper.readValue(interviewStatusJson, new TypeReference<>() {});
+            List<Map<String, Object>> statusList = mapper.readValue(interviewStatusJson, new TypeReference<>() {
+            });
             if (!statusList.isEmpty()) {
                 Map<String, Object> lastStatus = statusList.get(statusList.size() - 1);
                 String level = (String) lastStatus.get("interviewLevel");
@@ -1582,6 +1587,7 @@ public class InterviewService {
         // 8. Return the DTO with both lists
         return new TeamleadInterviewsDTO(selfInterviews, teamInterviews);
     }
+
     private List<GetInterviewResponseDto> parseInterviewCandidates(List<InterviewDetails> interviews) {
         List<GetInterviewResponseDto> response = new ArrayList<>();
 
@@ -1630,6 +1636,7 @@ public class InterviewService {
         }
         return response;
     }
+
     public TeamleadInterviewsDTO getTeamleadScheduledInterviews(String userId) {
         // Get the current date
         LocalDate currentDate = LocalDate.now();
@@ -1670,36 +1677,37 @@ public class InterviewService {
         return new TeamleadInterviewsDTO(selfInterviews, teamInterviews);
     }
 
-    public InterviewSlotsDto getInterviewSlots(String userId){
+    public InterviewSlotsDto getInterviewSlots(String userId) {
 
-        if(candidateRepository.findUserNameByUserId(userId).isEmpty())
-            throw new UserNotFoundException("No User Found With Id :"+userId);
+        if (candidateRepository.findUserNameByUserId(userId).isEmpty())
+            throw new UserNotFoundException("No User Found With Id :" + userId);
 //        String role=interviewRepository.findRoleByUserId(userId);
 //        if(!role.equalsIgnoreCase("COORDINATOR"))
 //            throw new UserNotFoundException("Only COORDINATORS are Allowed");
-        List<InterviewDetails> interviewDetailsList=interviewRepository.findByAssignedTo(userId);
-        InterviewSlotsDto dto=new InterviewSlotsDto();
+        List<InterviewDetails> interviewDetailsList = interviewRepository.findByAssignedTo(userId);
+        InterviewSlotsDto dto = new InterviewSlotsDto();
         dto.setUserId(userId);
-        List<InterviewSlotsDto.InterviewDateWithDuration> dateTimeList=new ArrayList<>();
+        List<InterviewSlotsDto.InterviewDateWithDuration> dateTimeList = new ArrayList<>();
 
         interviewDetailsList.stream()
-                .filter((interview)-> "INTERNAL".equalsIgnoreCase(interview.getInterviewLevel()))
-                .forEach((interview)-> {
-                    InterviewSlotsDto.InterviewDateWithDuration timeWithDuration=new InterviewSlotsDto.InterviewDateWithDuration();
+                .filter((interview) -> "INTERNAL".equalsIgnoreCase(interview.getInterviewLevel()))
+                .forEach((interview) -> {
+                    InterviewSlotsDto.InterviewDateWithDuration timeWithDuration = new InterviewSlotsDto.InterviewDateWithDuration();
                     timeWithDuration.setInterviewDateTime(interview.getInterviewDateTime().withOffsetSameInstant(ZoneOffset.of("+05:30")));
                     timeWithDuration.setDuration(interview.getDuration());
                     dateTimeList.add(timeWithDuration);
                 });
         dto.setBookedSlots(dateTimeList);
-        logger.info("Total slots :"+dto.getBookedSlots().size());
+        logger.info("Total slots :" + dto.getBookedSlots().size());
         return dto;
     }
 
-    public InterviewResponseDto updateInterviewByCoordinator(String coordinatorId,String interviewId,CoordinatorInterviewUpdateDto  dto){
+    public InterviewResponseDto updateInterviewByCoordinator(String coordinatorId, String interviewId, CoordinatorInterviewUpdateDto dto) {
 
-        InterviewDetails interview=interviewRepository.findByInterviewIdAndAssignedTo(interviewId,coordinatorId);
+        InterviewDetails interview = interviewRepository.findByInterviewIdAndAssignedTo(interviewId, coordinatorId);
 
-        if(interview==null) throw new NoInterviewsFoundException("No Interview Found InterviewId"+interviewId+" for CoordinatorId "+coordinatorId);
+        if (interview == null)
+            throw new NoInterviewsFoundException("No Interview Found InterviewId" + interviewId + " for CoordinatorId " + coordinatorId);
 
         else {
             interview.setInternalFeedback(dto.getInternalFeedBack());
@@ -1749,22 +1757,22 @@ public class InterviewService {
 
 
         String jobTitle = interviewRepository.findJobTitleByJobId(interview.getJobId());
-        String subject="Candidate Status and Feedback for Internal Level";
+        String subject = "Candidate Status and Feedback for Internal Level";
         String userEmailId = interview.getUserEmail();
-        Optional<CandidateDetails> optionalCandidate=candidateRepository.findById(interview.getCandidateId());
-        CandidateDetails candidate=optionalCandidate.get();
-        String userName=candidateRepository.findUserNameByUserId(interview.getUserId());
+        Optional<CandidateDetails> optionalCandidate = candidateRepository.findById(interview.getCandidateId());
+        CandidateDetails candidate = optionalCandidate.get();
+        String userName = candidateRepository.findUserNameByUserId(interview.getUserId());
         if (userEmailId == null || userEmailId.isEmpty()) {
             logger.error("User email is null or empty for candidateId: {}", interview.getCandidateId());
         } else {
             if (!dto.isSkipNotification()) {
                 try {
-                    if (dto.getInterviewStatus() == null ) {
+                    if (dto.getInterviewStatus() == null) {
                         logger.warn("No interview status found, skipping email notifications");
                     } else {
-                        emailService.sendEmailToUser(interview.getUserEmail(),subject,buildFeedbackEmailBody(
-                                userName,candidate.getFullName(),jobTitle,
-                                dto.getInterviewStatus(),dto.getInternalFeedBack()
+                        emailService.sendEmailToUser(interview.getUserEmail(), subject, buildFeedbackEmailBody(
+                                userName, candidate.getFullName(), jobTitle,
+                                dto.getInterviewStatus(), dto.getInternalFeedBack()
                         ));
                     }
                 } catch (Exception e) {
@@ -1785,6 +1793,7 @@ public class InterviewService {
                 null
         );
     }
+
     private String buildFeedbackEmailBody(
             String userName,
             String candidateName,
@@ -1810,23 +1819,23 @@ public class InterviewService {
     }
 
 
-    public List<CoordinatorInterviewDto> getCoordinatorInterviews(String userId){
+    public List<CoordinatorInterviewDto> getCoordinatorInterviews(String userId) {
 
-        List<InterviewDetails> interviews=interviewRepository.findByAssignedTo(userId);
+        List<InterviewDetails> interviews = interviewRepository.findByAssignedTo(userId);
 
-        List<CoordinatorInterviewDto> response=interviews.stream()
+        List<CoordinatorInterviewDto> response = interviews.stream()
                 .map(interview -> {
-                    String technology=interviewRepository.findJobTitleByJobId(interview.getJobId());
-                   return InterviewService.convertIntoDto(interview,technology);
+                    String technology = interviewRepository.findJobTitleByJobId(interview.getJobId());
+                    return InterviewService.convertIntoDto(interview, technology);
                 })
                 .collect(Collectors.toList());
 
         return response;
     }
 
-    public static CoordinatorInterviewDto convertIntoDto(InterviewDetails interviewDetails,String technology){
+    public static CoordinatorInterviewDto convertIntoDto(InterviewDetails interviewDetails, String technology) {
 
-        CoordinatorInterviewDto dto=new CoordinatorInterviewDto();
+        CoordinatorInterviewDto dto = new CoordinatorInterviewDto();
 
         dto.setInterviewId(interviewDetails.getInterviewId());
         dto.setFullName(interviewDetails.getFullName());
@@ -1850,4 +1859,38 @@ public class InterviewService {
         return dto;
     }
 
+    //============================
+
+    @Autowired
+    private JavaMailSender mailSender;
+
+    public void sendUserCredentials(String toEmail, String userId, String password) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(toEmail);
+            message.setSubject("Your Login Credentials");
+            message.setText("""
+                Dear Candidate,
+
+                Your profile has been successfully registered.
+
+                Login Details:
+                User ID: %s
+                Password: %s
+
+                Please log in and change your password after first login.
+
+                Regards,
+                Placement Team
+                """.formatted(userId, password));
+
+            mailSender.send(message);
+            System.out.println("✅ Email sent to: " + toEmail);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send email: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 }
+

@@ -130,11 +130,11 @@ public class PlacementDetails {
         this.candidateFullName = candidateFullName;
     }
 
-    public String getCandidateContactNo() {
+    public @Pattern(regexp = "^\\d{10}$", message = "contactNumber must be 10 digits") @NotBlank(message = "contact number is required") String getCandidateContactNo() {
         return candidateContactNo;
     }
 
-    public void setCandidateContactNo(String candidateContactNo) {
+    public void setCandidateContactNo(@Pattern(regexp = "^\\d{10}$", message = "contactNumber must be 10 digits") @NotBlank(message = "contact number is required") String candidateContactNo) {
         this.candidateContactNo = candidateContactNo;
     }
 
@@ -275,5 +275,6 @@ public class PlacementDetails {
     public void setInterviewId(String interviewId) {
         this.interviewId = interviewId;
     }
+
 }
 

@@ -1,20 +1,29 @@
 package com.profile.candidate.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.profile.candidate.dto.EncryptionVerifyDto;
 import com.profile.candidate.dto.PlacementDto;
 import com.profile.candidate.dto.PlacementResponseDto;
+import com.profile.candidate.dto.UserDetailsDTO;
 import com.profile.candidate.exceptions.*;
 import com.profile.candidate.model.InterviewDetails;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.PlacementRepository;
+import com.profile.candidate.repository.UserDetailsProjectionRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -606,5 +615,92 @@ public class PlacementService {
 
 
     }
+    //=====================
+    @Autowired
+    private RestTemplate restTemplate;
+    @Autowired
+    private UserDetailsProjectionRepository userDetailsProjectionRepository;
+    @Autowired
+    private JavaMailSender mailSender;
 
+
+    @Value("${userregister.url}")
+    private String userRegisterUrl;
+    public void createUserFromExistingPlacement(String placementId) {
+        PlacementDetails placement = placementRepository.findById(placementId)
+                .orElseThrow(() -> new RuntimeException("Placement not found with ID: " + placementId));
+
+        UserDetailsDTO userDTO = new UserDetailsDTO();
+
+
+        Integer maxIdNum = userDetailsProjectionRepository.findMaxUserIdNumber();
+        int nextIdNum = (maxIdNum != null) ? maxIdNum + 1 : 1;
+
+        // Format: ADRTIN + padded number (e.g. ADRTIN001)
+        String formattedUserId = String.format("ADROI%03d", nextIdNum);
+        userDTO.setUserId(formattedUserId);
+        userDTO.setUserName(placement.getCandidateFullName());
+        userDTO.setPassword("Dummy@123");
+        userDTO.setConfirmPassword("Dummy@123");
+        userDTO.setEmail(placement.getCandidateEmailId());           // Work email
+        userDTO.setPersonalemail(placement.getCandidateEmailId());        // Personal email
+        userDTO.setPhoneNumber(placement.getCandidateContactNo());
+        System.out.println("Phone number from DB: " + placement.getCandidateContactNo());
+
+        userDTO.setDob("1990-01-01"); // default value
+        userDTO.setGender("male");
+        userDTO.setJoiningDate(LocalDate.parse("2025-08-06"));
+        userDTO.setDesignation("Candidate");
+        userDTO.setStatus("ACTIVE");
+
+        List<String> roles = new ArrayList<>();
+        roles.add("EXTERNALEMPLOYEE"); // Keep this consistent with UserRegister expectations
+        userDTO.setRoles(roles);
+
+        String registerUrl = "http://localhost:8083/users/register";
+
+        try {
+            // Log full payload
+            ObjectMapper mapper = new ObjectMapper();
+            String json = mapper.writeValueAsString(userDTO);
+            System.out.println("📤 Sending this to UserRegister: " + json);
+
+            // Make the request
+            ResponseEntity<Map> response = restTemplate.postForEntity(userRegisterUrl, userDTO, Map.class);
+
+            System.out.println("✅ Response Status: " + response.getStatusCode());
+            System.out.println("✅ Response Body: " + response.getBody());
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(userDTO.getEmail());
+            message.setSubject("Your Login Credentials");
+            message.setText("""
+            Dear Candidate,
+
+            Your profile has been successfully registered.
+
+            Login Details:
+            User ID: %s
+            Password: %s
+
+            Please log in and change your password after first login.
+
+            Regards,
+            Placement Team
+            """.formatted(userDTO.getUserId(), userDTO.getPassword()));
+            mailSender.send(message);
+            System.out.println("✅ Email sent to: " + userDTO.getEmail());
+
+            // Log registration response
+            System.out.println("✅ UserRegister Response Status: " + response.getStatusCode());
+            System.out.println("✅ Response Body: " + response.getBody());
+
+        }
+            // Log the response
+
+
+        catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("❌ Failed to create user: " + e.getMessage());
+        }
+    }
 }
