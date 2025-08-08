@@ -205,5 +205,15 @@ public class PlacementController {
         String response = placementService.verifyOtp(encryptDTO);
         return ResponseEntity.ok(response);
     }
+    //======================
+    @PostMapping("/{placementId}/create-user")
+    public ResponseEntity<String> createUserFromPlacement(@PathVariable String placementId) {
+        try {
+            placementService.createUserFromExistingPlacement(placementId);
+            return ResponseEntity.ok("User created from placement successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
 
 }
