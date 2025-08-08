@@ -43,14 +43,15 @@ public class SubmissionsGetResponse {
 
         private String jobId;
 
+        private String technology;
+
         private String clientName;
 
         private LocalDate profileReceivedDate;
 
         private String preferredLocation;
 
-        // Change the skills field from List<String> to String
-        private String skills;  // Now it's just a single string
+        private String skills;
 
         private String communicationSkills;
 
@@ -61,6 +62,30 @@ public class SubmissionsGetResponse {
         private LocalDateTime submittedAt;
 
         private String recruiterName;
+
+        public String getUserEmail() {
+            return userEmail;
+        }
+
+        public void setUserEmail(String userEmail) {
+            this.userEmail = userEmail;
+        }
+
+        private String userEmail;
+
+        private String status;
+
+        public String getTechnology() {return technology;}
+
+        public void setTechnology(String technology) { this.technology = technology; }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
 
         public String getRecruiterName() {
             return recruiterName;

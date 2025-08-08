@@ -1,8 +1,6 @@
 package com.profile.candidate.controller;
 
-import com.profile.candidate.dto.DashboardCountsProjection;
-import com.profile.candidate.dto.PlacementDto;
-import com.profile.candidate.dto.PlacementResponseDto;
+import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.ResourceNotFoundException;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.service.PlacementService;
@@ -18,6 +16,9 @@ import javax.validation.Valid;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @CrossOrigin(origins = {
         "http://35.188.150.92", "http://192.168.0.140:3000", "http://192.168.0.139:3000",
@@ -30,14 +31,14 @@ import java.util.*;
 public class PlacementController {
 
     @Autowired
-    private PlacementService service;
+    private PlacementService placementService;
     private static final Logger logger = LoggerFactory.getLogger(PlacementController.class);
 
 
     // Save placement
     @PostMapping("/placement/create-placement")
     public ResponseEntity<?> savePlacement(@Valid @RequestBody PlacementDto placementDto) {
-        PlacementResponseDto savedPlacement = service.savePlacement(placementDto);
+        PlacementResponseDto savedPlacement = placementService.savePlacement(placementDto);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
@@ -51,7 +52,7 @@ public class PlacementController {
     @PutMapping("/placement/update-placement/{id}")
     public ResponseEntity<?> updatePlacement(@PathVariable String id, @Valid @RequestBody PlacementDto placementDto) {
         try {
-            PlacementResponseDto updated = service.updatePlacement(id, placementDto);
+            PlacementResponseDto updated = placementService.updatePlacement(id, placementDto);
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", true);
@@ -73,7 +74,7 @@ public class PlacementController {
     @DeleteMapping("/placement/delete-placement/{id}")
     public ResponseEntity<?> deletePlacement(@PathVariable String id) {
         try {
-            service.deletePlacement(id);
+            placementService.deletePlacement(id);
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Placement with ID " + id + " deleted successfully",
@@ -91,7 +92,7 @@ public class PlacementController {
     @GetMapping("/placement/placements-list")
     public ResponseEntity<?> getAllPlacements() {
         // Fetch PlacementDetails entities directly from the service
-        List<PlacementDetails> placements = service.getAllPlacements();
+        List<PlacementDetails> placements = placementService.getAllPlacements();
 
         // Prepare the response structure
         Map<String, Object> response = new LinkedHashMap<>();
@@ -107,7 +108,7 @@ public class PlacementController {
     @GetMapping("/placement/{id}")
     public ResponseEntity<?> getPlacementById(@PathVariable String id) {
         try {
-            PlacementResponseDto placement = service.getPlacementById(id);
+            PlacementResponseDto placement = placementService.getPlacementById(id);
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", true);
             response.put("message", "Placement fetched successfully");
@@ -123,37 +124,53 @@ public class PlacementController {
         }
     }
     @GetMapping("/dashboardcounts")
-    public ResponseEntity<Map<String, Long>> getDashboardCounts() {
-        Map<String, Long> counts = service.getCounts();
+    public ResponseEntity<?> getDashboardCounts(@RequestParam(required = false) String recruiterId) {
+        Map<String, Long> counts;
+
+        // If recruiterId is provided, use it, otherwise fetch counts without filtering by recruiter
+        if (recruiterId != null && !recruiterId.trim().isEmpty()) {
+            counts = placementService.getCounts(recruiterId);
+        } else {
+            counts = placementService.getCountsForAll(); // Fetch counts without recruiter-specific filter
+        }
+
         return ResponseEntity.ok(counts);
     }
+
     @GetMapping("/placement/filterByDate")
     public ResponseEntity<List<PlacementDetails>> getPlacementsByDateRange(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        List<PlacementDetails> placements = service.getPlacementsByDateRange(startDate, endDate);
+        List<PlacementDetails> placements = placementService.getPlacementsByDateRange(startDate, endDate);
         return ResponseEntity.ok(placements);
     }
 
     @GetMapping("/dashboardcounts/filterByDate")
     public ResponseEntity<?> getDashboardCountsByDateRange(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String recruiterId) {
+
+        if (endDate.isBefore(startDate)) {
+            logger.warn("End date {} is before start date {}", endDate, startDate);
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "End date cannot be before start date"));
+        }
 
         try {
-            if (endDate.isBefore(startDate)) {
-                logger.warn("End date {} is before start date {}", endDate, startDate);
-                return ResponseEntity.badRequest()
-                        .body(Collections.singletonMap("message", "End date cannot be before start date"));
-            }
+            Map<String, Long> counts;
 
-            Map<String, Long> counts = service.getCountsByDateRange(startDate, endDate);
+            if (recruiterId != null && !recruiterId.trim().isEmpty()) {
+                counts = placementService.getCountsByDateRange(startDate, endDate, recruiterId);
+            } else {
+                counts = placementService.getCountsByDateRangeForAll(startDate, endDate); // Add this method to your service
+            }
 
             if (counts.values().stream().allMatch(count -> count == 0)) {
                 logger.warn("No dashboard data found between {} and {}", startDate, endDate);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Collections.singletonMap("message", "No data found between " + startDate + " and " + endDate));
+                        .body(Map.of("message", "No data found between " + startDate + " and " + endDate));
             }
 
             return ResponseEntity.ok(counts);
@@ -161,9 +178,42 @@ public class PlacementController {
         } catch (Exception e) {
             logger.error("Error fetching dashboard counts between {} and {}", startDate, endDate, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.singletonMap("message", "An error occurred while fetching dashboard counts"));
+                    .body(Map.of("message", "An error occurred while fetching dashboard counts"));
         }
     }
 
+    @PostMapping("/generateOtp")
+    public ResponseEntity<String> sendOtp(@RequestBody EncryptionRequestDTO dto) {
+
+        logger.info("IsNewPlacement :"+dto.isNewPlacement());
+        if(dto.getPlacementId()==null){
+            String response = placementService.generateOtp(dto.getUserId(),dto.isNewPlacement());
+            return ResponseEntity.ok(response);
+        }else if(dto.isNewPlacement()){
+            String response=placementService.generateOtp(dto.getUserId(),dto.isNewPlacement());
+            return ResponseEntity.ok(response);
+        }
+        else {
+            String response = placementService.generateOtp(dto.getUserId(), dto.getPlacementId(), dto.isNewPlacement());
+            return ResponseEntity.ok(response);
+        }
+    }
+
+    @PostMapping("/verifyOtp")
+    public ResponseEntity<String> verifyOtp(@RequestBody EncryptionVerifyDto encryptDTO) {
+
+        String response = placementService.verifyOtp(encryptDTO);
+        return ResponseEntity.ok(response);
+    }
+    //======================
+    @PostMapping("/{placementId}/create-user")
+    public ResponseEntity<String> createUserFromPlacement(@PathVariable String placementId) {
+        try {
+            placementService.createUserFromExistingPlacement(placementId);
+            return ResponseEntity.ok("User created from placement successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
 
 }

@@ -90,6 +90,10 @@ public class CandidateController {
             submission.setPreferredLocation(formData.get("preferredLocation"));
             submission.setSkills(formData.get("skills"));
             submission.setCommunicationSkills(formData.get("communicationSkills"));
+            submission.setClientName(formData.get("clientName"));
+            submission.setUserId(formData.get("userId"));
+            submission.setUserEmail(formData.get("userEmail"));
+            candidateDetails.setUserEmail(formData.get("userEmail"));
             if (formData.get("requiredTechnologiesRating") != null) {
                 submission.setRequiredTechnologiesRating(Double.parseDouble(formData.get("requiredTechnologiesRating")));
             }
@@ -159,7 +163,7 @@ public class CandidateController {
             // Create an error response DTO with error details
             DeleteCandidateResponseDto errorResponse = new DeleteCandidateResponseDto(
                     "error",
-                    "Error occurred while deleting the candidate.",
+                    "Error occurred while deleting the candidate."+ex.getMessage(),
                     null,
                     ex.getMessage()
             );

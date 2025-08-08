@@ -14,6 +14,9 @@ public class GetInterviewResponseDto {
     private String candidateEmailId;                 // Candidate Email ID
     private String userEmail;               // User's Email
     private String userId;                  // User ID (interviewer)
+    private String skills;
+    private float totalExperience;
+    private float relevantExperience;
     private OffsetDateTime interviewDateTime; // Interview Date & Time
     private Integer duration;               // Duration of the interview
     private String zoomLink;                // Zoom Link for the interview
@@ -21,21 +24,54 @@ public class GetInterviewResponseDto {
     private List<String> clientEmail;             // Client Email
     private String clientName;              // Client Name
     private String interviewLevel;          // Interview Level (e.g., 1st, 2nd round)
-    private String interviewStatus;
+    private String latestInterviewStatus;
     private String recruiterName;
     private boolean isPlaced;// New field for status
+    private String technology;
+    private String internalFeedback;
+    private String comments;
 
+    public String getSkills() {
+        return skills;
+    }
 
-    // Constructor
+    public void setSkills(String skills) {
+        this.skills = skills;
+    }
 
-    public GetInterviewResponseDto(String interviewId, String jobId,
-                                   String candidateId, String candidateFullName,
-                                   String candidateContactNo, String candidateEmailId,
-                                   String userEmail, String userId, OffsetDateTime interviewDateTime,
-                                   Integer duration, String zoomLink,
-                                   LocalDateTime interviewScheduledTimestamp, List<String> clientEmail,
-                                   String clientName, String interviewLevel, String interviewStatus,
-                                   String recruiterName, boolean isPlaced) {
+    public float getTotalExperience() {
+        return totalExperience;
+    }
+
+    public void setTotalExperience(float totalExperience) {
+        this.totalExperience = totalExperience;
+    }
+
+    public float getRelevantExperience() {
+        return relevantExperience;
+    }
+
+    public void setRelevantExperience(float relevantExperience) {
+        this.relevantExperience = relevantExperience;
+    }
+
+    public String getTechnology() {
+        return technology;
+    }
+
+    public void setTechnology(String technology) {
+        this.technology = technology;
+    }
+
+    public String getRecruiterName() {
+        return recruiterName;
+    }
+
+    public void setRecruiterName(String recruiterName) {
+        this.recruiterName = recruiterName;
+    }
+
+    public GetInterviewResponseDto(String interviewId, String jobId, String candidateId, String candidateFullName, String candidateContactNo, String candidateEmailId, String userEmail, String userId, String skills, float totalExperience, float relevantExperience, OffsetDateTime interviewDateTime, Integer duration, String zoomLink, LocalDateTime interviewScheduledTimestamp, List<String> clientEmail, String clientName, String interviewLevel, String latestInterviewStatus, String recruiterName, boolean isPlaced, String technology, String internalFeedback, String comments) {
         this.interviewId = interviewId;
         this.jobId = jobId;
         this.candidateId = candidateId;
@@ -44,6 +80,9 @@ public class GetInterviewResponseDto {
         this.candidateEmailId = candidateEmailId;
         this.userEmail = userEmail;
         this.userId = userId;
+        this.skills = skills;
+        this.totalExperience = totalExperience;
+        this.relevantExperience = relevantExperience;
         this.interviewDateTime = interviewDateTime;
         this.duration = duration;
         this.zoomLink = zoomLink;
@@ -51,21 +90,12 @@ public class GetInterviewResponseDto {
         this.clientEmail = clientEmail;
         this.clientName = clientName;
         this.interviewLevel = interviewLevel;
-        this.interviewStatus = interviewStatus;
+        this.latestInterviewStatus = latestInterviewStatus;
         this.recruiterName = recruiterName;
         this.isPlaced = isPlaced;
-    }
-
-
-    // Getters and Setters
-
-
-    public String getRecruiterName() {
-        return recruiterName;
-    }
-
-    public void setRecruiterName(String recruiterName) {
-        this.recruiterName = recruiterName;
+        this.technology = technology;
+        this.internalFeedback = internalFeedback;
+        this.comments = comments;
     }
 
     public boolean getIsPlaced() {
@@ -164,14 +194,13 @@ public class GetInterviewResponseDto {
         this.interviewScheduledTimestamp = interviewScheduledTimestamp;
     }
 
-    public String getInterviewStatus() {
-        return interviewStatus;
+    public String getLatestInterviewStatus() {
+        return latestInterviewStatus;
     }
 
-    public void setInterviewStatus(String interviewStatus) {
-        this.interviewStatus = interviewStatus;
+    public void setLatestInterviewStatus(String latestInterviewStatus) {
+        this.latestInterviewStatus = latestInterviewStatus;
     }
-
 
     public List<String> getClientEmail() {
         return clientEmail;
@@ -203,6 +232,30 @@ public class GetInterviewResponseDto {
 
     public void setInterviewId(String interviewId) {
         this.interviewId = interviewId;
+    }
+
+    public boolean isPlaced() {
+        return isPlaced;
+    }
+
+    public void setPlaced(boolean placed) {
+        isPlaced = placed;
+    }
+
+    public String getInternalFeedback() {
+        return internalFeedback;
+    }
+
+    public void setInternalFeedback(String internalFeedback) {
+        this.internalFeedback = internalFeedback;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
     }
 
     @Override

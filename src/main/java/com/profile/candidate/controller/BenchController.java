@@ -3,14 +3,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.profile.candidate.dto.BenchDetailsDto;
-import com.profile.candidate.dto.BenchResponseDto;
-import com.profile.candidate.dto.ErrorResponseDto;
+import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.DateRangeValidationException;
 import com.profile.candidate.model.BenchDetails;
 import com.profile.candidate.repository.BenchRepository;
 import com.profile.candidate.service.BenchService;
+import com.profile.candidate.service.SubmissionService;
 import jakarta.persistence.EntityNotFoundException;
+import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +53,12 @@ public class BenchController {
     private BenchRepository benchRepository;
 
     @Autowired
-    public BenchController(BenchService benchService) {
+    private SubmissionService service;
+
+    @Autowired
+    public BenchController(BenchService benchService, SubmissionService service) {
         this.benchService = benchService;
+        this.service = service;
     }
     @PostMapping(value = "/bench/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BenchResponseDto> createBenchDetails(
@@ -67,7 +71,8 @@ public class BenchController {
             @RequestParam(value = "skills") String skillsJson, // Expecting JSON string
             @RequestParam(value = "linkedin", required = false) String linkedin,
             @RequestParam(value = "referredBy", required = false) String referredBy,
-            @RequestParam(value = "technology", required = false) String technology)
+            @RequestParam(value = "technology", required = false) String technology,
+            @RequestParam(value="remarks", required = false) String remarks)
 
     {
         try {
@@ -84,7 +89,7 @@ public class BenchController {
             benchDetails.setLinkedin(linkedin);
             benchDetails.setReferredBy(referredBy);
             benchDetails.setTechnology(technology);
-
+            benchDetails.setRemarks(remarks);
             // Process resume file
             if (resumeFile != null && !resumeFile.isEmpty()) {
                 benchDetails.setResume(resumeFile.getBytes());
@@ -121,6 +126,38 @@ public class BenchController {
     }
 
 
+    @PostMapping("/bench/import")
+    public ResponseEntity<?> importBenchFromJson(@RequestBody List<BenchJsonRequest> requestList) {
+        List<String> inserted = new ArrayList<>();
+
+        for (BenchJsonRequest req : requestList) {
+            if (benchRepository.existsByEmail(req.getEmail())) continue;
+
+            BenchDetails bench = new BenchDetails();
+            bench.setId(benchService.generateCustomId());
+            bench.setFullName(req.getFullName());
+            bench.setEmail(req.getEmail());
+            bench.setRelevantExperience(req.getRelevantExperience());
+            bench.setTotalExperience(req.getTotalExperience());
+            bench.setContactNumber(req.getContactNumber());
+            bench.setSkills(req.getSkills());
+            bench.setLinkedin(req.getLinkedin());
+            bench.setReferredBy(req.getReferredBy());
+            bench.setTechnology(req.getTechnology());
+            bench.setRemarks(req.getRemarks());
+
+            if (req.getResume() != null) {
+                byte[] decodedResume = Base64.getDecoder().decode(req.getResume());
+                bench.setResume(decodedResume);
+            }
+
+            benchRepository.save(bench);
+            inserted.add(req.getEmail());
+        }
+
+        return ResponseEntity.ok("Inserted to bench: " + inserted.size());
+    }
+
 
     @GetMapping("/bench/getBenchList")
     public ResponseEntity<List<BenchDetailsDto>> getAllBenchDetails() {
@@ -140,7 +177,8 @@ public class BenchController {
                             bench.getLinkedin(),
                             bench.getReferredBy(),
                             bench.getCreatedDate(),
-                            bench.getTechnology()
+                            bench.getTechnology(),
+                            bench.getRemarks()
                     ))
                     .collect(Collectors.toList());
 
@@ -171,7 +209,8 @@ public class BenchController {
                             bench.getLinkedin(),
                             bench.getReferredBy(),
                             bench.getCreatedDate(),
-                            bench.getTechnology()
+                            bench.getTechnology(),
+                            bench.getRemarks()
                     ))
                     .collect(Collectors.toList());
 
@@ -201,7 +240,6 @@ public class BenchController {
             return ResponseEntity.notFound().build();
         }
     }
-
     @PutMapping("/bench/updatebench/{id}")
     public ResponseEntity<Object> updateBenchDetails(
             @PathVariable String id,
@@ -214,7 +252,8 @@ public class BenchController {
             @RequestPart(value = "skills", required = false) String skillsJson, // Expecting JSON array
             @RequestParam(value = "linkedin", required = false) String linkedin,
             @RequestParam(value = "referredBy", required = false) String referredBy,
-            @RequestParam(value = "technology", required = false) String technology
+            @RequestParam(value = "technology", required = false) String technology,
+            @RequestParam(value="remarks",required = false) String remarks
 
     ) {
         try {
@@ -246,7 +285,7 @@ public class BenchController {
             benchDetails.setReferredBy(referredBy);
             benchDetails.setResume(resumeData);
             benchDetails.setTechnology(technology);
-
+            benchDetails.setRemarks(remarks);
             // ✅ Call service to update details
             BenchDetails updatedBenchDetails = benchService.updateBenchDetails(id, benchDetails);
 
@@ -313,7 +352,6 @@ public class BenchController {
     @GetMapping("/bench/download/{id}")
     public ResponseEntity<byte[]> downloadResume(@PathVariable String id) {
         try {
-            // Fetch BenchDetails by ID
             Optional<BenchDetails> benchDetailsOptional = benchRepository.findById(id);
             if (benchDetailsOptional.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -325,15 +363,35 @@ public class BenchController {
             if (resumeFile == null || resumeFile.length == 0) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
             }
-            // **Use actual filename stored in the database (or default name)**
-            String fileName = benchDetails.getFullName(); // Assuming you have this field in your entity
 
-            if (fileName == null || fileName.isBlank()) {
-                fileName = "Resume_" + id + ".pdf"; // Fallback name
+            Tika tika = new Tika();
+            String contentType = tika.detect(resumeFile);
+
+            // Map content type to correct file extension
+            String extension;
+            switch (contentType) {
+                case "application/pdf":
+                    extension = ".pdf";
+                    break;
+                case "application/msword":
+                    extension = ".doc";
+                    break;
+                case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                    extension = ".docx";
+                    break;
+                default:
+                    extension = ".bin"; // fallback
+                    break;
             }
-            // **Return the file with correct Content-Disposition**
+
+            String fileName = benchDetails.getFullName();
+            if (fileName == null || fileName.isBlank()) {
+                fileName = "Resume_" + id;
+            }
+            fileName = fileName.replaceAll("\\s+", "_") + extension;
+
             return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentType(MediaType.parseMediaType(contentType))
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                     .body(resumeFile);
 
@@ -341,5 +399,97 @@ public class BenchController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    @PostMapping("/bench/auto-populate")
+    public ResponseEntity<BenchResponseDto> autoPopulateBenchFromSubmissions(
+            @RequestParam("userId") String userId,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+    ) {
+        try {
+            TeamleadSubmissionsDTO submissionsDTO = service.getSubmissionsForTeamlead(userId, startDate, endDate);
+
+            List<SubmissionGetResponseDto> allSubmissions = new ArrayList<>();
+            List<SubmissionGetResponseDto> selfSubmissions = submissionsDTO.getSelfSubmissions();
+            List<SubmissionGetResponseDto> teamSubmissions = submissionsDTO.getTeamSubmissions();
+
+            if (selfSubmissions != null) {
+                allSubmissions.addAll(selfSubmissions);
+            }
+            if (teamSubmissions != null) {
+                allSubmissions.addAll(teamSubmissions);
+            }
+
+            logger.info("Auto-populating bench for user: {}", userId);
+            logger.info("Total submissions fetched: {}", allSubmissions.size());
+            logger.info("→ Self-submissions: {}", selfSubmissions != null ? selfSubmissions.size() : 0);
+            logger.info("→ Team-submissions: {}", teamSubmissions != null ? teamSubmissions.size() : 0);
+
+            List<BenchResponseDto.Payload> savedCandidates = new ArrayList<>();
+            int duplicateCount = 0;
+
+            for (SubmissionGetResponseDto submission : allSubmissions) {
+                if (benchRepository.existsByEmail(submission.getCandidateEmailId())) {
+                    duplicateCount++;
+                    logger.debug("Skipped duplicate email: {}", submission.getCandidateEmailId());
+                    continue;
+                }
+
+                BenchDetails bench = new BenchDetails();
+                bench.setId(benchService.generateCustomId());
+                bench.setFullName(submission.getFullName());
+                bench.setEmail(submission.getCandidateEmailId());
+                bench.setContactNumber(submission.getContactNumber());
+                bench.setRelevantExperience(BigDecimal.valueOf(submission.getRelevantExperience()));
+                bench.setTotalExperience(BigDecimal.valueOf(submission.getTotalExperience()));
+                bench.setCreatedDate(LocalDate.now());
+
+                // ✅ Set referredBy from recruiterName
+                bench.setReferredBy(submission.getRecruiterName());
+
+                // ✅ Set resume if available
+                try {
+                    byte[] resumeBytes = service.getResumeByCandidateAndJob(submission.getCandidateId(), submission.getJobId());
+                    bench.setResume(resumeBytes);
+                } catch (Exception ex) {
+                    logger.warn("Resume not found for candidateId={}, jobId={}", submission.getCandidateId(), submission.getJobId());
+                }
+
+                String rawSkills = submission.getSkills();
+                if (rawSkills != null && !rawSkills.trim().isEmpty()) {
+                    List<String> skillsList = Arrays.stream(rawSkills.split(","))
+                            .map(String::trim)
+                            .filter(skill -> !skill.isEmpty())
+                            .collect(Collectors.toList());
+                    bench.setSkills(skillsList);
+                } else {
+                    bench.setSkills(Collections.emptyList());
+                }
+
+                BenchDetails saved = benchRepository.save(bench);
+                savedCandidates.add(new BenchResponseDto.Payload(saved.getId(), saved.getFullName()));
+            }
+
+            logger.info("✅ Total moved to bench: {}", savedCandidates.size());
+            logger.info("⛔ Skipped due to duplicate emails: {}", duplicateCount);
+
+            if (savedCandidates.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NO_CONTENT).body(
+                        new BenchResponseDto("No new entries", "All candidates already exist or no data to import.", null, null)
+                );
+            }
+
+            return ResponseEntity.ok(
+                    new BenchResponseDto("Success", "Bench details auto-populated successfully", savedCandidates, null)
+            );
+
+        } catch (Exception e) {
+            logger.error("Error while auto-populating bench: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new BenchResponseDto("Error", "Failed to auto-populate bench data: " + e.getMessage(), null, null)
+            );
+        }
+    }
+
 
 }

@@ -22,13 +22,13 @@ public class PlacementDto {
     private String vendorName;
     private String startDate;
     private String endDate;
-    private String recruiter;
+    private String recruiterName;
     private String sales;
     private String employmentType;
     private String remarks;
-    private BigDecimal billRate;
-    private BigDecimal payRate;
-    private BigDecimal grossProfit;
+    private String billRate;
+    private String payRate;
+    private String grossProfit;
     private String status;
     private String statusMessage;
     private String interviewId;
@@ -117,12 +117,12 @@ public class PlacementDto {
         this.endDate = endDate;
     }
 
-    public String getRecruiter() {
-        return recruiter;
+    public String getRecruiterName() {
+        return recruiterName;
     }
 
-    public void setRecruiter(String recruiter) {
-        this.recruiter = recruiter;
+    public void setRecruiterName(String recruiterName) {
+        this.recruiterName = recruiterName;
     }
 
     public String getSales() {
@@ -149,27 +149,27 @@ public class PlacementDto {
         this.remarks = remarks;
     }
 
-    public BigDecimal getBillRate() {
+    public String getBillRate() {
         return billRate;
     }
 
-    public void setBillRate(BigDecimal billRate) {
+    public void setBillRate(String billRate) {
         this.billRate = billRate;
     }
 
-    public BigDecimal getPayRate() {
+    public String getPayRate() {
         return payRate;
     }
 
-    public void setPayRate(BigDecimal payRate) {
+    public void setPayRate(String payRate) {
         this.payRate = payRate;
     }
 
-    public BigDecimal getGrossProfit() {
+    public String getGrossProfit() {
         return grossProfit;
     }
 
-    public void setGrossProfit(BigDecimal grossProfit) {
+    public void setGrossProfit(String grossProfit) {
         this.grossProfit = grossProfit;
     }
 

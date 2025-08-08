@@ -16,13 +16,13 @@ import java.util.Optional;
 
 @Repository
 public interface CandidateRepository extends JpaRepository<CandidateDetails, String> {
-    // Additional custom queries if needed
+
     // Find candidate by email
     Optional<CandidateDetails> findByCandidateEmailId(String candidateEmailId);
     List<CandidateDetails> findByUserId(String userId);
 
     Optional<CandidateDetails> findByCandidateIdAndUserId(String candidateId, String userId);
-    // Method to fetch all candidates (this is already provided by JpaRepository)
+
     List<CandidateDetails> findAll();
     // Native SQL query to join candidates and requirements_model_prod tables based on jobId
     @Query(value = "SELECT r.client_name FROM requirements_model r WHERE r.job_id = :jobId", nativeQuery = true)
@@ -35,6 +35,35 @@ public interface CandidateRepository extends JpaRepository<CandidateDetails, Str
 
     @Query(value = "SELECT u.user_name FROM user_details u WHERE u.email = :email", nativeQuery = true)
     String findUserNameByEmail(@Param("email") String email);
+
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(candidate_id, 5) AS UNSIGNED)) FROM candidates", nativeQuery = true)
+    Integer findMaxCandidateNumber();
+
+    @Query(value = "SELECT u.user_name FROM user_details u WHERE u.user_id= :userId",nativeQuery = true)
+    String findUserNameByUserId(@Param("userId") String userId);
+
+
+
+    @Query("SELECT c FROM CandidateDetails c WHERE c.profileReceivedDate BETWEEN :startDate AND :endDate")
+    List<CandidateDetails> findByProfileReceivedDateBetween(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT c FROM CandidateDetails c " +
+            "WHERE c.interviewDateTime IS NOT NULL " +
+            "AND FUNCTION('DATE', c.timestamp) BETWEEN :startDate AND :endDate")
+    List<CandidateDetails> findScheduledInterviewsByDateOnly(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
+
+
+    // Native SQL query to join candidates and requirements_model_prod tables based on jobId
+    @Query(value = "SELECT r.client_name FROM requirements_model_prod r WHERE r.job_id = :jobId", nativeQuery = true)
+    Optional<String> findClientNameByJobId(@Param("jobId") String jobId);
+
+
+
 
 
 }

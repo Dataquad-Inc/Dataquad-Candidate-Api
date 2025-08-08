@@ -1,53 +1,41 @@
-
 package com.profile.candidate.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 
-public class BenchDetailsDto {
-    private String id;
+public class BenchJsonRequest {
+
+    @JsonProperty("full_name")
     private String fullName;
+
+    @JsonProperty("candidate_email_id") // or "email" if that is correct
     private String email;
+
+    @JsonProperty("relevant_experience")
     private BigDecimal relevantExperience;
+
+    @JsonProperty("total_experience")
     private BigDecimal totalExperience;
+
+    @JsonProperty("contact_number")
     private String contactNumber;
+
     private List<String> skills;
+
     private String linkedin;
+
+    @JsonProperty("referred_by")
     private String referredBy;
-    private LocalDate createdDate;
+
     private String technology;
 
-    public BenchDetailsDto(String id, String fullName, String email, BigDecimal relevantExperience, BigDecimal totalExperience, String contactNumber, List<String> skills, String linkedin, String referredBy, LocalDate createdDate,String technology) {
-        this.id = id;
-        this.fullName = fullName;
-        this.email = email;
-        this.relevantExperience = relevantExperience;
-        this.totalExperience = totalExperience;
-        this.contactNumber = contactNumber;
-        this.skills = skills;
-        this.linkedin = linkedin;
-        this.referredBy = referredBy;
-        this.createdDate = createdDate;
-        this.technology=technology;
-    }
+    private String remarks;
 
-    public BenchDetailsDto() {
+    private String resume;
 
-    }
-
-    public BenchDetailsDto() {
-
-    }
-    // ✅ Getters & Setters
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
+    // getters and setters.
 
     public String getFullName() {
         return fullName;
@@ -113,14 +101,6 @@ public class BenchDetailsDto {
         this.referredBy = referredBy;
     }
 
-    public LocalDate getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setCreatedDate(LocalDate createdDate) {
-        this.createdDate = createdDate;
-    }
-
     public String getTechnology() {
         return technology;
     }
@@ -128,4 +108,22 @@ public class BenchDetailsDto {
     public void setTechnology(String technology) {
         this.technology = technology;
     }
+
+    public String getRemarks() {
+        return remarks;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
+    }
+
+    public String getResume() {
+        return resume;
+    }
+
+    public void setResume(String resume) {
+        this.resume = resume;
+    }
+    //
+    // ..
 }

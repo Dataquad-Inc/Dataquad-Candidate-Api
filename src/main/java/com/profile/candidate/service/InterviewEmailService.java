@@ -30,6 +30,46 @@ public class InterviewEmailService {
 
     private static final Logger logger = LoggerFactory.getLogger(InterviewEmailService.class);
 
+
+    public void sendOtpEmail(List<String> toList, String subject, String body) {
+        logger.info("sendOtpEmail in Interview Email is called.");
+
+        if (senderEmail == null || senderEmail.isEmpty()) {
+            logger.error("Sender Email is Not Configured Correctly");
+            throw new EmailConfigurationException("Sender email Not Configured");
+        }
+
+        for (String to : toList) {
+            try {
+                if (!isValidEmail(to.trim())) {
+                    logger.error("Invalid recipient email: {}", to);
+                    throw new IllegalArgumentException("Invalid recipient email format: " + to);
+                }
+
+                MimeMessage message = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+                helper.setTo(to);
+                helper.setSubject(subject);
+                helper.setText(body, true);  // true = send as HTML
+                helper.setFrom(senderEmail);
+
+                mailSender.send(message);
+
+                logger.info("Email sent successfully to {}", to);
+            } catch (EmailConfigurationException | IllegalArgumentException e) {
+                logger.error("Email configuration or format error for {}: {}", to, e.getMessage());
+                throw e;
+            } catch (MailException e) {
+                logger.error("Failed to send email to {}. Error: {}", to, e.getMessage(), e);
+                throw new EmailSendingException("An error occurred while sending the email to: " + to, e);
+            } catch (Exception e) {
+                logger.error("Unexpected error occurred while sending email to {}. Error: {}", to, e.getMessage(), e);
+                throw new RuntimeException("Unexpected error occurred while sending email to: " + to, e);
+            }
+        }
+    }
+
     public void sendInterviewNotification(String to, String subject, String body) {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper;
@@ -112,6 +152,16 @@ public class InterviewEmailService {
                 sendInterviewNotification(candidateEmail, subject, emailBody);
             } catch (Exception e) {
                 logger.error("Failed to send email to Candidate {}: {}", candidateEmail, e.getMessage(), e);
+            }
+        }
+    }
+    public void sendEmailToCoordinator(String coordinatorEmail , String subject, String emailBody) {
+        if (coordinatorEmail != null && !coordinatorEmail.isEmpty()) {
+            try {
+                logger.info("Sending email to Coordinator: {}", coordinatorEmail);
+                sendInterviewNotification(coordinatorEmail, subject, emailBody);
+            } catch (Exception e) {
+                logger.error("Failed to send email to Coordinator {}: {}", coordinatorEmail, e.getMessage(), e);
             }
         }
     }

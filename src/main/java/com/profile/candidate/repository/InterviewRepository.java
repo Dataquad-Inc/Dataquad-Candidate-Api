@@ -1,6 +1,5 @@
 package com.profile.candidate.repository;
 
-import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.InterviewDetails;
 import jakarta.persistence.Tuple;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,8 +15,22 @@ import java.util.Optional;
 public interface InterviewRepository extends JpaRepository<InterviewDetails,String> {
 
 
-    @Query(value = "SELECT id FROM `dataquad`.bdm_client WHERE client_name = :clientName LIMIT 1", nativeQuery = true)
+    @Query(value = "SELECT b.id FROM bdm_client AS b " +
+            "JOIN requirements_model AS r " +
+            "ON r.client_name LIKE CONCAT(b.client_name, '%') " +
+            "WHERE r.client_name = :clientName " +
+            "LIMIT 1", nativeQuery = true)
     String findClientIdByClientName(@Param("clientName") String clientName);
+
+    @Query("SELECT i FROM InterviewDetails i WHERE i.assignedTo = :userId AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
+    List<InterviewDetails> findScheduledInterviewsByAssignedToAndDateRange(
+            @Param("userId") String userId,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime);
+
+    @Query(value = "SELECT email FROM user_details  " +
+            "WHERE user_id = :userId ", nativeQuery = true)
+    String findUserEmailByUserId(@Param("userId") String userId);
 
     InterviewDetails findByCandidateIdAndUserId(String candidateId, String userId);
 
@@ -42,10 +55,10 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
     InterviewDetails findByCandidateIdAndClientName(String candidateId, String clientName);
 
-    @Query(value = "SELECT r.job_title FROM `dataquad`.requirements_model r WHERE r.job_id = :jobId", nativeQuery = true)
+    @Query(value = "SELECT r.job_title FROM requirements_model r WHERE r.job_id = :jobId", nativeQuery = true)
     String findJobTitleByJobId(@Param("jobId") String jobId);
 
-    @Query(value = "SELECT user_name FROM `dataquad`.user_details WHERE user_id = :userId", nativeQuery = true)
+    @Query(value = "SELECT user_name FROM user_details WHERE user_id = :userId", nativeQuery = true)
     String findUsernameByUserId(@Param("userId") String userId);
 
     @Query("SELECT i FROM InterviewDetails i WHERE i.userId = :userId AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
@@ -73,43 +86,63 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     String findRoleByUserId(@Param("userId") String userId);
 
     @Query(value = """
-            SELECT 
-                c.job_id,
-                c.candidate_id,
-                c.full_name,
-                c.contact_number,
-                c.candidate_email_id,
-                c.user_email,
-                c.user_id,
-                DATE_FORMAT(c.interview_date_time, '%Y-%m-%dT%H:%i:%s') AS interview_date_time,
-                c.duration,
-                c.zoom_link,
-                DATE_FORMAT(c.timestamp, '%Y-%m-%dT%H:%i:%s') AS timestamp,
-                c.client_email,
-                c.client_name,
-                c.interview_level,
-                c.interview_status,
-                c.is_placed 
-            FROM 
-                interview_details c
-            WHERE 
-                c.job_id IN (
-                    SELECT r.job_id
-                    FROM requirements_model r
-                    JOIN bdm_client b 
-                        ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
-                    JOIN user_details u 
-                        ON b.on_boarded_by = u.user_name
-                    WHERE u.user_id = :userId
-                )
-                AND c.interview_date_time IS NOT NULL
-                AND c.timestamp BETWEEN :startDateTime AND :endDateTime
-            """, nativeQuery = true)
+    SELECT 
+        c.job_id,
+        c.interview_id AS interview_id,
+        c.candidate_id,
+        c.full_name,
+        c.contact_number,
+        c.candidate_email_id,
+        c.user_email,
+        c.user_id,
+        DATE_FORMAT(c.interview_date_time, '%Y-%m-%dT%H:%i:%s') AS interview_date_time,
+        c.duration,
+        c.zoom_link,
+        DATE_FORMAT(c.timestamp, '%Y-%m-%dT%H:%i:%s') AS timestamp,
+        c.client_email,
+        c.client_name,
+        c.interview_level,
+        c.interview_status,
+        c.is_placed,
+        r2.job_title AS technlogy,
+        c.recruiter_name AS recruiterName,
+        c.internal_feedback AS internalFeedback,
+        c.comments AS comments,
+        cd.total_experience,
+        cd.relevant_experience,
+        s.skills
+    FROM 
+        interview_details c
+    JOIN requirements_model r2 ON r2.job_id = c.job_id
+    LEFT JOIN candidates cd ON cd.candidate_id = c.candidate_id
+    LEFT JOIN candidate_submissions s ON s.candidate_id = c.candidate_id AND s.job_id = c.job_id
+    WHERE 
+        c.job_id IN (
+            SELECT r.job_id
+            FROM requirements_model r
+            JOIN bdm_client b 
+                ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
+            JOIN user_details u 
+                ON b.on_boarded_by = u.user_name
+            WHERE u.user_id = :userId
+        )
+        AND c.interview_date_time IS NOT NULL
+        AND c.timestamp BETWEEN :startDateTime AND :endDateTime
+    """, nativeQuery = true)
     List<Tuple> findScheduledInterviewsByBdmUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime
     );
+
+    @Query("SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END " +
+            "FROM InterviewDetails i " +
+            "WHERE i.assignedTo = :userId AND i.interviewDateTime BETWEEN :start AND :end")
+    boolean existsByAssignedToAndDateRange(@Param("userId") String userId,
+                                           @Param("start") LocalDateTime start,
+                                           @Param("end") LocalDateTime end);
+
+
 
     @Query(value = """
                 SELECT c.* 
@@ -147,6 +180,37 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
             @Param("endDate") LocalDateTime endDate);
 
     InterviewDetails findByCandidateId(String candidateId);
+
+    Optional<InterviewDetails> findByContactNumberAndCandidateEmailId(String candidateContactNo, String candidateEmailId);
+
+    List<InterviewDetails> findByAssignedTo(String userId);
+
+    InterviewDetails findByInterviewIdAndAssignedTo(String interviewId,String coordinatorId);
+    List<InterviewDetails> findByCandidateIdOrderByTimestampDesc(String candidateId);
+
+    @Query("SELECT DISTINCT i.candidateId FROM InterviewDetails i")
+    List<String> findAllCandidateIdsWithInterviews();
+
+
+    @Query(value = """
+    SELECT DISTINCT id.candidate_id
+    FROM interview_details id
+    WHERE id.interview_status IS NOT NULL
+      AND id.interview_status != ''
+      AND JSON_VALID(id.interview_status)
+      AND (
+          JSON_UNQUOTE(JSON_EXTRACT(id.interview_status, CONCAT(
+              '$[', JSON_LENGTH(id.interview_status) - 1, '].status'))) != 'REJECTED'
+          OR JSON_UNQUOTE(JSON_EXTRACT(id.interview_status, CONCAT(
+              '$[', JSON_LENGTH(id.interview_status) - 1, '].interviewLevel'))) != 'INTERNAL'
+      )
+    """, nativeQuery = true)
+    List<String> findInternalRejectedCandidateIdsLatestOnly();
+
+
+
 }
+
+
 
 

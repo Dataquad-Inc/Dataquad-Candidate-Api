@@ -3,8 +3,10 @@ package com.profile.candidate.service;
 import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.*;
 import com.profile.candidate.model.CandidateDetails;
+import com.profile.candidate.model.InterviewDetails;
 import com.profile.candidate.model.Submissions;
 import com.profile.candidate.repository.CandidateRepository;
+import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.SubmissionRepository;
 import jakarta.persistence.Tuple;
 import jakarta.transaction.Transactional;
@@ -35,20 +37,52 @@ public class SubmissionService {
     CandidateRepository candidateRepository;
     @Autowired
     InterviewEmailService emailService;
+    @Autowired
+    InterviewRepository interviewRepository;
 
     private static final Logger logger = LoggerFactory.getLogger(SubmissionService.class);
 
     public SubmissionsGetResponse getAllSubmissions() {
-
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
-        List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(startOfMonth,endOfMonth);
-        List<SubmissionsGetResponse.GetSubmissionData> data =submissions.stream()
+
+        // Step 1: Fetch all submissions for this month
+        List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(startOfMonth, endOfMonth);
+
+        // Step 2: Fetch all candidateIds from interview table
+        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        // Step 3: Filter out submissions for candidates who are in interviews
+        List<Submissions> filteredSubmissions = submissions.stream()
+                .filter(sub -> {
+                    String candidateId = sub.getCandidate() != null ? sub.getCandidate().getCandidateId() : null;
+                    return candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
+                })
+                .collect(Collectors.toList());
+
+        // Step 4: Convert to response DTO
+        List<SubmissionsGetResponse.GetSubmissionData> data = filteredSubmissions.stream()
                 .map(this::convertToSubmissionsGetResponse)
                 .collect(Collectors.toList());
-        SubmissionsGetResponse response=new SubmissionsGetResponse(true,"Submissions found",data,null);
-        return response;
+
+        // ✅ Final log summary at the end
+        logger.info("Submissions Summary ({} to {}): Total={}, Interviewed={}, Excluded={}, Included={}",
+                startOfMonth, endOfMonth,
+                submissions.size(),
+                interviewedSet.size(),
+                submissions.size() - filteredSubmissions.size(),
+                filteredSubmissions.size()
+        );
+
+        return new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
     }
+
+
+
 
     public SubmissionsGetResponse getSubmissions(String candidateId) {
         Optional<CandidateDetails> candidateDetails = candidateRepository.findById(candidateId);
@@ -63,14 +97,45 @@ public class SubmissionService {
       return response;
     }
     public SubmissionsGetResponse getSubmissionById(String submissionId) {
-        Optional<Submissions> submissions = submissionRepository.findById(submissionId);
-        if (submissions.isEmpty()) {
+        Optional<Submissions> submissionOpt = submissionRepository.findById(submissionId);
+
+        if (submissionOpt.isEmpty()) {
             throw new SubmissionNotFoundException("Invalid SubmissionId " + submissionId);
         }
-        List<SubmissionsGetResponse.GetSubmissionData> data= Collections.singletonList(convertToSubmissionsGetResponse(submissions.get()));
-        SubmissionsGetResponse response=new SubmissionsGetResponse(true,"Submissions Found",data,null);
-      return  response;
+
+        Submissions submission = submissionOpt.get();
+        String candidateId = submission.getCandidate() != null ? submission.getCandidate().getCandidateId() : null;
+
+        if (candidateId == null) {
+            throw new SubmissionNotFoundException("Submission has no associated candidate.");
+        }
+
+        // Fetch interviewed candidate IDs
+        List<String> interviewedCandidateIds = interviewRepository.findAllCandidateIdsWithInterviews();
+
+        // Normalize
+        Set<String> normalizedInterviewedIds = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        logger.info("Fetched {} interviewed candidate IDs from interview details.", normalizedInterviewedIds.size());
+
+        if (normalizedInterviewedIds.contains(candidateId.trim().toLowerCase())) {
+            logger.info("Candidate {} is in interview list. Submission excluded.", candidateId);
+            return new SubmissionsGetResponse(true, "Candidate is in interview, no submission shown", Collections.emptyList(), null);
+        }
+
+        logger.info("Candidate {} is NOT in interview list. Submission included.", candidateId);
+
+        List<SubmissionsGetResponse.GetSubmissionData> data = Collections.singletonList(
+                convertToSubmissionsGetResponse(submission)
+        );
+
+        return new SubmissionsGetResponse(true, "Submissions Found", data, null);
     }
+
+
     private SubmissionsGetResponse.GetSubmissionData convertToSubmissionsGetResponse(Submissions sub) {
 
         SubmissionsGetResponse.GetSubmissionData data = new SubmissionsGetResponse.GetSubmissionData();
@@ -87,6 +152,9 @@ public class SubmissionService {
         data.setRequiredTechnologiesRating(sub.getRequiredTechnologiesRating());
         data.setClientName(sub.getClientName());
         data.setRecruiterName(sub.getRecruiterName());
+        data.setStatus(sub.getStatus());
+        data.setTechnology(submissionRepository.findJobTitleByJobId(sub.getJobId()));
+
         CandidateDetails candidate = sub.getCandidate();
         //CandidateDto candidateDto = new CandidateDto();
         data.setUserId(candidate.getUserId());
@@ -101,6 +169,7 @@ public class SubmissionService {
         data.setExpectedCTC(candidate.getExpectedCTC());
         data.setNoticePeriod(candidate.getNoticePeriod());
         data.setCurrentLocation(candidate.getCurrentLocation());
+        data.setUserEmail(candidate.getUserEmail());
 
 
         return data;
@@ -124,9 +193,14 @@ public class SubmissionService {
         String jobIdBeforeDelete = submission.getJobId();
         // Delete the candidate from the repository
         submissionRepository.delete(submission);
-         logger.info("Candidate with ID {} deleted successfully", submissionId);
-         logger.info("recruiterName {} and  recruiterEmail {} and teamLeadEmail {} and teamLeadName {} ",recruiterName,recruiterEmail,teamLeadEmail,teamLeadName);
-        emailService.sendCandidateNotification(submission, recruiterName, recruiterEmail, teamLeadName,teamLeadEmail, "deletion");
+        logger.info("Candidate with ID {} deleted successfully", submissionId);
+
+        InterviewDetails interview=interviewRepository.findInterviewsByCandidateIdAndJobId(submission.getCandidate().getCandidateId(),submission.getJobId());
+        if (interview!=null){
+            interviewRepository.delete(interview);
+            logger.info("Interview with ID {} deleted successfully", interview.getInterviewId());
+        }
+
         // Prepare the response with candidate details
         DeleteSubmissionResponseDto.SubmissionData data = new DeleteSubmissionResponseDto.SubmissionData(submissionIdBeforeDelete, jobIdBeforeDelete);
 
@@ -136,6 +210,8 @@ public class SubmissionService {
                 null);
     }
     public CandidateResponseDto editSubmission(String submissionId, CandidateDetails updatedCandidateDetails, Submissions updatedSubmissionsDetails, MultipartFile resumeFile) {
+
+        logger.info("Updating status: {}", updatedSubmissionsDetails.getStatus());
 
         Optional<Submissions> submissions=submissionRepository.findById(submissionId);
         if(submissions.isEmpty()) throw new SubmissionNotFoundException("No Submissions Found with Submission Id :"+submissionId);
@@ -149,7 +225,7 @@ public class SubmissionService {
                 logger.error("No Candidate found with Id {}" + candidateId);
                 throw new CandidateNotFoundException("Candidate Not Exists with candidateId " + candidateId);
             }
-            Optional<CandidateDetails> optionalCandidate=candidateRepository.findByCandidateIdAndUserId(candidateId,updatedCandidateDetails.getUserId());
+            Optional<Submissions> optionalCandidate=submissionRepository.findBySubmissionIdAndUserId(submissionId,updatedCandidateDetails.getUserId());
             if(optionalCandidate.isEmpty()) {
                 logger.error("Candidate Id {} Not Related to User Id {}", candidateId, updatedCandidateDetails.getUserId());
                 throw new CandidateNotFoundException("Candidate Id: " + candidateId + " Not related to UserId: " + updatedCandidateDetails.getUserId());
@@ -173,7 +249,7 @@ public class SubmissionService {
             existedSubmission.setRequiredTechnologiesRating(updatedSubmissionsDetails.getRequiredTechnologiesRating());
             existedSubmission.setOverallFeedback(updatedSubmissionsDetails.getOverallFeedback());
             existedSubmission.setSubmittedAt(LocalDateTime.now());
-
+            existedSubmission.setStatus(updatedSubmissionsDetails.getStatus());
             if (resumeFile != null && !resumeFile.isEmpty()) {
                 // Convert the resume file to byte[] and set it in the candidateDetails object
                 byte[] resumeData = resumeFile.getBytes();
@@ -229,17 +305,6 @@ public class SubmissionService {
             throw new RuntimeException("An error occurred while saving the resume file", ex);
         }
     }
-    public boolean isCandidateValidForUser(String userId, String candidateId) {
-        // Fetch the candidate by candidateId
-        CandidateDetails candidateDetails = candidateRepository.findById(candidateId)
-                .orElseThrow(() -> new CandidateNotFoundException("Candidate not found"));
-        // Check if the userId associated with the candidate matches the provided userId
-        if (!candidateDetails.getUserId().equals(userId)) {
-            return false;
-        }
-        return true;
-    }
-    // Method to update the candidate fields with new values
     private void updateCandidateFields(CandidateDetails existingCandidate, CandidateDetails updatedCandidateDetails) {
         //if (updatedCandidateDetails.getJobId() != null) existingCandidate.setJobId(updatedCandidateDetails.getJobId());
         if (updatedCandidateDetails.getUserId() != null) existingCandidate.setUserId(updatedCandidateDetails.getUserId());
@@ -308,52 +373,91 @@ public class SubmissionService {
     }
 
     public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId) {
-        // Get the current date
         LocalDate currentDate = LocalDate.now();
-
-        // Calculate the start and end date for the current month
-        LocalDate startOfMonth = currentDate.withDayOfMonth(1);  // First day of the current month
-        LocalDate endOfMonth = currentDate.withDayOfMonth(currentDate.lengthOfMonth());  // Last day of the current month
-
-        // Convert LocalDate to LocalDateTime for query compatibility (starting at the beginning and end of the day)
+        LocalDate startOfMonth = currentDate.withDayOfMonth(1);
+        LocalDate endOfMonth = currentDate.withDayOfMonth(currentDate.lengthOfMonth());
         LocalDateTime startDateTime = startOfMonth.atStartOfDay();
         LocalDateTime endDateTime = endOfMonth.atTime(LocalTime.MAX);
 
-        // Log the date range being fetched
         logger.info("Fetching current month submissions for teamlead with userId: {} between {} and {}", userId, startDateTime, endDateTime);
 
-        // Fetch self submissions for the current month
+        // Fetch all self/team submissions
         List<Tuple> selfSubs = submissionRepository.findSelfSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
-
-        // Fetch team submissions for the current month
         List<Tuple> teamSubs = submissionRepository.findTeamSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
-        logger.info("Fetched {} self submissions for teamlead with userId: {} between {} and {}", selfSubs.size(), userId, startDateTime, endDateTime);
-        logger.info("Fetched {} team submissions for teamlead with userId: {} between {} and {}", teamSubs.size(), userId, startDateTime, endDateTime);
 
-        // Convert Tuple data to DTO for both self and team submissions
-        List<SubmissionGetResponseDto> selfSubDtos = mapTuplesToResponseDto(selfSubs);
-        List<SubmissionGetResponseDto> teamSubDtos = mapTuplesToResponseDto(teamSubs);
+        logger.info("Fetched {} self submissions", selfSubs.size());
+        logger.info("Fetched {} team submissions", teamSubs.size());
 
-        // Return the DTO containing both self and team submissions
+        // Fetch interviewed candidate IDs
+        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
+        Set<String> normalizedInterviewedIds = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        logger.info("Fetched {} interviewed candidate IDs", normalizedInterviewedIds.size());
+
+        // Filter out interviewed candidates from self submissions
+        List<Tuple> filteredSelfSubs = selfSubs.stream()
+                .filter(t -> {
+                    String candidateId = (String) t.get("candidateId");
+                    return candidateId != null && !normalizedInterviewedIds.contains(candidateId.trim().toLowerCase());
+                })
+                .toList();
+
+        // Filter out interviewed candidates from team submissions
+        List<Tuple> filteredTeamSubs = teamSubs.stream()
+                .filter(t -> {
+                    String candidateId = (String) t.get("candidateId");
+                    return candidateId != null && !normalizedInterviewedIds.contains(candidateId.trim().toLowerCase());
+                })
+                .toList();
+
+        logger.info("Filtered self submissions: {} excluded, {} remaining", selfSubs.size() - filteredSelfSubs.size(), filteredSelfSubs.size());
+        logger.info("Filtered team submissions: {} excluded, {} remaining", teamSubs.size() - filteredTeamSubs.size(), filteredTeamSubs.size());
+
+        // Convert to DTOs
+        List<SubmissionGetResponseDto> selfSubDtos = mapTuplesToResponseDto(filteredSelfSubs);
+        List<SubmissionGetResponseDto> teamSubDtos = mapTuplesToResponseDto(filteredTeamSubs);
+
         return new TeamleadSubmissionsDTO(selfSubDtos, teamSubDtos);
     }
+
     public List<SubmissionGetResponseDto> mapTuplesToResponseDto(List<Tuple> tuples) {
         return tuples.stream().map(tuple -> {
             SubmissionGetResponseDto dto = new SubmissionGetResponseDto();
 
+            // Common fields from both queries
             dto.setSubmissionId(tuple.get("submission_id", String.class));
-            dto.setCandidateId(tuple.get("candidate_id", String.class));
+            dto.setCandidateId(tuple.get("candidateId", String.class));
             dto.setFullName(tuple.get("full_name", String.class));
-            dto.setUserName(tuple.get("user_name",String.class));
-            dto.setUserEmail(tuple.get("user_email", String.class));
-            dto.setSkills(tuple.get("skills", String.class)); // Corrected field mapping
-            dto.setPreferredLocation(tuple.get("preferred_location", String.class)); // Corrected field mapping
+            dto.setSkills(tuple.get("skills", String.class));
             dto.setJobId(tuple.get("job_id", String.class));
-            dto.setUserId(tuple.get("user_id",String.class));
-            dto.setUserEmail(tuple.get("user_email", String.class)); // Corrected field mapping
-            dto.setClientName(tuple.get("client_name", String.class)); // Corrected field mapping
+            dto.setUserId(tuple.get("user_id", String.class));
+            dto.setUserEmail(tuple.get("user_email", String.class));
+            dto.setPreferredLocation(tuple.get("preferred_location", String.class));
+            dto.setClientName(tuple.get("client_name", String.class));
+            dto.setRecruiterName(tuple.get("recruiter_name", String.class));
+            dto.setUserName(tuple.get("recruiter_name", String.class));
 
-            // Parsing profileReceivedDate as LocalDate (ensure it comes in a valid format)
+            // Candidate information fields
+            dto.setContactNumber(tuple.get("contact_number", String.class));
+            dto.setCandidateEmailId(tuple.get("candidate_email_id", String.class));
+            dto.setTotalExperience(tuple.get("total_experience", Float.class));
+            dto.setRelevantExperience(tuple.get("relevant_experience", Float.class));
+            dto.setCurrentOrganization(tuple.get("current_organization", String.class));
+            dto.setQualification(tuple.get("qualification", String.class));
+            dto.setCurrentCTC(tuple.get("current_ctc", String.class));
+            dto.setExpectedCTC(tuple.get("expected_ctc", String.class));
+            dto.setNoticePeriod(tuple.get("notice_period", String.class));
+            dto.setCurrentLocation(tuple.get("current_location", String.class));
+            dto.setTechnology(tuple.get("job_title",String.class));
+
+            // Submission information fields
+            dto.setCommunicationSkills(tuple.get("communication_skills", String.class));
+            dto.setRequiredTechnologiesRating(tuple.get("required_technologies_rating", Double.class));
+            dto.setOverallFeedback(tuple.get("overall_feedback", String.class));
+
             String timestamp = tuple.get("profile_received_date", String.class);  // Assuming timestamp is a string
             if (timestamp != null) {
                 try {
@@ -364,18 +468,17 @@ public class SubmissionService {
                     System.err.println("Error parsing profileReceivedDate: " + e.getMessage());
                 }
             }
-
             return dto;
         }).collect(Collectors.toList());
     }
-
     // Method to get candidate submissions by userId
     public List<SubmissionGetResponseDto> getSubmissionsByUserId(String userId) {
-        // ✅ Validate user existence and fetch role
-        String role = submissionRepository.findRoleByUserId(userId); // Native query to join user_roles_prod and roles_prod
+        // ✅ Validate user existence and role
+        String role = submissionRepository.findRoleByUserId(userId);
         if (role == null) {
             throw new ResourceNotFoundException("User ID '" + userId + "' not found or role not assigned.");
         }
+
         LocalDate today = LocalDate.now();
         LocalDate startOfMonth = today.withDayOfMonth(1);
         LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
@@ -393,24 +496,48 @@ public class SubmissionService {
         if (submissions.isEmpty()) {
             throw new CandidateNotFoundException("No submissions found for userId: " + userId + " in the current month.");
         }
-        return submissions.stream().map(submission -> {
 
+        // ✅ Fetch interviewed candidate IDs
+        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        // ✅ Filter submissions
+        List<Submissions> filtered = submissions.stream()
+                .filter(sub -> sub.getCandidate() != null &&
+                        !interviewedSet.contains(sub.getCandidate().getCandidateId().trim().toLowerCase()))
+                .toList();
+
+        List<SubmissionGetResponseDto> dtoList = filtered.stream().map(submission -> {
             Optional<String> clientNameOpt = candidateRepository.findClientNameByJobId(submission.getJobId());
+            String technology = submissionRepository.findJobTitleByJobId(submission.getJobId());
             String clientName = clientNameOpt.orElse(null);
-            SubmissionGetResponseDto dto= convertToSubmissionGetResponseDto(submission);
+            SubmissionGetResponseDto dto = convertToSubmissionGetResponseDto(submission);
+            dto.setTechnology(technology);
             dto.setClientName(clientName);
             return dto;
         }).collect(Collectors.toList());
+
+        // ✅ Logging at the end
+        logger.info("Total submissions fetched for user '{}': {}", userId, submissions.size());
+        logger.info("Submissions excluded (in interviews): {}", submissions.size() - filtered.size());
+        logger.info("Final submissions returned (not in interviews): {}", dtoList.size());
+
+        return dtoList;
     }
 
 
     public List<SubmissionGetResponseDto> getSubmissionsByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate) {
+
         if (endDate.isBefore(startDate)) {
             throw new DateRangeValidationException("End date cannot be before start date.");
         }
 
-        // Fetch role
-        String role = submissionRepository.findRoleByUserId(userId); // write this query to join user_roles_prod and roles_prod
+        // ✅ Fetch role
+        String role = submissionRepository.findRoleByUserId(userId); // Assumes role is not null
+        logger.info("User ID: {} has role: {}", userId, role);
 
         List<Submissions> submissions;
 
@@ -422,58 +549,121 @@ public class SubmissionService {
             throw new UnsupportedOperationException("Only EMPLOYEE and BDM roles are supported.");
         }
 
+        logger.info("Fetched {} submissions for user {} (role: {}) between {} and {}",
+                submissions.size(), userId, role, startDate, endDate);
+
         if (submissions.isEmpty()) {
             throw new CandidateNotFoundException("No submissions found for userId: " + userId + " between " + startDate + " and " + endDate);
         }
 
-        return submissions.stream().map(submission -> {
-            Optional<String> clientNameOpt = candidateRepository.findClientNameByJobId(submission.getJobId());
-            String clientName = clientNameOpt.orElse(null);
-            SubmissionGetResponseDto dto=convertToSubmissionGetResponseDto(submission);
-            dto.setClientName(clientName);
-            return dto;
-        }).collect(Collectors.toList());
+        // ✅ Get interviewed candidate IDs and normalize
+        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        logger.info("Total interviewed candidate IDs: {}", interviewedSet.size());
+
+        // ✅ Filter and enrich DTOs
+        List<SubmissionGetResponseDto> response = submissions.stream()
+                .filter(sub -> {
+                    String candidateId = sub.getCandidate() != null ? sub.getCandidate().getCandidateId() : null;
+                    boolean include = candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
+                    logger.debug("Candidate ID: {} -> {}", candidateId, include ? "Included" : "Excluded (interview)");
+                    return include;
+                })
+                .map(submission -> {
+                    Optional<String> clientNameOpt = candidateRepository.findClientNameByJobId(submission.getJobId());
+                    String technology = submissionRepository.findJobTitleByJobId(submission.getJobId());
+
+                    SubmissionGetResponseDto dto = convertToSubmissionGetResponseDto(submission);
+                    dto.setTechnology(technology);
+                    clientNameOpt.ifPresent(dto::setClientName);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        logger.info("Final DTO count after filtering: {}", response.size());
+
+        return response;
     }
 
-private SubmissionGetResponseDto convertToSubmissionGetResponseDto(Submissions sub) {
-    SubmissionGetResponseDto dto = new SubmissionGetResponseDto();
+    private SubmissionGetResponseDto convertToSubmissionGetResponseDto(Submissions sub) {
 
-    dto.setSubmissionId(sub.getSubmissionId());
-    dto.setCandidateId(sub.getCandidate().getCandidateId());
-    dto.setUserId(sub.getCandidate().getUserId());
-    dto.setUserName(sub.getCandidate().getFullName()); // assuming userName refers to full name
-    dto.setUserEmail(sub.getCandidate().getUserEmail());
-    dto.setFullName(sub.getCandidate().getFullName());
-    dto.setTotalExperience(sub.getCandidate().getTotalExperience());
-    dto.setRelevantExperience(sub.getCandidate().getRelevantExperience());
-    dto.setJobId(sub.getJobId());
-    dto.setClientName(sub.getClientName());
-    dto.setProfileReceivedDate(sub.getProfileReceivedDate());
-    dto.setPreferredLocation(sub.getPreferredLocation());
-    dto.setSkills(sub.getSkills());
-    dto.setContactNumber(sub.getCandidate().getContactNumber());
-    dto.setCandidateEmailId(sub.getCandidate().getCandidateEmailId());
-    dto.setRecruiterName(sub.getRecruiterName());
+        SubmissionGetResponseDto dto = new SubmissionGetResponseDto();
 
-    return dto;
-}
+        dto.setSubmissionId(sub.getSubmissionId());
+        dto.setCandidateId(sub.getCandidate().getCandidateId());
+        dto.setUserId(sub.getCandidate().getUserId());
+        dto.setFullName(sub.getCandidate().getFullName());
+        dto.setCandidateEmailId(sub.getCandidate().getCandidateEmailId());
+        dto.setContactNumber(sub.getCandidate().getContactNumber());
+        dto.setCurrentOrganization(sub.getCandidate().getCurrentOrganization());
+        dto.setQualification(sub.getCandidate().getQualification());
+        dto.setTotalExperience(sub.getCandidate().getTotalExperience());
+        dto.setRelevantExperience(sub.getCandidate().getRelevantExperience());
+        dto.setCurrentCTC(sub.getCandidate().getCurrentCTC());
+        dto.setExpectedCTC(sub.getCandidate().getExpectedCTC());
+        dto.setNoticePeriod(sub.getCandidate().getNoticePeriod());
+        dto.setCurrentLocation(sub.getCandidate().getCurrentLocation());
+        dto.setJobId(sub.getJobId());
+        dto.setClientName(sub.getClientName());
+        dto.setProfileReceivedDate(sub.getProfileReceivedDate());
+        dto.setPreferredLocation(sub.getPreferredLocation());
+        dto.setSkills(sub.getSkills());
+        dto.setCommunicationSkills(sub.getCommunicationSkills());
+        dto.setRequiredTechnologiesRating(sub.getRequiredTechnologiesRating());
+        dto.setOverallFeedback(sub.getOverallFeedback());
+        dto.setRecruiterName(sub.getRecruiterName());
+        dto.setUserName(sub.getRecruiterName());
+        dto.setUserEmail(sub.getUserEmail());
+        dto.setStatus(sub.getStatus());
+        dto.setTechnology(submissionRepository.findJobTitleByJobId(sub.getJobId()));
+
+
+        return dto;
+    }
     public List<SubmissionGetResponseDto> getAllSubmissionsByDateRange(LocalDate startDate, LocalDate endDate) {
 
         if (endDate.isBefore(startDate)) {
             throw new DateRangeValidationException("End date cannot be before start date.");
         }
-        // ✅ Only hit DB after validations pass
+
         List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(startDate, endDate);
+        logger.info("Fetched {} submissions between {} and {}", submissions.size(), startDate, endDate);
 
         if (submissions.isEmpty()) {
-            throw new CandidateNotFoundException("No submissions found for Candidates between " + startDate + " and " + endDate);
+            throw new CandidateNotFoundException("No submissions found for candidates between " + startDate + " and " + endDate);
         }
-        return submissions.stream().map(submission-> {
-            SubmissionGetResponseDto dto = convertToSubmissionGetResponseDto(submission);
 
-            return dto;
-        }).collect(Collectors.toList());
+        // ✅ Get interviewed candidate IDs and normalize
+        List<String> interviewedCandidateIds = interviewRepository.findAllCandidateIdsWithInterviews();
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+        logger.info("Total interviewed candidate IDs fetched: {}", interviewedSet.size());
+
+        // ✅ Filter submissions
+        List<Submissions> filteredSubmissions = submissions.stream()
+                .filter(sub -> {
+                    String candidateId = sub.getCandidate() != null ? sub.getCandidate().getCandidateId() : null;
+                    boolean isIncluded = candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
+                    logger.debug("Candidate ID: {} -> {}", candidateId, isIncluded ? "Included" : "Excluded (in interview)");
+                    return isIncluded;
+                })
+                .collect(Collectors.toList());
+
+        logger.info("Final submissions: {} excluded, {} included",
+                submissions.size() - filteredSubmissions.size(), filteredSubmissions.size());
+
+        // ✅ Map to DTO
+        return filteredSubmissions.stream()
+                .map(this::convertToSubmissionGetResponseDto)
+                .collect(Collectors.toList());
     }
+
 
     public SubmissionsGetResponse getAllSubmissionsFilterByDate(LocalDate startDate, LocalDate endDate) {
 
@@ -483,6 +673,167 @@ private SubmissionGetResponseDto convertToSubmissionGetResponseDto(Submissions s
                 .collect(Collectors.toList());
         SubmissionsGetResponse response=new SubmissionsGetResponse(true,"Submissions found",data,null);
         return response;
+    }
+
+    public CandidateResponseDto editSubmissionWithOutUserId(String submissionId, CandidateDetails updatedCandidateDetails, Submissions updatedSubmissionsDetails, MultipartFile resumeFile) {
+
+        Optional<Submissions> submissions = submissionRepository.findById(submissionId);
+        if (submissions.isEmpty())
+            throw new SubmissionNotFoundException("No Submissions Found with Submission Id :" + submissionId);
+        try {
+            logger.info("Edit Submission started for SubmissionId: {}", submissionId);
+            String candidateId = submissionRepository.findCandidateIdBySubmissionId(submissionId);
+            logger.info("Candidate Id fetched with submissionId :" + candidateId);
+            if (candidateId == null)
+                throw new CandidateNotFoundException("No Candidate Found with SubmissionId :" + submissionId);
+            Optional<CandidateDetails> existingCandidateOpt = candidateRepository.findById(candidateId);
+            if (!existingCandidateOpt.isPresent()) {
+                logger.error("No Candidate found with Id {}" + candidateId);
+                throw new CandidateNotFoundException("Candidate Not Exists with candidateId " + candidateId);
+            }
+            Submissions existedSubmission = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, updatedSubmissionsDetails.getJobId());
+            if (existedSubmission == null) {
+                logger.error("Candidate Not Submitted For JobId {} ", updatedSubmissionsDetails.getJobId());
+                throw new SubmissionNotFoundException("Candidate Not Submitted for JobId " + updatedSubmissionsDetails.getJobId());
+            }
+            CandidateDetails existingCandidate = existingCandidateOpt.get();
+            updateCandidateFields(existingCandidate, updatedCandidateDetails);
+            if (resumeFile != null && !resumeFile.isEmpty()) {
+                existedSubmission.setResumeFilePath(updatedSubmissionsDetails.getResumeFilePath());
+            }
+            existedSubmission.setCandidate(existingCandidate);
+            existedSubmission.setJobId(updatedSubmissionsDetails.getJobId());
+            existedSubmission.setSkills(updatedSubmissionsDetails.getSkills());
+            existedSubmission.setPreferredLocation(updatedSubmissionsDetails.getPreferredLocation());
+            existedSubmission.setProfileReceivedDate(LocalDate.now());
+            existedSubmission.setCommunicationSkills(updatedSubmissionsDetails.getCommunicationSkills());
+            existedSubmission.setRequiredTechnologiesRating(updatedSubmissionsDetails.getRequiredTechnologiesRating());
+            existedSubmission.setOverallFeedback(updatedSubmissionsDetails.getOverallFeedback());
+            existedSubmission.setSubmittedAt(LocalDateTime.now());
+            existedSubmission.setStatus(updatedSubmissionsDetails.getStatus());
+
+            if (resumeFile != null && !resumeFile.isEmpty()) {
+                // Convert the resume file to byte[] and set it in the candidateDetails object
+                byte[] resumeData = resumeFile.getBytes();
+                //candidateDetails.setResume(resumeData);// Store the resume as binary data in DB
+                existedSubmission.setResume(resumeData);
+                // Save the resume to the file system and store the file path in DB
+                String resumeFilePath = saveResumeToFileSystem(resumeFile);
+                // candidateDetails.setResumeFilePath(resumeFilePath);// Store the file path in DB
+                existedSubmission.setResumeFilePath(resumeFilePath);
+            }
+            // Update candidate fields with the new data (e.g., name, contact, etc.)
+            updateCandidateFields(existingCandidate, updatedCandidateDetails);
+            if (resumeFile != null && !resumeFile.isEmpty())
+                saveFile(existedSubmission, resumeFile);  // This saves the file and updates the submission's resumeFilePath
+
+            candidateRepository.save(existingCandidate);
+            submissionRepository.save(existedSubmission);
+            // ------------------ 📧 Send Resubmission Notification Email ------------------
+            String recruiterEmail = existingCandidate.getUserEmail();
+            String recruiterName = candidateRepository.findUserNameByEmail(recruiterEmail);
+            String teamLeadEmail = candidateRepository.findTeamLeadEmailByJobId(existedSubmission.getJobId());
+            String teamLeadName = candidateRepository.findUserNameByEmail(teamLeadEmail);
+            if (recruiterEmail != null && teamLeadEmail != null) {
+                try {
+                    logger.info("Sending candidate resubmission email notification...");
+                    emailService.sendCandidateNotification(existedSubmission, recruiterName, recruiterEmail, teamLeadName, teamLeadEmail, "submission");
+                } catch (Exception e) {
+                    logger.error("Error sending resubmission email: {}", e.getMessage(), e);
+                }
+            } else {
+                logger.warn("Email not sent. recruiterEmail or teamLeadEmail is null. RecruiterEmail: {}, TeamLeadEmail: {}",
+                        recruiterEmail, teamLeadEmail);
+            }
+            // Return a success response with the updated candidate details
+            CandidateResponseDto.CandidateData data = new CandidateResponseDto.CandidateData(
+                    existingCandidate.getCandidateId(),
+                    existingCandidate.getUserId(),
+                    existedSubmission.getSubmissionId()
+            );
+            return new CandidateResponseDto(
+                    "Success",
+                    "Candidate successfully updated",
+                    data,
+                    null);
+        } catch (InvalidFileTypeException ex) {
+            // Custom handling for InvalidFileTypeException
+            logger.error("Invalid file type for resume: {}", ex.getMessage());
+            throw ex; // Rethrow to be caught by GlobalExceptionHandler
+        } catch (IOException ex) {
+            // Specific handling for I/O issues, such as file saving errors
+            logger.error("Failed to save resume file: {}", ex.getMessage());
+            throw new RuntimeException("An error occurred while saving the resume file", ex);
+        }
+
+    }
+    public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId, LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new DateRangeValidationException("Start date and end date must not be null.");
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new DateRangeValidationException("End date cannot be before start date.");
+        }
+
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+        logger.info("Fetching submissions for teamlead (userId: {}) from {} to {}", userId, startDateTime, endDateTime);
+
+        List<Tuple> selfSubs = submissionRepository.findSelfSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
+        List<Tuple> teamSubs = submissionRepository.findTeamSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
+
+        logger.info("Found {} self submissions and {} team submissions for teamlead {}",
+                selfSubs.size(), teamSubs.size(), userId);
+
+        // ✅ Normalize interview candidate IDs for safe comparison
+        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+        logger.info("Interviewed candidates count: {}", interviewedSet.size());
+
+        // ✅ Filter self submissions
+        List<Tuple> filteredSelfSubs = selfSubs.stream()
+                .filter(t -> {
+                    String candidateId = (String) t.get("candidateId");
+                    boolean include = candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
+                    logger.debug("Self Candidate ID: {} -> {}", candidateId, include ? "Included" : "Excluded");
+                    return include;
+                })
+                .toList();
+
+        // ✅ Filter team submissions
+        List<Tuple> filteredTeamSubs = teamSubs.stream()
+                .filter(t -> {
+                    String candidateId = (String) t.get("candidateId");
+                    boolean include = candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
+                    logger.debug("Team Candidate ID: {} -> {}", candidateId, include ? "Included" : "Excluded");
+                    return include;
+                })
+                .toList();
+
+        logger.info("After filtering: {} self submissions and {} team submissions included",
+                filteredSelfSubs.size(), filteredTeamSubs.size());
+
+        // ✅ Convert to DTOs
+        List<SubmissionGetResponseDto> selfSubDtos = mapTuplesToResponseDto(filteredSelfSubs);
+        List<SubmissionGetResponseDto> teamSubDtos = mapTuplesToResponseDto(filteredTeamSubs);
+
+        return new TeamleadSubmissionsDTO(selfSubDtos, teamSubDtos);
+    }
+
+    public byte[] getResumeByCandidateAndJob(String candidateId, String jobId) {
+        Submissions submission = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
+        if (submission == null) {
+            throw new CandidateNotFoundException("Submission not found for candidateId: " + candidateId + ", jobId: " + jobId);
+        }
+        byte[] resume = submission.getResume();
+        if (resume == null || resume.length == 0) {
+            throw new CandidateNotFoundException("Resume is missing for candidateId: " + candidateId + ", jobId: " + jobId);
+        }
+        return resume;
     }
 }
 

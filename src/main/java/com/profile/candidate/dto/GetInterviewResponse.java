@@ -64,9 +64,15 @@ public class GetInterviewResponse {
         private String interviewLevel;          // Interview Level (e.g., 1st, 2nd round)
         private String latestInterviewStatus;
         private boolean isPlaced;
+        private String recruiterName;
+        private float totalExperience;
+        private float relevantExperience;
+        private String skills;
+
+        private String technology;
         //private String emailId;
 
-        public InterviewData(String interviewId, String jobId, String candidateId, String candidateFullName, String candidateContactNo, String candidateEmailId, String userEmail, String userId, OffsetDateTime interviewDateTime, Integer duration, String zoomLink, LocalDateTime interviewScheduledTimestamp, List<String> clientEmail, String clientName, String interviewLevel, String latestInterviewStatus, boolean isPlaced) {
+        public InterviewData(String interviewId, String jobId, String candidateId, String candidateFullName, String candidateContactNo, String candidateEmailId, String userEmail, String userId, OffsetDateTime interviewDateTime, Integer duration, String zoomLink, LocalDateTime interviewScheduledTimestamp, List<String> clientEmail, String clientName, String interviewLevel, String latestInterviewStatus, boolean isPlaced, String recruiterName, float totalExperience, float relevantExperience, String skills, String technology) {
             this.interviewId = interviewId;
             this.jobId = jobId;
             this.candidateId = candidateId;
@@ -84,11 +90,31 @@ public class GetInterviewResponse {
             this.interviewLevel = interviewLevel;
             this.latestInterviewStatus = latestInterviewStatus;
             this.isPlaced = isPlaced;
+            this.recruiterName = recruiterName;
+            this.totalExperience = totalExperience;
+            this.relevantExperience = relevantExperience;
+            this.skills = skills;
+            this.technology = technology;
         }
 
 
         // Getters and Setters
 
+        public String getTechnology() {
+            return technology;
+        }
+
+        public void setTechnology(String technology) {
+            this.technology = technology;
+        }
+
+        public String getRecruiterName() {
+            return recruiterName;
+        }
+
+        public void setRecruiterName(String recruiterName) {
+            this.recruiterName = recruiterName;
+        }
 
         public boolean isPlaced() {
             return isPlaced;
@@ -225,41 +251,31 @@ public class GetInterviewResponse {
         public void setLatestInterviewStatus(String latestInterviewStatus) {
             this.latestInterviewStatus = latestInterviewStatus;
         }
-
-        public InterviewData(String interviewId,
-                             String jobId,
-                             String candidateId,
-                             String candidateFullName,
-                             String candidateContactNo,
-                             String candidateEmailId,
-                             String userEmail,
-                             String userId,
-                             OffsetDateTime interviewDateTime,
-                             Integer duration, String zoomLink,
-                             LocalDateTime interviewScheduledTimestamp,
-                             List<String> clientEmail,
-                             String clientName,
-                             String interviewLevel,
-                             String latestInterviewStatus) {
-            this.interviewId = interviewId;
-            this.jobId = jobId;
-            this.candidateId = candidateId;
-            this.candidateFullName = candidateFullName;
-            this.candidateContactNo = candidateContactNo;
-            this.candidateEmailId = candidateEmailId;
-            this.userEmail = userEmail;
-            this.userId = userId;
-            this.interviewDateTime = interviewDateTime;
-            this.duration = duration;
-            this.zoomLink = zoomLink;
-            this.interviewScheduledTimestamp = interviewScheduledTimestamp;
-            this.clientEmail = clientEmail;
-            this.clientName = clientName;
-            this.interviewLevel = interviewLevel;
-            this.latestInterviewStatus = latestInterviewStatus;
+        public InterviewData() {
         }
 
-        public InterviewData() {
+        public float getTotalExperience() {
+            return totalExperience;
+        }
+
+        public void setTotalExperience(float totalExperience) {
+            this.totalExperience = totalExperience;
+        }
+
+        public float getRelevantExperience() {
+            return relevantExperience;
+        }
+
+        public void setRelevantExperience(float relevantExperience) {
+            this.relevantExperience = relevantExperience;
+        }
+
+        public String getSkills() {
+            return skills;
+        }
+
+        public void setSkills(String skills) {
+            this.skills = skills;
         }
     }
 }

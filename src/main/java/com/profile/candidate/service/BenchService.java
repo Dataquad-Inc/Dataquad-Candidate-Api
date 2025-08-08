@@ -1,8 +1,10 @@
 package com.profile.candidate.service;
 
 import com.profile.candidate.dto.BenchDetailsDto;
+import com.profile.candidate.exceptions.CandidateNotFoundException;
 import com.profile.candidate.exceptions.DateRangeValidationException;
 import com.profile.candidate.model.BenchDetails;
+import com.profile.candidate.model.Submissions;
 import com.profile.candidate.repository.BenchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +32,21 @@ public class BenchService {
     }
 
     public List<BenchDetails> findAllBenchDetails() {
-        return benchRepository.findAll();
+        // Define start and end of the current month
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
+
+        logger.info("Fetching bench details from {} to {}", startOfMonth, endOfMonth);
+
+        // Fetch only current month bench records
+        List<BenchDetails> benchDetailsList = benchRepository.findByCreatedDateBetween(startOfMonth, endOfMonth);
+
+        logger.info("Total bench records fetched for current month: {}", benchDetailsList.size());
+
+        return benchDetailsList;
     }
+
+
 
     public Optional<BenchDetails> findBenchDetailsById(String id) {
         return benchRepository.findById(id);
@@ -47,7 +62,7 @@ public class BenchService {
 
     }
 
-    private String generateCustomId() {
+    public String generateCustomId() {
         // Fetch all existing Bench IDs that follow the pattern "BENCH###"
         List<Integer> existingNumbers = benchRepository.findAll().stream()
                 .map(BenchDetails::getId)
@@ -130,7 +145,7 @@ public class BenchService {
             if (benchDetails.getLinkedin() != null) existingBench.setLinkedin(benchDetails.getLinkedin());
             if (benchDetails.getReferredBy() != null) existingBench.setReferredBy(benchDetails.getReferredBy());
             if (benchDetails.getTechnology() != null) existingBench.setTechnology(benchDetails.getTechnology());
-
+             if(benchDetails.getRemarks()!=null) existingBench.setRemarks(benchDetails.getRemarks());
             return benchRepository.save(existingBench);
         }).orElseThrow(() -> new IllegalArgumentException("BenchDetails with ID " + id + " not found"));
     }
@@ -213,4 +228,5 @@ public class BenchService {
             return null;
         }
     }
+
 }

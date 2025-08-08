@@ -19,6 +19,12 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
+@CrossOrigin(origins = {"http://35.188.150.92", "http://192.168.0.140:3000", "http://192.168.0.139:3000","https://mymulya.com", "http://localhost:3000","http://192.168.0.135:3000",
+        "http://192.168.0.135:80",
+        "http://mymulya.com:443",
+        "http://182.18.177.16:443",
+        "http://localhost/","http://192.168.0.135",
+        "http://182.18.177.16"})
 @RestController
 @RequestMapping("/candidate")
 public class InterviewController {
@@ -46,12 +52,7 @@ public class InterviewController {
                 logger.error("Interview Already Scheduled for Candidate Id :"+interviewRequest.getCandidateId());
                 throw new InterviewAlreadyScheduledException("Interview Already Scheduled for Candidate Id :"+interviewRequest.getCandidateId());
             }
-             //Check if the candidate belongs to the user
-            boolean isValidCandidate =submissionService.isCandidateValidForUser(userId, interviewRequest.getCandidateId());
-            if (!isValidCandidate) {
-                logger.error("Candidate ID does not belong to the provided userId.");
-              throw new InvalidCandidateDataException("Candidate ID does not belong to the provided userId.");
-            }
+
             InterviewResponseDto response = interviewService.scheduleInterview(
                     userId,
                     interviewRequest.getCandidateId(),
@@ -67,7 +68,9 @@ public class InterviewController {
                     interviewRequest.getFullName(),
                     interviewRequest.getContactNumber(),
                     interviewRequest.getCandidateEmailId(),
-                    interviewRequest.isSkipNotification());
+                    interviewRequest.isSkipNotification(),
+                    interviewRequest.getAssignedTo(),
+                    interviewRequest.getComments());
             return ResponseEntity.ok(response);
         }
         catch (JsonProcessingException e) {
@@ -134,29 +137,12 @@ public class InterviewController {
                     interviewRequest.getClientName(),
                     interviewRequest.getInterviewLevel(),
                     interviewRequest.getExternalInterviewDetails(),
+                    interviewRequest.getInternalFeedback(),
                     interviewRequest.getInterviewStatus(),
-                    interviewRequest.isSkipNotification()
-                    ); // Added status update
+                    interviewRequest.isSkipNotification(),
+                    interviewRequest.getAssignedTo(),
+                    interviewRequest.getComments()); // Added status update
             return ResponseEntity.ok(response);
-       // }
-//        catch (CandidateNotFoundException e) {
-//            logger.error("Candidate not found for userId: {}", userId);
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new InterviewResponseDto(
-//                    false, "Candidate not found for the User Id.", null, null
-//            ));
-//        }
-//        catch (InterviewNotScheduledException e) {
-//            logger.error("No interview scheduled for candidateId: {}", candidateId);
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new InterviewResponseDto(
-//                    false, "No scheduled interview found for this candidate.", null, null
-//            ));
-//        }
-//        catch (Exception e) {
-//            logger.error("Error while updating interview: {}", e.getMessage());
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new InterviewResponseDto(
-//                    false, "An error occurred while updating the interview.", null, null
-//            ));
-//        }
 
     }
     @PostMapping("/interview-schedule")
@@ -186,9 +172,7 @@ public class InterviewController {
                         null
                 ));
             }
-            //Check if the candidate belongs to the user
-
-            // Proceed with scheduling the interview if the validation passes
+            //Check if the candidate belongs to the user// Proceed with scheduling the interview if the validation passes
             InterviewResponseDto response = interviewService.scheduleInterviewWithOutUserId(
                     interviewRequest.getCandidateId(),
                     interviewRequest.getInterviewDateTime(),
@@ -202,14 +186,16 @@ public class InterviewController {
                     interviewRequest.getFullName(),
                     interviewRequest.getContactNumber(),
                     interviewRequest.getCandidateEmailId(),
-                    interviewRequest.isSkipNotification());
+                    interviewRequest.isSkipNotification(),
+                    interviewRequest.getAssignedTo(),
+                    interviewRequest.getComments());
             return ResponseEntity.ok(response);
         } catch (CandidateNotFoundException e) {
             // If the candidate is not found
-            logger.error("Candidate not found for userId: {}");
+            logger.error("Candidate not found for userId: {}"+e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new InterviewResponseDto(
                     false,
-                    "Candidate not found ",
+                    "Candidate not found "+e.getMessage(),
                     null,
                     null
             ));
@@ -241,27 +227,33 @@ public class InterviewController {
                     interviewRequest.getClientName(),
                     interviewRequest.getInterviewLevel(),
                     interviewRequest.getExternalInterviewDetails(),
+                    interviewRequest.getInternalFeedback(),
                     interviewRequest.getInterviewStatus(),
-                    interviewRequest.isSkipNotification()
+                    interviewRequest.isSkipNotification(),
+                    interviewRequest.getComments()
             ); // Added status update
-
             return ResponseEntity.ok(response);
     }
     @GetMapping("/interviews/interviewsByUserId/{userId}")
-    public ResponseEntity<List<GetInterviewResponseDto>> getInterviewsByUserId(@PathVariable String userId) throws JsonProcessingException {
-          return new ResponseEntity<>(interviewService.getAllScheduledInterviewsByUserId(userId), HttpStatus.OK);
-
+    public ResponseEntity<List<GetInterviewResponseDto>> getInterviewsByUserId(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "ALL") String interviewLevel,
+            @RequestParam(defaultValue = "false") boolean coordinator  // NEW: optional
+    ) throws JsonProcessingException {
+        List<GetInterviewResponseDto> interviews = interviewService.getAllScheduledInterviewsByUserId(userId, interviewLevel, coordinator);
+        return new ResponseEntity<>(interviews, HttpStatus.OK);
     }
+
     @GetMapping("/interviews/{userId}/filterByDate")
     public ResponseEntity<GetInterviewResponse> getInterviewsByUserIdAndDateRange(
             @PathVariable String userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-
-        GetInterviewResponse interviews = interviewService.getScheduledInterviewsByUserIdAndDateRange(userId, startDate, endDate);
-
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "ALL") String interviewLevel // NEW: filter by level
+    ) {
+        GetInterviewResponse interviews = interviewService.getScheduledInterviewsByUserIdAndDateRange(
+                userId, startDate, endDate, interviewLevel);
         return ResponseEntity.ok(interviews);
-
     }
 
     @GetMapping("/interviews/filterByDate")
@@ -283,7 +275,7 @@ public class InterviewController {
             return ResponseEntity.ok(teamleadInterviewsDTO);
 
         } catch (CandidateNotFoundException ex) {
-            logger.error("No interviews found for teamlead with userId: {}", userId);
+            logger.error("No interviews found for teamlead with userId: {}", userId,ex.getMessage());
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
         } catch (Exception ex) {
@@ -314,10 +306,31 @@ public class InterviewController {
             }
             return ResponseEntity.ok(interviews);
         } catch (Exception e) {
-            logger.error("Error while fetching scheduled interviews for userId: {} between {} and {}", userId, startDate, endDate, e);
+            logger.error("Error while fetching scheduled interviews for userId: {} between {} and {}", userId, startDate, endDate, e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.singletonMap("message", "An error occurred while fetching interviews"));
+                    .body(Collections.singletonMap("message", "An error occurred while fetching interviews"+e.getMessage()));
         }
     }
+    @GetMapping("/interviewSlots/{userId}")
+    public ResponseEntity<InterviewSlotsDto> getInterviewSlots(
+            @PathVariable String userId
+    ){
 
+        return new ResponseEntity<>(interviewService.getInterviewSlots(userId),HttpStatus.OK);
+    }
+
+
+    @PutMapping("/updateInterviewByCoordinator/{coordinatorId}/{interviewId}")
+    public ResponseEntity<InterviewResponseDto> updateInterviewByCoordinator(
+            @PathVariable String coordinatorId,@PathVariable String interviewId,
+            @RequestBody CoordinatorInterviewUpdateDto dto){
+
+       return new ResponseEntity<>(interviewService.updateInterviewByCoordinator(coordinatorId,interviewId,dto),HttpStatus.OK);
+    }
+
+    @GetMapping("/coordinatorInterviews/{userId}")
+    public ResponseEntity<List<CoordinatorInterviewDto>> getCoordinatorInterviews(String userId){
+
+          return new ResponseEntity<>(interviewService.getCoordinatorInterviews(userId),HttpStatus.OK);
+    }
 }
