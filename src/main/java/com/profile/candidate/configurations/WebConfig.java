@@ -20,7 +20,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "http://192.168.0.135:80",
                         "http://182.18.177.16:443",
                         "http://localhost/",
-                        "http://mymulya.com:443"
+                        "http://mymulya.com:443",
+                        "http://192.168.1.141:3000"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")  // Allowed HTTP methods
                 .allowedHeaders("*")                      // Allow all headers

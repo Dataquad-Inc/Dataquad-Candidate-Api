@@ -8,9 +8,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface  UserDetailsProjectionRepository extends JpaRepository<UserDetailsEntity, String> {
-    @Query(value = """
-    SELECT MAX(CAST(SUBSTRING(user_id, 6) AS UNSIGNED)) 
-    FROM user_details 
-    WHERE user_id LIKE 'ADROI%'""", nativeQuery = true)
-    Integer findMaxUserIdNumber();
+    @Query(value = "SELECT MAX(CAST(user_id AS UNSIGNED)) FROM user_details", nativeQuery = true)
+    Integer findMaxUserId();
 }
