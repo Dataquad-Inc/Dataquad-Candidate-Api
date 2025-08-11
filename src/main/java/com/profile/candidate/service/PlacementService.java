@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -619,26 +620,42 @@ public class PlacementService {
     @Autowired
     private RestTemplate restTemplate;
     @Autowired
-    private UserDetailsProjectionRepository userDetailsProjectionRepository;
+    private UserDetailsProjectionRepository userDetailsRepository;
     @Autowired
     private JavaMailSender mailSender;
-
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     @Value("${userregister.url}")
     private String userRegisterUrl;
+
+    private String generateNextUserId() {
+        String sql = """
+        SELECT CONCAT(
+            'ADRTIN',
+            LPAD(COALESCE(MAX(CAST(SUBSTRING(user_id, 7) AS UNSIGNED)), 0) + 1, 4, '0')
+        ) AS next_user_id
+        FROM user_details
+        WHERE user_id LIKE 'ADRTIN%'
+    """;
+        return jdbcTemplate.queryForObject(sql, String.class);
+    }
+
     public void createUserFromExistingPlacement(String placementId) {
         PlacementDetails placement = placementRepository.findById(placementId)
                 .orElseThrow(() -> new RuntimeException("Placement not found with ID: " + placementId));
 
+        String nextUserId = generateNextUserId();
         UserDetailsDTO userDTO = new UserDetailsDTO();
 
 
-        Integer maxIdNum = userDetailsProjectionRepository.findMaxUserIdNumber();
-        int nextIdNum = (maxIdNum != null) ? maxIdNum + 1 : 1;
+
+
+
+
 
         // Format: ADRTIN + padded number (e.g. ADRTIN001)
-        String formattedUserId = String.format("ADROI%03d", nextIdNum);
-        userDTO.setUserId(formattedUserId);
+        userDTO.setUserId(nextUserId);
         userDTO.setUserName(placement.getCandidateFullName());
         userDTO.setPassword("Dummy@123");
         userDTO.setConfirmPassword("Dummy@123");
@@ -654,7 +671,7 @@ public class PlacementService {
         userDTO.setStatus("ACTIVE");
 
         List<String> roles = new ArrayList<>();
-        roles.add("EXTERNALEMPLOYEE"); // Keep this consistent with UserRegister expectations
+        roles.add("EMPLOYEE"); // Keep this consistent with UserRegister expectations
         userDTO.setRoles(roles);
 
         String registerUrl = "http://localhost:8083/users/register";
@@ -670,6 +687,7 @@ public class PlacementService {
 
             System.out.println("✅ Response Status: " + response.getStatusCode());
             System.out.println("✅ Response Body: " + response.getBody());
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(userDTO.getEmail());
             message.setSubject("Your Login Credentials");
@@ -686,7 +704,7 @@ public class PlacementService {
 
             Regards,
             Placement Team
-            """.formatted(userDTO.getUserId(), userDTO.getPassword()));
+            """.formatted(userDTO.getPersonalemail(), userDTO.getPassword()));
             mailSender.send(message);
             System.out.println("✅ Email sent to: " + userDTO.getEmail());
 
@@ -702,6 +720,9 @@ public class PlacementService {
             e.printStackTrace();
             System.err.println("❌ Failed to create user: " + e.getMessage());
         }
+
+
     }
+
 
 }

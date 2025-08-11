@@ -37,7 +37,7 @@ import org.springframework.http.*;
         "http://mymulya.com:443",
         "http://182.18.177.16:443",
         "http://localhost/","http://192.168.0.135",
-        "http://182.18.177.16"})
+        "http://182.18.177.16","http://192.168.1.141:3000"})
 
 @RestController
 @RequestMapping("/candidate")
