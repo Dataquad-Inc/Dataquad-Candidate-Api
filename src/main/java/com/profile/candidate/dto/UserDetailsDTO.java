@@ -34,6 +34,8 @@ public class UserDetailsDTO {
         private String designation;
         private String status;
         private List<String> roles;
+        @Column(name = "entity")
+        private String entity;
 
         public String getUserId() {
                 return userId;
@@ -138,5 +140,13 @@ public class UserDetailsDTO {
 
         public void setRoles(List<String> roles) {
                 this.roles = roles;
+        }
+
+        public String getEntity() {
+                return entity;
+        }
+
+        public void setEntity(String entity) {
+                this.entity = entity;
         }
 }

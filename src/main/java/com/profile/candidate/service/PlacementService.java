@@ -625,6 +625,8 @@ public class PlacementService {
     private JavaMailSender mailSender;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private PlacementRepository placement;
 
     @Value("${userregister.url}")
     private String userRegisterUrl;
@@ -671,8 +673,9 @@ public class PlacementService {
         userDTO.setStatus("ACTIVE");
 
         List<String> roles = new ArrayList<>();
-        roles.add("EMPLOYEE"); // Keep this consistent with UserRegister expectations
+        roles.add("EXTERNALEMPLOYEE"); // Keep this consistent with UserRegister expectations
         userDTO.setRoles(roles);
+        userDTO.setEntity("IN");
 
         String registerUrl = "http://localhost:8083/users/register";
 
@@ -688,27 +691,39 @@ public class PlacementService {
             System.out.println("✅ Response Status: " + response.getStatusCode());
             System.out.println("✅ Response Body: " + response.getBody());
 
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(userDTO.getEmail());
-            message.setSubject("Your Login Credentials");
-            message.setText("""
-            Dear Candidate,
+            if (response.getStatusCode().is2xxSuccessful()) {
+                placement.setRegister(true);
+                placementRepository.save(placement);
 
-            Your profile has been successfully registered.
 
-            Login Details:
-            User ID: %s
-            Password: %s
 
-            Please log in and change your password after first login.
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setTo(userDTO.getEmail());
+                message.setSubject("Your Login Credentials");
+                message.setText("""
+                        Dear Candidate,
 
-            Regards,
-            Placement Team
-            """.formatted(userDTO.getPersonalemail(), userDTO.getPassword()));
-            mailSender.send(message);
-            System.out.println("✅ Email sent to: " + userDTO.getEmail());
+                        Your profile has been successfully registered.
+
+                        Login Details:
+                        User ID: %s
+                        Password: %s
+
+                        Please log in and change your password after first login.
+
+                        Regards,
+                        Placement Team
+                        """.formatted(userDTO.getPersonalemail(), userDTO.getPassword()));
+                mailSender.send(message);
+                System.out.println("✅ Email sent to: " + userDTO.getEmail());
+            }
+            else {
+                System.err.println("❌ Registration failed. isRegister not updated.");
+            }
 
             // Log registration response
+
+
             System.out.println("✅ UserRegister Response Status: " + response.getStatusCode());
             System.out.println("✅ Response Body: " + response.getBody());
 
