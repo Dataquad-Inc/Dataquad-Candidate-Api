@@ -34,10 +34,10 @@ public class PlacementDetails {
     @Column(name = "client_name")
     private String clientName;
 
-    @Column(name= "candidateId")
+    @Column(name = "candidateId")
     private String candidateId;
 
-    @Column(name="candidateEmailId")
+    @Column(name = "candidateEmailId")
     private String candidateEmailId;
 
     @Column(name = "vendor_name")
@@ -81,11 +81,16 @@ public class PlacementDetails {
     @Column(name = "created_At")
     private LocalDate createdAt;
 
-    @Column(name= "interview_id")
+    @Column(name = "interview_id")
     private String interviewId;
 
+    @Column(name = "isRegister")
+    private Boolean isRegister = false;
+
+
+
     @DecimalMin(value = "0.0", inclusive = false, message = "Pay Rate must be a positive number")
-    @Digits(integer = 10, fraction =5, message = "Invalid format for Pay Rate")
+    @Digits(integer = 10, fraction = 5, message = "Invalid format for Pay Rate")
     @Column(name = "hourly_rate")
     private BigDecimal hourlyRate;
 
@@ -275,5 +280,16 @@ public class PlacementDetails {
     public void setInterviewId(String interviewId) {
         this.interviewId = interviewId;
     }
+
+
+
+    public Boolean getRegister() {
+        return isRegister;
+    }
+
+    public void setRegister(Boolean register) {
+        this.isRegister = register;
+    }
+
 }
 

@@ -34,8 +34,17 @@ public class PlacementDto {
     private String interviewId;
     private String jobId;
     private LocalDate createdAt;
+    private boolean isRegister;
 
     private BigDecimal hourlyRate;
+
+    public boolean isRegister() {
+        return isRegister;
+    }
+
+    public void setRegister(boolean register) {
+        isRegister = register;
+    }
 
     public BigDecimal getHourlyRate() {
         return hourlyRate;
