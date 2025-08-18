@@ -13,6 +13,7 @@ import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.PlacementRepository;
 import com.profile.candidate.repository.UserDetailsProjectionRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -360,7 +362,6 @@ public class PlacementService {
         counts.put("fulltimePlacements", ((Number) placementsWithOutDate[1]).longValue());
 
 
-
         return counts;
     }
 
@@ -389,7 +390,6 @@ public class PlacementService {
         counts.put("fulltimePlacements", ((Number) result[4]).longValue());
 
 
-
         return counts;
     }
 
@@ -399,7 +399,8 @@ public class PlacementService {
     private final Random random = new Random();
     private static final long OTP_EXPIRY_TIME_MS = 5 * 60 * 1000; // 5 minutes
     private static final long OTP_COOLDOWN_MS = 60 * 1000; // 1 minute
-     //String ADMIN_EMAIL_ID="putluruarunkumarreddy13@gmail.com";
+
+    //String ADMIN_EMAIL_ID="putluruarunkumarreddy13@gmail.com";
     //String ADMIN_EMAIL_ID=placementRepository.findPrimarySuperAdminEmail();
     private void startOtpCleanupTask() {
         Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
@@ -432,9 +433,9 @@ public class PlacementService {
         }, 1, 5, TimeUnit.MINUTES); // Initial delay: 1 min, Repeat every 5 mins
     }
 
-    public String generateOtp(String userId, String placementId,boolean isNewPlacement) {
+    public String generateOtp(String userId, String placementId, boolean isNewPlacement) {
 
-        List<String> ADMIN_EMAILS=placementRepository.findPrimarySuperAdminEmail();
+        List<String> ADMIN_EMAILS = placementRepository.findPrimarySuperAdminEmail();
         if (userId == null || placementId == null)
             throw new ResourceNotFoundException("User ID or Placement ID can not be null");
 
@@ -445,10 +446,10 @@ public class PlacementService {
             throw new PlacementsNotFoundException("Placement Not Found With ID :" + placementId);
 
         String otp = String.format("%06d", random.nextInt(999999));
-        LocalDateTime requestTime=LocalDateTime.now();
+        LocalDateTime requestTime = LocalDateTime.now();
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy hh:mm a");
         String formattedDateTime = requestTime.format(dateTimeFormatter);
-        String subject="Authorization Required: OTP for Accessing Sensitive Placement Details";
+        String subject = "Authorization Required: OTP for Accessing Sensitive Placement Details";
         logger.info("send Email Otp Getting called.");
 
         long currentTime = System.currentTimeMillis();
@@ -457,7 +458,7 @@ public class PlacementService {
         if (otpTimestamps.containsKey(placementId) && (currentTime - otpTimestamps.get(placementId)) < OTP_COOLDOWN_MS) {
             throw new InvalidOTPException("Please wait before requesting a new OTP.");
         }
-        emailService.sendOtpEmail(ADMIN_EMAILS, subject, emailBodyForViewAllPlacementsDetails(userName,otp,formattedDateTime,placementDetails.get().getCandidateFullName(),isNewPlacement));
+        emailService.sendOtpEmail(ADMIN_EMAILS, subject, emailBodyForViewAllPlacementsDetails(userName, otp, formattedDateTime, placementDetails.get().getCandidateFullName(), isNewPlacement));
         otpStorageOnUserId.put(userId, otp.trim());
         otpStorageOnPlacementId.put(placementId, otp.trim());
         otpTimestamps.put(placementId, currentTime);
@@ -467,18 +468,19 @@ public class PlacementService {
 
         return "Otp Sent Successfully!";
     }
-    public String emailBodyForViewAllPlacementsDetails(String userName, String otp, String requestTime, String candidateName,boolean isNewPlacement) {
+
+    public String emailBodyForViewAllPlacementsDetails(String userName, String otp, String requestTime, String candidateName, boolean isNewPlacement) {
 
         String safeUserName = (userName != null) ? userName : "Unknown User";
         String safeRequestTime = (requestTime != null) ? requestTime : "N/A";
         String safeOtp = (otp != null) ? otp : "N/A";
         String safeCandidateName = (candidateName != null) ? candidateName : null;
-        if(candidateName==null) {
+        if (candidateName == null) {
             safeCandidateName = isNewPlacement ? "New Candidate" : null;
         }
         String action = safeCandidateName != null ? "UPDATE" : "VIEW";
-        if (isNewPlacement){
-            action =  "UPDATE";
+        if (isNewPlacement) {
+            action = "UPDATE";
         }
         String actionColor = "#3366ff";
 
@@ -507,18 +509,19 @@ public class PlacementService {
                 safeOtp
         );
     }
-    public String generateOtp(String userId,boolean isNewPlacement) {
+
+    public String generateOtp(String userId, boolean isNewPlacement) {
 
         logger.info("Email SMS started..");
-        List<String> ADMIN_EMAILS=placementRepository.findPrimarySuperAdminEmail();
+        List<String> ADMIN_EMAILS = placementRepository.findPrimarySuperAdminEmail();
         if (userId == null) throw new ResourceNotFoundException("User ID or Placement ID can not be null");
         String userName = candidateRepository.findUserNameByUserId(userId);
         if (userName == null) throw new UserNotFoundException("No User Found with ID " + userId);
         String otp = String.format("%06d", random.nextInt(999999));
-        LocalDateTime requestTime=LocalDateTime.now();
+        LocalDateTime requestTime = LocalDateTime.now();
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy hh:mm a");
         String formattedDateTime = requestTime.format(dateTimeFormatter);
-        String subject="Authorization Required: OTP for Accessing Sensitive Placement Details";
+        String subject = "Authorization Required: OTP for Accessing Sensitive Placement Details";
 
         long currentTime = System.currentTimeMillis();
         logger.info("Current Time In milli seconds {}", currentTime);
@@ -527,7 +530,7 @@ public class PlacementService {
             throw new InvalidOTPException("Please wait before requesting a new OTP.");
         }
 
-        emailService.sendOtpEmail(ADMIN_EMAILS, subject, emailBodyForViewAllPlacementsDetails(userName,otp,formattedDateTime,null,isNewPlacement));
+        emailService.sendOtpEmail(ADMIN_EMAILS, subject, emailBodyForViewAllPlacementsDetails(userName, otp, formattedDateTime, null, isNewPlacement));
         otpStorageOnUserId.put(userId, otp.trim());
         otpStorageOnPlacementId.put(userId, otp.trim());
         otpTimestamps.put(userId, currentTime);
@@ -545,7 +548,7 @@ public class PlacementService {
         String userName = candidateRepository.findUserNameByUserId(encryptDTO.getUserId());
         if (userName == null) throw new UserNotFoundException("No User Found with ID " + encryptDTO.getUserId());
 
-        if (encryptDTO.getPlacementId()!=null){
+        if (encryptDTO.getPlacementId() != null) {
             Optional<PlacementDetails> placementDetails = placementRepository.findById(encryptDTO.getPlacementId());
             if (placementDetails.isEmpty()) {
                 logger.error("Placement Not Found with ID {}", encryptDTO.getPlacementId());
@@ -582,8 +585,8 @@ public class PlacementService {
                 throw new InvalidOTPException("Wrong OTP, Please Enter Valid OTP ");
             }
 
-        }else{
-            String userId=encryptDTO.getUserId();
+        } else {
+            String userId = encryptDTO.getUserId();
             String enteredOtp = encryptDTO.getOtp().trim();
             // Retrieve stored OTP
             String storedOtp = otpStorageOnPlacementId.get(userId);
@@ -616,6 +619,7 @@ public class PlacementService {
 
 
     }
+
     //=====================
     @Autowired
     private RestTemplate restTemplate;
@@ -633,13 +637,13 @@ public class PlacementService {
 
     private String generateNextUserId() {
         String sql = """
-        SELECT CONCAT(
-            'ADRTIN',
-            LPAD(COALESCE(MAX(CAST(SUBSTRING(user_id, 7) AS UNSIGNED)), 0) + 1, 4, '0')
-        ) AS next_user_id
-        FROM user_details
-        WHERE user_id LIKE 'ADRTIN%'
-    """;
+                    SELECT CONCAT(
+                        'ADRTIN',
+                        LPAD(COALESCE(MAX(CAST(SUBSTRING(user_id, 7) AS UNSIGNED)), 0) + 1, 4, '0')
+                    ) AS next_user_id
+                    FROM user_details
+                    WHERE user_id LIKE 'ADRTIN%'
+                """;
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 
@@ -649,11 +653,6 @@ public class PlacementService {
 
         String nextUserId = generateNextUserId();
         UserDetailsDTO userDTO = new UserDetailsDTO();
-
-
-
-
-
 
 
         // Format: ADRTIN + padded number (e.g. ADRTIN001)
@@ -673,7 +672,7 @@ public class PlacementService {
         userDTO.setStatus("ACTIVE");
 
         List<String> roles = new ArrayList<>();
-        roles.add("EXTERNALEMPLOYEE"); // Keep this consistent with UserRegister expectations
+        roles.add("EMPLOYEE"); // Keep this consistent with UserRegister expectations
         userDTO.setRoles(roles);
         userDTO.setEntity("IN");
 
@@ -681,54 +680,52 @@ public class PlacementService {
 
         try {
             // Log full payload
-            ObjectMapper mapper = new ObjectMapper();
-            String json = mapper.writeValueAsString(userDTO);
-            System.out.println("📤 Sending this to UserRegister: " + json);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            // Make the request
-            ResponseEntity<Map> response = restTemplate.postForEntity(userRegisterUrl, userDTO, Map.class);
+            helper.setTo(userDTO.getEmail());
+            helper.setSubject("Welcome to MyMulya - Your Login Credentials");
 
-            System.out.println("✅ Response Status: " + response.getStatusCode());
-            System.out.println("✅ Response Body: " + response.getBody());
+            // HTML content like your screenshot
+            String htmlContent = "<!DOCTYPE html>" +
+                    "<html>" +
+                    "<head>" +
+                    "  <meta charset='UTF-8'>" +
+                    "  <style>" +
+                    "    body { font-family: Arial, sans-serif; background-color: #f5f7fa; padding: 20px; }" +
+                    "    .container { background-color: #fff; padding: 20px; border-radius: 8px; " +
+                    "                 box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }" +
+                    "    h2 { text-align: center; color: #333; }" +
+                    "    p { font-size: 14px; color: #555; }" +
+                    "    .highlight { color: #28a745; font-weight: bold; }" +
+                    "    .credentials { margin-top: 20px; font-size: 14px; text-align: center; }" +
+                    "    .button { display: block; width: 200px; margin: 20px auto; padding: 12px; " +
+                    "              text-align: center; background-color: #007bff; color: #fff; text-decoration: none; " +
+                    "              border-radius: 6px; font-size: 16px; }" +
+                    "  </style>" +
+                    "</head>" +
+                    "<body>" +
+                    "  <div class='container'>" +
+                    "    <h2>Welcome to MyMulya</h2>" +
+                    "    <p>Hi " + userDTO.getUserName() + ",</p>" +
+                    "    <p>Welcome to the team, we're excited to have you onboard!</p>" +
+                    "    <p>Here are your login credentials:</p>" +
+                    "    <div class='credentials'>" +
+                    "      <p>Username : <span class='highlight'>" + userDTO.getPersonalemail() + "</span></p>" +
+                    "      <p>Password : <span class='highlight'>" + userDTO.getPassword() + "</span></p>" +
+                    "    </div>" +
+                    "    <p style='text-align:center;'>You can log in to your account using the link below:</p>" +
+                    "    <a href='https://mymulya.com/' class='button'>Login to MyMulya</a>" +
+                    "    <p style='font-size:12px; color:#888; text-align:center; margin-top:20px;'>Please change your password after first login.</p>" +
+                    "  </div>" +
+                    "</body>" +
+                    "</html>";
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                placement.setRegister(true);
-                placementRepository.save(placement);
+            helper.setText(htmlContent, true); // true = HTML
+            mailSender.send(mimeMessage);
 
-
-
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setTo(userDTO.getEmail());
-                message.setSubject("Your Login Credentials");
-                message.setText("""
-                        Dear Candidate,
-
-                        Your profile has been successfully registered.
-
-                        Login Details:
-                        User ID: %s
-                        Password: %s
-
-                        Please log in and change your password after first login.
-
-                        Regards,
-                        Placement Team
-                        """.formatted(userDTO.getPersonalemail(), userDTO.getPassword()));
-                mailSender.send(message);
-                System.out.println("✅ Email sent to: " + userDTO.getEmail());
-            }
-            else {
-                System.err.println("❌ Registration failed. isRegister not updated.");
-            }
-
-            // Log registration response
-
-
-            System.out.println("✅ UserRegister Response Status: " + response.getStatusCode());
-            System.out.println("✅ Response Body: " + response.getBody());
-
+            System.out.println("✅ HTML Email sent to: " + userDTO.getEmail());
         }
-        // Log the response
 
 
         catch (Exception e) {
