@@ -672,7 +672,7 @@ public class PlacementService {
         userDTO.setStatus("ACTIVE");
 
         List<String> roles = new ArrayList<>();
-        roles.add("EMPLOYEE"); // Keep this consistent with UserRegister expectations
+        roles.add("EXTERNALEMPLOYEE"); // Keep this consistent with UserRegister expectations
         userDTO.setRoles(roles);
         userDTO.setEntity("IN");
 
