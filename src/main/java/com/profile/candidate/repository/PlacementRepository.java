@@ -116,5 +116,6 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
     @Query(value="SELECT email FROM user_details  WHERE primary_super_admin = true",nativeQuery = true)
     List<String> findPrimarySuperAdminEmail();
 
+    List<PlacementDetails> findByCandidateEmailIdAndCreatedAtBetween(String candidateEmailId, LocalDate startDate, LocalDate endDate);
 
 }
