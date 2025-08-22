@@ -219,6 +219,39 @@ public class PlacementService {
         return updatedPlacements;
     }
 
+    public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
+        LocalDate now = LocalDate.now();
+        LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
+        LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
+
+        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email, startDate, endDate);
+
+        // Fetch placements filtered by email and date range (implement this repo method)
+        List<PlacementDetails> placements = placementRepository
+                .findByCandidateEmailIdAndCreatedAtBetween(email, startDate, endDate);
+
+        logger.info("Placements found: {}", placements.size());
+
+        List<PlacementDetails> filteredPlacements = new ArrayList<>();
+
+        for (PlacementDetails placement : placements) {
+            // Update status if needed
+            if ("active".equalsIgnoreCase(placement.getStatus()) &&
+                    placement.getEndDate() != null &&
+                    now.isAfter(placement.getEndDate())) {
+
+                placement.setStatus("completed");
+                placementRepository.save(placement);
+            }
+            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                filteredPlacements.add(placement);
+            }
+        }
+        logger.info("Filtered placements count: {}", filteredPlacements.size());
+
+        return filteredPlacements;
+    }
+
     private PlacementResponseDto convertToResponseDto(PlacementDetails updated) {
         return new PlacementResponseDto(
                 updated.getId(),

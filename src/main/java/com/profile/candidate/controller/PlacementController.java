@@ -90,16 +90,20 @@ public class PlacementController {
     }
 
     @GetMapping("/placement/placements-list")
-    public ResponseEntity<?> getAllPlacements() {
-        // Fetch PlacementDetails entities directly from the service
-        List<PlacementDetails> placements = placementService.getAllPlacements();
+    public ResponseEntity<?> getAllPlacements(@RequestParam(required = false) String email) {
+        List<PlacementDetails> placements;
 
-        // Prepare the response structure
+        if (email != null && !email.isEmpty()) {
+            placements = placementService.getPlacementsByCandidateEmail(email);
+        } else {
+            placements = placementService.getAllPlacements();
+        }
+
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("message", "Placements fetched successfully");
         response.put("timestamp", LocalDateTime.now());
-        response.put("data", placements); // Directly return PlacementDetails entities
+        response.put("data", placements);
 
         return ResponseEntity.ok(response);
     }
