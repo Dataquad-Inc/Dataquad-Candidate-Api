@@ -211,12 +211,30 @@ public class PlacementController {
     }
 
     @PostMapping("/{placementId}/create-user")
-    public ResponseEntity<String> createUserFromPlacement(@PathVariable String placementId) {
+    public ResponseEntity<ApiResponse<UserResponseDTO>> createUserFromPlacement(@PathVariable String placementId) {
         try {
-            placementService.createUserFromExistingPlacement(placementId);
-            return ResponseEntity.ok("User created from placement successfully.");
+            UserDetailsDTO createdUser = placementService.createUserFromExistingPlacement(placementId);
+
+            // Map UserDetailsDTO to UserResponseDTO
+            UserResponseDTO responseDto = new UserResponseDTO();
+            responseDto.setUserId(createdUser.getUserId());
+            responseDto.setUserName(createdUser.getUserName());
+            responseDto.setPassword(createdUser.getPassword());
+            responseDto.setConfirmPassword(createdUser.getConfirmPassword());
+            responseDto.setEmail(createdUser.getEmail());
+            responseDto.setRoles(createdUser.getRoles());
+            responseDto.setStatus(createdUser.getStatus());
+            responseDto.setEntity(createdUser.getEntity());
+
+            ApiResponse<UserResponseDTO> successResponse = ApiResponse.success("User created from placement successfully.", responseDto);
+            return ResponseEntity.ok(successResponse);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+            ApiResponse<UserResponseDTO> errorResponse = ApiResponse.error(
+                    "User creation failed",
+                    "USER_CREATION_ERROR",
+                    e.getMessage()
+            );
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
 

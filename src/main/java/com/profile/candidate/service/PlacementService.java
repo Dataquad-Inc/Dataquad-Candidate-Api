@@ -1,17 +1,14 @@
 package com.profile.candidate.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.profile.candidate.dto.EncryptionVerifyDto;
-import com.profile.candidate.dto.PlacementDto;
-import com.profile.candidate.dto.PlacementResponseDto;
-import com.profile.candidate.dto.UserDetailsDTO;
+import com.profile.candidate.client.UserClient;
+import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.*;
 import com.profile.candidate.model.InterviewDetails;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.PlacementRepository;
-import com.profile.candidate.repository.UserDetailsProjectionRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -34,13 +31,18 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 public class PlacementService {
 
     @Autowired
-    PlacementRepository placementRepository;
+    private  PlacementRepository placementRepository;
+
+    @Autowired
+    private  UserClient userClient;
+
+    @Autowired
+    private EmailService emailregisterService;
 
     @PostConstruct
     public void init() {
@@ -649,20 +651,8 @@ public class PlacementService {
 
 
     }
-    //=====================
-    @Autowired
-    private RestTemplate restTemplate;
-    @Autowired
-    private UserDetailsProjectionRepository userDetailsRepository;
-    @Autowired
-    private JavaMailSender mailSender;
     @Autowired
     private JdbcTemplate jdbcTemplate;
-    @Autowired
-    private PlacementRepository placement;
-
-    @Value("${userregister.url}")
-    private String userRegisterUrl;
 
     private String generateNextUserId() {
         String sql = """
@@ -676,101 +666,60 @@ public class PlacementService {
         return jdbcTemplate.queryForObject(sql, String.class);
     }
 
-    public void createUserFromExistingPlacement(String placementId) {
+    public UserDetailsDTO createUserFromExistingPlacement(String placementId) {
         PlacementDetails placement = placementRepository.findById(placementId)
-                .orElseThrow(() -> new RuntimeException("Placement not found with ID: " + placementId));
+                .orElseThrow(() -> {
+                    logger.error("Placement not found with ID: {}", placementId);
+                    return new RuntimeException("Placement not found with ID: " + placementId);
+                });
 
-        String nextUserId = generateNextUserId();
-        UserDetailsDTO userDTO = new UserDetailsDTO();
+        UserDetailsDTO userDto = new UserDetailsDTO();
+        userDto.setUserId(generateNextUserId());
+        userDto.setUserName(placement.getCandidateFullName());
+        userDto.setEmail(placement.getCandidateEmailId());
 
+        // Set additional fields as null or defaults
+        userDto.setPersonalemail(placement.getCandidateEmailId());
+        userDto.setPhoneNumber(placement.getCandidateContactNo());
+        userDto.setDob("1990-01-01");
+        userDto.setGender("male");
+        userDto.setJoiningDate(LocalDate.parse("2025-08-06"));
+        userDto.setDesignation("Candidate");
+        userDto.setStatus("ACTIVE");
 
+        // Generate random 8 character password
+        String randomPassword = PasswordGenerator.generateRandomPassword(8);
+        userDto.setPassword(randomPassword);
+        userDto.setConfirmPassword(randomPassword);
 
-
-
-
-
-        // Format: ADRTIN + padded number (e.g. ADRTIN001)
-        userDTO.setUserId(nextUserId);
-        userDTO.setUserName(placement.getCandidateFullName());
-        userDTO.setPassword("Dummy@123");
-        userDTO.setConfirmPassword("Dummy@123");
-        userDTO.setEmail(placement.getCandidateEmailId());           // Work email
-        userDTO.setPersonalemail(placement.getCandidateEmailId());        // Personal email
-        userDTO.setPhoneNumber(placement.getCandidateContactNo());
-        System.out.println("Phone number from DB: " + placement.getCandidateContactNo());
-
-        userDTO.setDob("1990-01-01"); // default value
-        userDTO.setGender("male");
-        userDTO.setJoiningDate(LocalDate.parse("2025-08-06"));
-        userDTO.setDesignation("Candidate");
-        userDTO.setStatus("ACTIVE");
-
-        List<String> roles = new ArrayList<>();
-        roles.add("EXTERNALEMPLOYEE"); // Keep this consistent with UserRegister expectations
-        userDTO.setRoles(roles);
-        userDTO.setEntity("IN");
-
-        String registerUrl = "http://localhost:8083/users/register";
+        userDto.setRoles(Collections.singleton("EXTERNALEMPLOYEE"));
+        userDto.setStatus("ACTIVE");
+        userDto.setEntity("IN");
 
         try {
-            // Log full payload
-            ObjectMapper mapper = new ObjectMapper();
-            String json = mapper.writeValueAsString(userDTO);
-            System.out.println("📤 Sending this to UserRegister: " + json);
+            logger.info("Attempting to register user: {}", userDto.getUserId());
+            ResponseEntity<ApiResponse<UserDetailsDTO>> response = userClient.registerUser(userDto);
 
-            // Make the request
-            ResponseEntity<Map> response = restTemplate.postForEntity(userRegisterUrl, userDTO, Map.class);
-
-            System.out.println("✅ Response Status: " + response.getStatusCode());
-            System.out.println("✅ Response Body: " + response.getBody());
-
-            if (response.getStatusCode().is2xxSuccessful()) {
+            ApiResponse<UserDetailsDTO> apiResponse = response.getBody();
+            if (response.getStatusCode().is2xxSuccessful() && apiResponse != null && apiResponse.isSuccess()) {
                 placement.setRegister(true);
                 placementRepository.save(placement);
-
-
-
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setTo(userDTO.getEmail());
-                message.setSubject("Your Login Credentials");
-                message.setText("""
-                        Dear Candidate,
-
-                        Your profile has been successfully registered.
-
-                        Login Details:
-                        User ID: %s
-                        Password: %s
-
-                        Please log in and change your password after first login.
-
-                        Regards,
-                        Placement Team
-                        """.formatted(userDTO.getPersonalemail(), userDTO.getPassword()));
-                mailSender.send(message);
-                System.out.println("✅ Email sent to: " + userDTO.getEmail());
+                logger.info("Placement updated with register=true for placementId: {}", placementId);
+                logger.info("User registration succeeded for userId: {}", userDto.getUserId());
+                emailregisterService.sendPasswordEmailHtml(userDto.getEmail(), userDto.getUserName(), randomPassword);
+                logger.info("Password email sent to: {}", userDto.getEmail());
+            } else {
+                String errorCode = apiResponse != null && apiResponse.getError() != null ? apiResponse.getError().getErrorCode() : "UNKNOWN_ERROR";
+                String errorMessage = apiResponse != null && apiResponse.getError() != null ? apiResponse.getError().getErrorMessage() : "User registration failed";
+                logger.error("User registration failed with error code: {}, message: {}", errorCode, errorMessage);
+                throw new RuntimeException("User creation failed with error code: " + errorCode + ", message: " + errorMessage);
             }
-            else {
-                System.err.println("❌ Registration failed. isRegister not updated.");
-            }
-
-            // Log registration response
-
-
-            System.out.println("✅ UserRegister Response Status: " + response.getStatusCode());
-            System.out.println("✅ Response Body: " + response.getBody());
-
-        }
-        // Log the response
-
-
-        catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("❌ Failed to create user: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Exception occurred during user creation", e);
+            // Optionally rethrow or handle the exception as per your requirements
         }
 
-
+        return userDto;
     }
-
 
 }

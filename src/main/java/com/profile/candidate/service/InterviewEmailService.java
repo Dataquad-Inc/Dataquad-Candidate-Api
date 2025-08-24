@@ -13,8 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.MailException;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
+
 import java.util.List;
 import java.util.stream.Stream;
 
