@@ -193,7 +193,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
 
     @Query(value = """
-    SELECT DISTINCT id.candidate_id
+    SELECT DISTINCT id.candidate_id, id.job_id
     FROM interview_details id
     WHERE id.interview_status IS NOT NULL
       AND id.interview_status != ''
@@ -206,9 +206,6 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
       )
     """, nativeQuery = true)
     List<String> findInternalRejectedCandidateIdsLatestOnly();
-
-
-
 }
 
 
