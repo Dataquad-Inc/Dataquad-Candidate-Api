@@ -32,6 +32,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class PlacementService {
@@ -749,5 +750,14 @@ public class PlacementService {
         }
 
         return userDto;
+    }
+    public List<String> getAllVendorNames() {
+        List<PlacementDetails> placements = placementRepository.findAll();
+
+        return placements.stream()
+                .map(PlacementDetails::getVendorName)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
     }
 }
