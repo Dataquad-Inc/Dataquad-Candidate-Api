@@ -1,6 +1,7 @@
 package com.profile.candidate.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.profile.candidate.client.TimesheetClient;
 import com.profile.candidate.client.UserClient;
 import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.*;
@@ -43,6 +44,9 @@ public class PlacementService {
 
     @Autowired
     private EmailService emailregisterService;
+
+    @Autowired
+    private TimesheetClient timesheetClient;
 
     @PostConstruct
     public void init() {
@@ -683,7 +687,7 @@ public class PlacementService {
         userDto.setPhoneNumber(placement.getCandidateContactNo());
         userDto.setDob("1990-01-01");
         userDto.setGender("male");
-        userDto.setJoiningDate(LocalDate.parse("2025-08-06"));
+        userDto.setJoiningDate(LocalDate.parse("2025-08-06")); // Ideally dynamically set
         userDto.setDesignation("Candidate");
         userDto.setStatus("ACTIVE");
 
@@ -700,14 +704,39 @@ public class PlacementService {
             logger.info("Attempting to register user: {}", userDto.getUserId());
             ResponseEntity<ApiResponse<UserDetailsDTO>> response = userClient.registerUser(userDto);
 
+            logger.info("Calling timesheet microservice to initialize leave for userId: {}", userDto.getUserId());
+
             ApiResponse<UserDetailsDTO> apiResponse = response.getBody();
             if (response.getStatusCode().is2xxSuccessful() && apiResponse != null && apiResponse.isSuccess()) {
                 placement.setRegister(true);
                 placementRepository.save(placement);
                 logger.info("Placement updated with register=true for placementId: {}", placementId);
                 logger.info("User registration succeeded for userId: {}", userDto.getUserId());
+
+                // Send password email
                 emailregisterService.sendPasswordEmailHtml(userDto.getEmail(), userDto.getUserName(), randomPassword);
                 logger.info("Password email sent to: {}", userDto.getEmail());
+
+                // --- NEW: Initialize Leave (only for Full-time) ---
+                if ("Full-time".equalsIgnoreCase(placement.getEmploymentType())) {
+                    EmployeeLeaveSummaryDto leaveInitDto = new EmployeeLeaveSummaryDto();
+                    leaveInitDto.setUserId(userDto.getUserId());
+                    leaveInitDto.setEmployeeName(userDto.getUserName());
+                    leaveInitDto.setEmployeeType(placement.getEmploymentType());
+                    leaveInitDto.setJoiningDate(placement.getStartDate()); // or use userDto.getJoiningDate()
+                    leaveInitDto.setUpdatedBy(placement.getCandidateFullName());
+
+                    ApiResponse<EmployeeLeaveSummaryDto> leaveResponse = timesheetClient.initializeLeave(leaveInitDto);
+                    if (leaveResponse == null || !leaveResponse.isSuccess()) {
+                        String errorCode = leaveResponse != null && leaveResponse.getError() != null ? leaveResponse.getError().getErrorCode() : "UNKNOWN_ERROR";
+                        String errorMessage = leaveResponse != null && leaveResponse.getError() != null ? leaveResponse.getError().getErrorMessage() : "Leave initialization failed";
+                        logger.error("Leave initialization failed with error code: {}, message: {}", errorCode, errorMessage);
+                        // Handle error as needed (throw or log)
+                    } else {
+                        logger.info("Leave initialized successfully for userId: {}", userDto.getUserId());
+                    }
+                }
+
             } else {
                 String errorCode = apiResponse != null && apiResponse.getError() != null ? apiResponse.getError().getErrorCode() : "UNKNOWN_ERROR";
                 String errorMessage = apiResponse != null && apiResponse.getError() != null ? apiResponse.getError().getErrorMessage() : "User registration failed";
@@ -716,10 +745,9 @@ public class PlacementService {
             }
         } catch (Exception e) {
             logger.error("Exception occurred during user creation", e);
-            // Optionally rethrow or handle the exception as per your requirements
+            // Handle exception as needed
         }
 
         return userDto;
     }
-
 }
