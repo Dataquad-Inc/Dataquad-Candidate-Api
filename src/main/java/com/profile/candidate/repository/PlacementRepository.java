@@ -117,5 +117,5 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
     List<String> findPrimarySuperAdminEmail();
 
     List<PlacementDetails> findByCandidateEmailIdAndCreatedAtBetween(String candidateEmailId, LocalDate startDate, LocalDate endDate);
-
+    List<PlacementDetails> findByCandidateEmailId(String email);
 }

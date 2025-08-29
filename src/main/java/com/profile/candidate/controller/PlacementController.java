@@ -238,4 +238,15 @@ public class PlacementController {
         }
     }
 
+    @GetMapping("/allVendors")
+    public ResponseEntity<ApiResponse<List<String>>> getAllVendorNames() {
+        try {
+            List<String> vendorNames = placementService.getAllVendorNames();
+            return ResponseEntity.ok(ApiResponse.success("All vendor names fetched successfully", vendorNames));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to fetch vendor names", "FETCH_ERROR", e.getMessage()));
+        }
+    }
+
 }
