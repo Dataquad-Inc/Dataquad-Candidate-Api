@@ -238,14 +238,13 @@ public class PlacementService {
 
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
         LocalDate now = LocalDate.now();
-        LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
-        LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
 
-        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email, startDate, endDate);
+
+        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email);
 
         // Fetch placements filtered by email and date range (implement this repo method)
         List<PlacementDetails> placements = placementRepository
-                .findByCandidateEmailIdAndCreatedAtBetween(email, startDate, endDate);
+                .findByCandidateEmailId(email);
 
         logger.info("Placements found: {}", placements.size());
 
