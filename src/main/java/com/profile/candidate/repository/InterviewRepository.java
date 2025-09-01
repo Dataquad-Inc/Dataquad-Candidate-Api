@@ -198,11 +198,11 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     WHERE id.interview_status IS NOT NULL
       AND id.interview_status != ''
       AND JSON_VALID(id.interview_status)
-      AND (
+      AND NOT (
           JSON_UNQUOTE(JSON_EXTRACT(id.interview_status, CONCAT(
-              '$[', JSON_LENGTH(id.interview_status) - 1, '].status'))) != 'REJECTED'
-          OR JSON_UNQUOTE(JSON_EXTRACT(id.interview_status, CONCAT(
-              '$[', JSON_LENGTH(id.interview_status) - 1, '].interviewLevel'))) != 'INTERNAL'
+              '$[', JSON_LENGTH(id.interview_status) - 1, '].status'))) = 'REJECTED'
+          AND JSON_UNQUOTE(JSON_EXTRACT(id.interview_status, CONCAT(
+              '$[', JSON_LENGTH(id.interview_status) - 1, '].interviewLevel'))) = 'INTERNAL'
       )
     """, nativeQuery = true)
     List<String> findInternalRejectedCandidateIdsLatestOnly();
