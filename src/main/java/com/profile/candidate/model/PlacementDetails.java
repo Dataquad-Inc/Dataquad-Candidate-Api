@@ -103,6 +103,18 @@ public class PlacementDetails {
     }
 
 
+    @Transient
+    private boolean isLogin;
+
+    // getter and setter for isLogin
+    public boolean isLogin() {
+        return isLogin;
+    }
+
+    public void setLogin(boolean login) {
+        this.isLogin = login;
+    }
+
     public BigDecimal getHourlyRate() {
         return hourlyRate;
     }

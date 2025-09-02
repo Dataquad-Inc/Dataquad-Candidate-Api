@@ -1,6 +1,7 @@
 package com.profile.candidate.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 public class UserDetailsDTO {
@@ -19,6 +20,15 @@ public class UserDetailsDTO {
         private Set<String> roles;  // keeping as Set<String> per your request
         private String status;
         private String entity;
+        private LocalDateTime lastLoginTime;
+
+        public LocalDateTime getLastLoginTime() {
+                return lastLoginTime;
+        }
+
+        public void setLastLoginTime(LocalDateTime lastLoginTime) {
+                this.lastLoginTime = lastLoginTime;
+        }
 
         public String getUserId() {
                 return userId;

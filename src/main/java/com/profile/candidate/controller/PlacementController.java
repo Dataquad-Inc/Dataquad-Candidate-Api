@@ -142,13 +142,27 @@ public class PlacementController {
     }
 
     @GetMapping("/placement/filterByDate")
-    public ResponseEntity<List<PlacementDetails>> getPlacementsByDateRange(
+    public ResponseEntity<ApiResponse<List<PlacementDetails>>> getPlacementsByDateRange(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(value = "email", required = false) String email
     ) {
-        List<PlacementDetails> placements = placementService.getPlacementsByDateRange(startDate, endDate);
-        return ResponseEntity.ok(placements);
+        try {
+            List<PlacementDetails> placements;
+            if (email != null && !email.isEmpty()) {
+                placements = placementService.getPlacementsByCandidateEmailAndDateRange(email, startDate, endDate);
+            } else {
+                placements = placementService.getPlacementsByDateRangeWithLoginStatus(startDate, endDate);
+            }
+            return ResponseEntity.ok(ApiResponse.success("Placements fetched successfully", placements));
+        } catch (Exception e) {
+            // Log the error with details
+            logger.error("Error fetching placements", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to fetch placements due to server error", "500", "Internal server error"));
+        }
     }
+
 
     @GetMapping("/dashboardcounts/filterByDate")
     public ResponseEntity<?> getDashboardCountsByDateRange(
