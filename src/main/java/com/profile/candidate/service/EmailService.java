@@ -19,7 +19,7 @@ public class EmailService {
 
             String subject = "Your Login Credentials for MyMulya";
             String htmlBody = buildHtmlPasswordEmailBody(userName, password,to);
-
+            helper.setFrom("notifications@adroitinnovative.com"); // 👈 force sender
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);  // true for HTML
