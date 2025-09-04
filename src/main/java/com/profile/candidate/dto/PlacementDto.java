@@ -35,8 +35,15 @@ public class PlacementDto {
     private String jobId;
     private LocalDate createdAt;
     private boolean isRegister;
-
+    private String employeeWorkingType;
     private BigDecimal hourlyRate;
+
+    public String getEmployeeWorkingType() {
+        return employeeWorkingType;
+    }
+    public void setEmployeeWorkingType(String employeeWorkingType) {
+        this.employeeWorkingType = employeeWorkingType;
+    }
 
     public boolean isRegister() {
         return isRegister;
