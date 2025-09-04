@@ -106,19 +106,7 @@ public class PlacementDetails {
     @Transient
     private boolean isLogin;
 
-    @Column(name = "employee_working_type")
-    private String employeeWorkingType = "MONTHLY"; // Default value
-
     // getter and setter for isLogin
-
-    public String getEmployeeWorkingType() {
-        return employeeWorkingType;
-    }
-
-    public void setEmployeeWorkingType(String employeeWorkingType) {
-        this.employeeWorkingType = employeeWorkingType;
-    }
-
     public boolean isLogin() {
         return isLogin;
     }

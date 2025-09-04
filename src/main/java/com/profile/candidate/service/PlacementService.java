@@ -126,7 +126,6 @@ public class PlacementService {
             logger.warn("No matching interview details found. Proceeding without updating interview.");
         }
 
-        placementDetails.setEmployeeWorkingType("MONTHLY");
         // Set placement status and save
         placementDetails.setStatus("Active");
         PlacementDetails saved = placementRepository.save(placementDetails);
@@ -175,10 +174,6 @@ public class PlacementService {
 
         if (dto.getBillRate() != null) {
             existing.setBillRate(dto.getBillRate());
-        }
-
-        if (dto.getEmployeeWorkingType()!=null){
-            existing.setEmployeeWorkingType(dto.getEmployeeWorkingType());
         }
 
         PlacementDetails updated = placementRepository.save(existing);
@@ -785,7 +780,7 @@ public class PlacementService {
         userDto.setUserName(placement.getCandidateFullName());
         userDto.setEmail(placement.getCandidateEmailId());
 
-        // Set additional fields
+        // Set additional fields as null or defaults
         userDto.setPersonalemail(placement.getCandidateEmailId());
         userDto.setPhoneNumber(placement.getCandidateContactNo());
         userDto.setDob("1990-01-01");
@@ -793,72 +788,66 @@ public class PlacementService {
         userDto.setJoiningDate(LocalDate.parse("2025-08-06")); // Ideally dynamically set
         userDto.setDesignation("Candidate");
         userDto.setStatus("ACTIVE");
-        userDto.setRoles(Collections.singleton("EXTERNALEMPLOYEE"));
-        userDto.setEntity("IN");
 
-        // Generate random 8-character password
+        // Generate random 8 character password
         String randomPassword = PasswordGenerator.generateRandomPassword(8);
         userDto.setPassword(randomPassword);
         userDto.setConfirmPassword(randomPassword);
 
+        userDto.setRoles(Collections.singleton("EXTERNALEMPLOYEE"));
+        userDto.setStatus("ACTIVE");
+        userDto.setEntity("IN");
+
         try {
             logger.info("Attempting to register user: {}", userDto.getUserId());
             ResponseEntity<ApiResponse<UserDetailsDTO>> response = userClient.registerUser(userDto);
-            
+
+            logger.info("Calling timesheet microservice to initialize leave for userId: {}", userDto.getUserId());
+
             ApiResponse<UserDetailsDTO> apiResponse = response.getBody();
             if (response.getStatusCode().is2xxSuccessful() && apiResponse != null && apiResponse.isSuccess()) {
-                // Save placement with register=true
                 placement.setRegister(true);
                 placementRepository.save(placement);
                 logger.info("Placement updated with register=true for placementId: {}", placementId);
+                logger.info("User registration succeeded for userId: {}", userDto.getUserId());
 
-                // --- Always Initialize Leave ---
-                EmployeeLeaveSummaryDto leaveInitDto = new EmployeeLeaveSummaryDto();
-                leaveInitDto.setUserId(userDto.getUserId());
-                leaveInitDto.setEmployeeName(userDto.getUserName());
-                leaveInitDto.setEmployeeType(placement.getEmploymentType());
-                leaveInitDto.setJoiningDate(placement.getStartDate()); // or use userDto.getJoiningDate()
-                leaveInitDto.setUpdatedBy(placement.getCandidateFullName());
-
-                logger.info("Calling timesheet microservice to initialize leave for userId: {}", userDto.getUserId());
-                ApiResponse<EmployeeLeaveSummaryDto> leaveResponse = timesheetClient.initializeLeave(leaveInitDto);
-
-                if (leaveResponse == null || !leaveResponse.isSuccess()) {
-                    String errorCode = leaveResponse != null && leaveResponse.getError() != null
-                            ? leaveResponse.getError().getErrorCode()
-                            : "UNKNOWN_ERROR";
-                    String errorMessage = leaveResponse != null && leaveResponse.getError() != null
-                            ? leaveResponse.getError().getErrorMessage()
-                            : "Leave initialization failed";
-                    logger.error("Leave initialization failed with error code: {}, message: {}", errorCode, errorMessage);
-                    throw new RuntimeException("Leave initialization failed with error code: " + errorCode + ", message: " + errorMessage);
-                } else {
-                    logger.info("Leave initialized successfully for userId: {}", userDto.getUserId());
-                }
-
-                // Send password email ONLY after leave is successfully initialized
+                // Send password email
                 emailregisterService.sendPasswordEmailHtml(userDto.getEmail(), userDto.getUserName(), randomPassword);
                 logger.info("Password email sent to: {}", userDto.getEmail());
 
-                logger.info("User registration succeeded for userId: {}", userDto.getUserId());
+                // --- NEW: Initialize Leave (only for Full-time) ---
+                if ("Full-time".equalsIgnoreCase(placement.getEmploymentType())) {
+                    EmployeeLeaveSummaryDto leaveInitDto = new EmployeeLeaveSummaryDto();
+                    leaveInitDto.setUserId(userDto.getUserId());
+                    leaveInitDto.setEmployeeName(userDto.getUserName());
+                    leaveInitDto.setEmployeeType(placement.getEmploymentType());
+                    leaveInitDto.setJoiningDate(placement.getStartDate()); // or use userDto.getJoiningDate()
+                    leaveInitDto.setUpdatedBy(placement.getCandidateFullName());
+
+                    ApiResponse<EmployeeLeaveSummaryDto> leaveResponse = timesheetClient.initializeLeave(leaveInitDto);
+                    if (leaveResponse == null || !leaveResponse.isSuccess()) {
+                        String errorCode = leaveResponse != null && leaveResponse.getError() != null ? leaveResponse.getError().getErrorCode() : "UNKNOWN_ERROR";
+                        String errorMessage = leaveResponse != null && leaveResponse.getError() != null ? leaveResponse.getError().getErrorMessage() : "Leave initialization failed";
+                        logger.error("Leave initialization failed with error code: {}, message: {}", errorCode, errorMessage);
+                        // Handle error as needed (throw or log)
+                    } else {
+                        logger.info("Leave initialized successfully for userId: {}", userDto.getUserId());
+                    }
+                }
+
             } else {
-                String errorCode = apiResponse != null && apiResponse.getError() != null
-                        ? apiResponse.getError().getErrorCode()
-                        : "UNKNOWN_ERROR";
-                String errorMessage = apiResponse != null && apiResponse.getError() != null
-                        ? apiResponse.getError().getErrorMessage()
-                        : "User registration failed";
+                String errorCode = apiResponse != null && apiResponse.getError() != null ? apiResponse.getError().getErrorCode() : "UNKNOWN_ERROR";
+                String errorMessage = apiResponse != null && apiResponse.getError() != null ? apiResponse.getError().getErrorMessage() : "User registration failed";
                 logger.error("User registration failed with error code: {}, message: {}", errorCode, errorMessage);
                 throw new RuntimeException("User creation failed with error code: " + errorCode + ", message: " + errorMessage);
             }
         } catch (Exception e) {
             logger.error("Exception occurred during user creation", e);
-            throw e; // Re-throw to ensure the caller knows it failed
+            // Handle exception as needed
         }
 
         return userDto;
     }
-
     public List<String> getAllVendorNames() {
         List<PlacementDetails> placements = placementRepository.findAll();
 
