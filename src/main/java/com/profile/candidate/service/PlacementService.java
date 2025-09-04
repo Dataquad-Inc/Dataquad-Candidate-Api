@@ -804,6 +804,7 @@ public class PlacementService {
         try {
             logger.info("Attempting to register user: {}", userDto.getUserId());
             ResponseEntity<ApiResponse<UserDetailsDTO>> response = userClient.registerUser(userDto);
+            logger.info("Calling timesheet microservice to initialize leave for userId: {}", userDto.getUserId());
 
             ApiResponse<UserDetailsDTO> apiResponse = response.getBody();
             if (response.getStatusCode().is2xxSuccessful() && apiResponse != null && apiResponse.isSuccess()) {
