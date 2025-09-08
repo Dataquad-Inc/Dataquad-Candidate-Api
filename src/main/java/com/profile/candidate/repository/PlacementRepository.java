@@ -105,10 +105,17 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
             nativeQuery = true)
     Object getPlacementCountsWithOutDate();
 
-    @Query("SELECT p FROM PlacementDetails p WHERE p.createdAt BETWEEN :startDate AND :endDate")
+    @Query("SELECT p FROM PlacementDetails p WHERE p.startDate BETWEEN :startDate AND :endDate")
     List<PlacementDetails> findPlacementsByCreatedAtBetween(@Param("startDate") LocalDate startDate,
                                                             @Param("endDate") LocalDate endDate
     );
+
+
+    @Query("SELECT p FROM PlacementDetails p WHERE p.startDate BETWEEN :startDate AND :endDate")
+    List<PlacementDetails> findPlacementsByStartDateBetween(@Param("startDate") LocalDate startDate,
+                                                            @Param("endDate") LocalDate endDate);
+
+
 
 
     PlacementDetails findByCandidateContactNoAndClientName(String candidateContactNo, String clientName);
@@ -119,5 +126,12 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
     List<PlacementDetails> findByCandidateEmailId(String candidateEmailId);
 
     List<PlacementDetails> findByCandidateEmailIdAndCreatedAtBetween(String candidateEmailId, LocalDate startDate, LocalDate endDate);
+
+    // For non-email/fetch with login status
+    List<PlacementDetails> findPlacementsByStartDateBetweenOrStartDateAfter(LocalDate start, LocalDate end, LocalDate afterDate);
+
+    // For candidate email and date
+    List<PlacementDetails> findByCandidateEmailIdAndStartDateBetweenOrStartDateAfter(String email, LocalDate start, LocalDate end, LocalDate afterDate);
+
 
 }

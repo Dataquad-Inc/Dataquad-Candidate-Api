@@ -209,14 +209,13 @@ public class PlacementService {
         return convertToResponseDto(placement);
     }
 
-    public List<PlacementDetails> getAllPlacements() {
+    public List<PlacementDetails> getAllPlacements(LocalDate startDate, LocalDate endDate) {
         LocalDate now = LocalDate.now();
-        LocalDate startDate = now.withDayOfMonth(1); // 1st of current month
-        LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
 
         logger.info("Fetching placements between {} and {}", startDate, endDate);
 
-        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByCreatedAtBetween(startDate, endDate);
+        // Fetch by placement startDate between given dates
+        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByStartDateBetween(startDate, endDate);
         logger.info("Total placements found: {}", allPlacements.size());
 
         List<PlacementDetails> updatedPlacements = new ArrayList<>();
@@ -226,7 +225,6 @@ public class PlacementService {
             if ("active".equalsIgnoreCase(placement.getStatus()) &&
                     placement.getEndDate() != null &&
                     now.isAfter(placement.getEndDate())) {
-
                 placement.setStatus("completed");
                 placementRepository.save(placement); // Save the change
             }
@@ -238,14 +236,14 @@ public class PlacementService {
 
                 if (candidateEmail != null && !candidateEmail.isEmpty()) {
                     try {
-                        // Step 1: Get user by email to fetch userId
+                        // Fetch user by email to get userId
                         ResponseEntity<ApiResponse<UserDetailsDTO>> userResp = userClient.getUserByEmail(candidateEmail);
 
                         if (userResp.getBody() != null && userResp.getBody().getData() != null) {
                             String userId = userResp.getBody().getData().getUserId();
 
                             if (userId != null && !userId.isEmpty()) {
-                                // Step 2: Get login status by userId
+                                // Fetch login status by userId
                                 ResponseEntity<ApiResponse<UserLoginStatusDTO>> loginResp = userClient.getLoginStatusByUserId(userId);
 
                                 if (loginResp.getBody() != null && loginResp.getBody().getData() != null) {
@@ -266,6 +264,7 @@ public class PlacementService {
         logger.info("Filtered placements count: {}", updatedPlacements.size());
         return updatedPlacements;
     }
+
 
 
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
@@ -302,22 +301,18 @@ public class PlacementService {
 
     public List<PlacementDetails> getPlacementsByCandidateEmailAndDateRange(String email, LocalDate startDate, LocalDate endDate) {
         LocalDate now = LocalDate.now();
+        LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
 
-        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email, startDate, endDate);
-
-        // Call repository method with email and date range filter (make sure to create this repo method)
-        List<PlacementDetails> placements = placementRepository.findByCandidateEmailIdAndCreatedAtBetween(email, startDate, endDate);
-
-        logger.info("Placements found: {}", placements.size());
+        // Current/future month logic: show this month's and future placements
+        List<PlacementDetails> placements = placementRepository
+                .findByCandidateEmailIdAndStartDateBetweenOrStartDateAfter(email, startDate, endDate, endOfCurrentMonth);
 
         List<PlacementDetails> filteredPlacements = new ArrayList<>();
 
         for (PlacementDetails placement : placements) {
-            // Update status if needed
-            if ("active".equalsIgnoreCase(placement.getStatus()) &&
-                    placement.getEndDate() != null &&
-                    now.isAfter(placement.getEndDate())) {
-
+            if ("active".equalsIgnoreCase(placement.getStatus())
+                    && placement.getEndDate() != null
+                    && now.isAfter(placement.getEndDate())) {
                 placement.setStatus("completed");
                 placementRepository.save(placement);
             }
@@ -325,8 +320,6 @@ public class PlacementService {
                 filteredPlacements.add(placement);
             }
         }
-        logger.info("Filtered placements count: {}", filteredPlacements.size());
-
         return filteredPlacements;
     }
 
@@ -429,33 +422,30 @@ public class PlacementService {
 
 
     public List<PlacementDetails> getPlacementsByDateRangeWithLoginStatus(LocalDate startDate, LocalDate endDate) {
-        List<PlacementDetails> placements = placementRepository.findPlacementsByCreatedAtBetween(startDate, endDate);
-        List<PlacementDetails> enrichedPlacements = new ArrayList<>();
-
         LocalDate now = LocalDate.now();
+        LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
 
+        List<PlacementDetails> placements = placementRepository
+                .findPlacementsByStartDateBetweenOrStartDateAfter(startDate, endDate, endOfCurrentMonth);
+
+        List<PlacementDetails> enrichedPlacements = new ArrayList<>();
         for (PlacementDetails placement : placements) {
-            if ("active".equalsIgnoreCase(placement.getStatus()) &&
-                    placement.getEndDate() != null &&
-                    now.isAfter(placement.getEndDate())) {
+            if ("active".equalsIgnoreCase(placement.getStatus())
+                    && placement.getEndDate() != null
+                    && now.isAfter(placement.getEndDate())) {
                 placement.setStatus("completed");
                 placementRepository.save(placement);
             }
-
             if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
                 boolean isLogin = false;
                 String candidateEmail = placement.getCandidateEmailId();
-
                 if (candidateEmail != null && !candidateEmail.isEmpty()) {
                     try {
                         ResponseEntity<ApiResponse<UserDetailsDTO>> userResp = userClient.getUserByEmail(candidateEmail);
-
                         if (userResp.getBody() != null && userResp.getBody().getData() != null) {
                             String userId = userResp.getBody().getData().getUserId();
-
                             if (userId != null && !userId.isEmpty()) {
                                 ResponseEntity<ApiResponse<UserLoginStatusDTO>> loginResp = userClient.getLoginStatusByUserId(userId);
-
                                 if (loginResp.getBody() != null && loginResp.getBody().getData() != null) {
                                     isLogin = loginResp.getBody().getData().isLogin();
                                 }
@@ -471,6 +461,7 @@ public class PlacementService {
         }
         return enrichedPlacements;
     }
+
 
     public Map<String, Long> getCountsForAll() {
         LocalDate today = LocalDate.now();
