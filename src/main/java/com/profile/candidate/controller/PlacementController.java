@@ -111,7 +111,7 @@ public class PlacementController {
         List<PlacementDetails> placements;
 
         if (email != null && !email.isEmpty()) {
-            placements = placementService.getPlacementsByCandidateEmailAndDateRange(email, start, end);
+            placements = placementService.getPlacementsByCandidateEmail(email);
         } else {
             placements = placementService.getAllPlacements(start, end);
         }
