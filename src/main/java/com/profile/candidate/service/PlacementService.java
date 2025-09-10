@@ -211,11 +211,11 @@ public class PlacementService {
 
     public List<PlacementDetails> getAllPlacements(LocalDate startDate, LocalDate endDate) {
         LocalDate now = LocalDate.now();
-
+        LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
         logger.info("Fetching placements between {} and {}", startDate, endDate);
 
         // Fetch by placement startDate between given dates
-        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByStartDateBetween(startDate, endDate);
+        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByStartDateBetweenOrStartDateAfter(startDate,endDate,endOfCurrentMonth);
         logger.info("Total placements found: {}", allPlacements.size());
 
         List<PlacementDetails> updatedPlacements = new ArrayList<>();
