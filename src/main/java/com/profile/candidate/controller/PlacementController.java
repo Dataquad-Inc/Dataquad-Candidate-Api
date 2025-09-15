@@ -91,29 +91,16 @@ public class PlacementController {
 
     @GetMapping("/placement/placements-list")
     public ResponseEntity<?> getAllPlacements(
-            @RequestParam(required = false) String startDate,
-            @RequestParam(required = false) String endDate,
-            @RequestParam(required = false) String email) {
-
-        LocalDate start;
-        LocalDate end;
-        LocalDate now = LocalDate.now();
-
-        // If startDate/endDate not provided, default to current month's range
-        if (startDate != null && endDate != null) {
-            start = LocalDate.parse(startDate); // Expecting yyyy-MM-dd
-            end = LocalDate.parse(endDate);
-        } else {
-            start = now.withDayOfMonth(1);
-            end = now.withDayOfMonth(now.lengthOfMonth());
-        }
-
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate
+                                              ) {
         List<PlacementDetails> placements;
 
         if (email != null && !email.isEmpty()) {
             placements = placementService.getPlacementsByCandidateEmail(email);
         } else {
-            placements = placementService.getAllPlacements(start, end);
+            placements = placementService.getAllPlacements(startDate,endDate);
         }
 
         Map<String, Object> response = new LinkedHashMap<>();
@@ -124,7 +111,6 @@ public class PlacementController {
 
         return ResponseEntity.ok(response);
     }
-
 
     // Get placement by ID
     @GetMapping("/placement/{id}")

@@ -209,13 +209,16 @@ public class PlacementService {
         return convertToResponseDto(placement);
     }
 
-    public List<PlacementDetails> getAllPlacements(LocalDate startDate, LocalDate endDate) {
+    public List<PlacementDetails> getAllPlacements(LocalDate startDate,LocalDate endDate) {
         LocalDate now = LocalDate.now();
-        LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
+        if(startDate==null &&endDate==null){
+             startDate = now.withDayOfMonth(1); // 1st of current month
+             endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
+        }
+
         logger.info("Fetching placements between {} and {}", startDate, endDate);
 
-        // Fetch by placement startDate between given dates
-        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByStartDateBetweenOrStartDateAfter(startDate,endDate,endOfCurrentMonth);
+        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByCreatedAtBetween(startDate, endDate);
         logger.info("Total placements found: {}", allPlacements.size());
 
         List<PlacementDetails> updatedPlacements = new ArrayList<>();
@@ -225,38 +228,13 @@ public class PlacementService {
             if ("active".equalsIgnoreCase(placement.getStatus()) &&
                     placement.getEndDate() != null &&
                     now.isAfter(placement.getEndDate())) {
+
                 placement.setStatus("completed");
                 placementRepository.save(placement); // Save the change
             }
 
             // Only return non-inactive placements
             if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
-                boolean isLogin = false;
-                String candidateEmail = placement.getCandidateEmailId();
-
-                if (candidateEmail != null && !candidateEmail.isEmpty()) {
-                    try {
-                        // Fetch user by email to get userId
-                        ResponseEntity<ApiResponse<UserDetailsDTO>> userResp = userClient.getUserByEmail(candidateEmail);
-
-                        if (userResp.getBody() != null && userResp.getBody().getData() != null) {
-                            String userId = userResp.getBody().getData().getUserId();
-
-                            if (userId != null && !userId.isEmpty()) {
-                                // Fetch login status by userId
-                                ResponseEntity<ApiResponse<UserLoginStatusDTO>> loginResp = userClient.getLoginStatusByUserId(userId);
-
-                                if (loginResp.getBody() != null && loginResp.getBody().getData() != null) {
-                                    isLogin = loginResp.getBody().getData().isLogin();
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        logger.error("Error fetching login status for candidateEmail {}: {}", candidateEmail, e.getMessage());
-                    }
-                }
-                placement.setLogin(isLogin);  // Transient field, not persisted
-
                 updatedPlacements.add(placement);
             }
         }
@@ -265,17 +243,16 @@ public class PlacementService {
         return updatedPlacements;
     }
 
-
-
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
         LocalDate now = LocalDate.now();
+        LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
+        LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
 
-
-        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email);
+        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email, startDate, endDate);
 
         // Fetch placements filtered by email and date range (implement this repo method)
         List<PlacementDetails> placements = placementRepository
-                .findByCandidateEmailId(email);
+                .findByCandidateEmailIdAndCreatedAtBetween(email, startDate, endDate);
 
         logger.info("Placements found: {}", placements.size());
 
