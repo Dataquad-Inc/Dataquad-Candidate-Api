@@ -221,26 +221,27 @@ public class PlacementService {
         List<PlacementDetails> allPlacements = placementRepository.findPlacementsByCreatedAtBetween(startDate, endDate);
         logger.info("Total placements found: {}", allPlacements.size());
 
-        List<PlacementDetails> updatedPlacements = new ArrayList<>();
+  //      List<PlacementDetails> updatedPlacements = new ArrayList<>();
 
-        for (PlacementDetails placement : allPlacements) {
-            // Update status if endDate has passed and status is still active
-            if ("active".equalsIgnoreCase(placement.getStatus()) &&
-                    placement.getEndDate() != null &&
-                    now.isAfter(placement.getEndDate())) {
-
-                placement.setStatus("completed");
-                placementRepository.save(placement); // Save the change
-            }
-
-            // Only return non-inactive placements
-            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
-                updatedPlacements.add(placement);
-            }
-        }
-
-        logger.info("Filtered placements count: {}", updatedPlacements.size());
-        return updatedPlacements;
+//        for (PlacementDetails placement : allPlacements) {
+//            // Update status if endDate has passed and status is still active
+//            if ("active".equalsIgnoreCase(placement.getStatus()) &&
+//                    placement.getEndDate() != null &&
+//                    now.isAfter(placement.getEndDate())) {
+//
+//                placement.setStatus("completed");
+//                placementRepository.save(placement); // Save the change
+//            }
+//
+//            // Only return non-inactive placements
+//            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+//                updatedPlacements.add(placement);
+//            }
+//        }
+//
+//        logger.info("Filtered placements count: {}", updatedPlacements.size());
+//        return updatedPlacements;
+        return allPlacements;
     }
 
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
