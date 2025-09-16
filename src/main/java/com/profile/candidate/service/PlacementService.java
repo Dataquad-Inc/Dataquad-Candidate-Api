@@ -209,39 +209,56 @@ public class PlacementService {
         return convertToResponseDto(placement);
     }
 
-    public List<PlacementDetails> getAllPlacements(LocalDate startDate,LocalDate endDate) {
+    public List<PlacementDetails> getAllPlacements(LocalDate startDate, LocalDate endDate) {
         LocalDate now = LocalDate.now();
-        if(startDate==null &&endDate==null){
-             startDate = now.withDayOfMonth(1); // 1st of current month
-             endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
-        }
 
         logger.info("Fetching placements between {} and {}", startDate, endDate);
 
+        // Fetch by placement startDate between given dates
         List<PlacementDetails> allPlacements = placementRepository.findPlacementsByCreatedAtBetween(startDate, endDate);
         logger.info("Total placements found: {}", allPlacements.size());
 
-  //      List<PlacementDetails> updatedPlacements = new ArrayList<>();
+        List<PlacementDetails> updatedPlacements = new ArrayList<>();
+        for (PlacementDetails placement : allPlacements) {
+            // Update status if endDate has passed and status is still active
+            if ("active".equalsIgnoreCase(placement.getStatus()) &&
+                    placement.getEndDate() != null &&
+                    now.isAfter(placement.getEndDate())) {
 
-//        for (PlacementDetails placement : allPlacements) {
-//            // Update status if endDate has passed and status is still active
-//            if ("active".equalsIgnoreCase(placement.getStatus()) &&
-//                    placement.getEndDate() != null &&
-//                    now.isAfter(placement.getEndDate())) {
-//
-//                placement.setStatus("completed");
-//                placementRepository.save(placement); // Save the change
-//            }
-//
-//            // Only return non-inactive placements
-//            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
-//                updatedPlacements.add(placement);
-//            }
-//        }
-//
-//        logger.info("Filtered placements count: {}", updatedPlacements.size());
-//        return updatedPlacements;
-        return allPlacements;
+                placement.setStatus("completed");
+                placementRepository.save(placement); // Save the change
+            }
+            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                boolean isLogin = false;
+                String candidateEmail = placement.getCandidateEmailId();
+
+                if (candidateEmail != null && !candidateEmail.isEmpty()) {
+                    try {
+                        // Fetch user by email to get userId
+                        ResponseEntity<ApiResponse<UserDetailsDTO>> userResp = userClient.getUserByEmail(candidateEmail);
+
+                        if (userResp.getBody() != null && userResp.getBody().getData() != null) {
+                            String userId = userResp.getBody().getData().getUserId();
+
+                            if (userId != null && !userId.isEmpty()) {
+                                // Fetch login status by userId
+                                ResponseEntity<ApiResponse<UserLoginStatusDTO>> loginResp = userClient.getLoginStatusByUserId(userId);
+
+                                if (loginResp.getBody() != null && loginResp.getBody().getData() != null) {
+                                    isLogin = loginResp.getBody().getData().isLogin();
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error fetching login status for candidateEmail {}: {}", candidateEmail, e.getMessage());
+                    }
+                }
+                placement.setLogin(isLogin);  // Transient field, not persisted
+                updatedPlacements.add(placement);
+            }
+        }
+        logger.info("Filtered placements count: {}", updatedPlacements.size());
+        return updatedPlacements;
     }
 
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
@@ -249,11 +266,10 @@ public class PlacementService {
         LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
         LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
 
-        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email, startDate, endDate);
-
+        logger.info("Fetching placements with candidateEmailId={} between {} and {}", email);
         // Fetch placements filtered by email and date range (implement this repo method)
         List<PlacementDetails> placements = placementRepository
-                .findByCandidateEmailIdAndCreatedAtBetween(email, startDate, endDate);
+                .findByCandidateEmailId(email);
 
         logger.info("Placements found: {}", placements.size());
 
@@ -283,7 +299,7 @@ public class PlacementService {
 
         // Current/future month logic: show this month's and future placements
         List<PlacementDetails> placements = placementRepository
-                .findByCandidateEmailIdAndStartDateBetweenOrStartDateAfter(email, startDate, endDate, endOfCurrentMonth);
+                .findByCandidateEmailIdAndCreatedAtBetween(email, startDate, endDate);
 
         List<PlacementDetails> filteredPlacements = new ArrayList<>();
 
@@ -404,7 +420,8 @@ public class PlacementService {
         LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
 
         List<PlacementDetails> placements = placementRepository
-                .findPlacementsByStartDateBetweenOrStartDateAfter(startDate, endDate, endOfCurrentMonth);
+                //.findPlacementsByStartDateBetweenOrStartDateAfter(startDate, endDate, endOfCurrentMonth);
+                .findPlacementsByCreatedAtBetween(startDate,endDate);
 
         List<PlacementDetails> enrichedPlacements = new ArrayList<>();
         for (PlacementDetails placement : placements) {
