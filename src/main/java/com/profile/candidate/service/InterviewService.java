@@ -1359,18 +1359,18 @@ public class InterviewService {
             List<InterviewDetails> employeeInterviews = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
             logger.info("Fetched {} interviews for EMPLOYEE userId: {}", employeeInterviews.size(), userId);
             for (InterviewDetails interview : employeeInterviews) {
-                if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
+                //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                     response.add(toDto(interview));
-                }
+                //}
             }
 
         } else if (coordinator) {
             List<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime);
             logger.info("Fetched {} interviews for COORDINATOR userId: {}", coordinatorInterviews.size(), userId);
             for (InterviewDetails interview : coordinatorInterviews) {
-                if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
+                //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                     response.add(toDto(interview));
-                }
+                //}
             }
 
         } else {
@@ -1443,9 +1443,9 @@ public class InterviewService {
                     List<InterviewDetails> allInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth);
                     logger.info("Fetched {} interviews for SUPERADMIN", allInterviews.size());
                     for (InterviewDetails interview : allInterviews) {
-                        if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
+                        //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                             response.add(toDto(interview));
-                        }
+                       // }
                     }
                 }
 
