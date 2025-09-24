@@ -96,9 +96,7 @@ public class PlacementService {
         logger.info("Generated ID is: {}", placementDetails.getId());
 
         // Check interview details and status
-        Optional<InterviewDetails> interviewDetailsOpt = interviewRepository
-                .findByContactNumberAndCandidateEmailId(placementDto.getCandidateContactNo(), placementDto.getCandidateEmailId());
-
+        Optional<InterviewDetails> interviewDetailsOpt = interviewRepository.findById(placementDto.getInterviewId());
         if (interviewDetailsOpt.isPresent()) {
             InterviewDetails interviewDetails = interviewDetailsOpt.get();
             String latestStatus = interviewService.latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
@@ -247,6 +245,7 @@ public class PlacementService {
                                 if (loginResp.getBody() != null && loginResp.getBody().getData() != null) {
                                     isLogin = loginResp.getBody().getData().isLogin();
                                 }
+                                System.out.println(isLogin);
                             }
                         }
                     } catch (Exception e) {
