@@ -213,7 +213,7 @@ public class PlacementService {
         logger.info("Fetching placements between {} and {}", startDate, endDate);
 
         // Fetch by placement startDate between given dates
-        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByCreatedAtBetween(startDate, endDate);
+        List<PlacementDetails> allPlacements = placementRepository.findPlacementsByCreatedAtOrStartDateBetween(startDate, endDate);
         logger.info("Total placements found: {}", allPlacements.size());
 
         List<PlacementDetails> updatedPlacements = new ArrayList<>();
@@ -420,7 +420,7 @@ public class PlacementService {
 
         List<PlacementDetails> placements = placementRepository
                 //.findPlacementsByStartDateBetweenOrStartDateAfter(startDate, endDate, endOfCurrentMonth);
-                .findPlacementsByCreatedAtBetween(startDate,endDate);
+                .findPlacementsByCreatedAtOrStartDateBetween(startDate,endDate);
 
         List<PlacementDetails> enrichedPlacements = new ArrayList<>();
         for (PlacementDetails placement : placements) {
