@@ -935,7 +935,7 @@ public class InterviewService {
         );
         return new InterviewResponseDto(true, "Interview scheduled successfully and email notifications sent.", data, null);
     }
-    public GetInterviewResponse getScheduledInterviewsByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate, String interviewLevelFilter) {
+    public GetInterviewResponse getScheduledInterviewsByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate,Boolean coordinator,String interviewLevelFilter) {
         logger.info("Fetching interviews for userId: {} between {} and {}", userId, startDate, endDate);
 
         if (endDate.isBefore(startDate)) {
@@ -949,18 +949,20 @@ public class InterviewService {
 
         String role = interviewRepository.findRoleByUserId(userId);
         logger.info("Fetched role '{}' for userId '{}'", role, userId);
-
         if ("EMPLOYEE".equalsIgnoreCase(role)) {
             List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
             logger.info("Fetched {} interviews for EMPLOYEE userId: {}", interviewDetails.size(), userId);
             payloadList.addAll(buildInterviewDataList(interviewDetails));
-        } else {
+        }
+        else if(coordinator) {
             List<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime);
             if (!coordinatorInterviews.isEmpty()) {
                 logger.info("Fetched {} interviews (as COORDINATOR) for userId: {}", coordinatorInterviews.size(), userId);
                 payloadList.addAll(buildInterviewDataList(coordinatorInterviews));
             }
+        }
 
+        else {
             if ("BDM".equalsIgnoreCase(role)) {
                 List<Tuple> bdmInterviews = interviewRepository.findScheduledInterviewsByBdmUserIdAndDateRange(userId, startDateTime, endDateTime);
                 logger.info("Fetched {} interviews for BDM userId: {}", bdmInterviews.size(), userId);

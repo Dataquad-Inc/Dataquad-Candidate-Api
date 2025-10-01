@@ -249,10 +249,11 @@ public class InterviewController {
             @PathVariable String userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "false") boolean coordinator,
             @RequestParam(defaultValue = "ALL") String interviewLevel // NEW: filter by level
     ) {
         GetInterviewResponse interviews = interviewService.getScheduledInterviewsByUserIdAndDateRange(
-                userId, startDate, endDate, interviewLevel);
+                userId, startDate, endDate, coordinator,interviewLevel);
         return ResponseEntity.ok(interviews);
     }
 
