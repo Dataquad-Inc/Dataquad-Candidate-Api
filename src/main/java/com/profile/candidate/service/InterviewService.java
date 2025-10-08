@@ -1749,6 +1749,43 @@ public class InterviewService {
         }
         interviewRepository.save(interview);
 
+        // ✅ Update submission status for SELECTED or REJECTED
+        if (dto.getInterviewStatus() != null) {
+            String interviewStatus = dto.getInterviewStatus().trim().toUpperCase();
+
+            String newSubmissionStatus = null;
+            if (interviewStatus.equals("SELECTED")) {
+                newSubmissionStatus = "INTERNAL SELECTED";
+            } else if (interviewStatus.equals("REJECTED")) {
+                newSubmissionStatus = "SCREEN REJECTED";
+            }
+
+            if (newSubmissionStatus != null) {
+                try {
+                    Submissions submission = submissionRepository.findByCandidate_CandidateIdAndJobId(
+                            interview.getCandidateId(), interview.getJobId()
+                    );
+
+                    if (submission != null) {
+                        submission.setStatus(newSubmissionStatus);
+                        submissionRepository.save(submission);
+                        logger.info("✅ Updated submission {} status to '{}' for candidate {} and job {}",
+                                submission.getSubmissionId(), newSubmissionStatus,
+                                interview.getCandidateId(), interview.getJobId());
+                    } else {
+                        logger.warn("⚠️ No submission found for candidateId {} and jobId {} to update status.",
+                                interview.getCandidateId(), interview.getJobId());
+                    }
+
+                } catch (Exception e) {
+                    logger.error("❌ Error updating submission status for candidateId {} and jobId {}: {}",
+                            interview.getCandidateId(), interview.getJobId(), e.getMessage(), e);
+                }
+            } else {
+                logger.debug("ℹ️ Interview status '{}' does not require submission update.", dto.getInterviewStatus());
+            }
+        }
+
 
         String jobTitle = interviewRepository.findJobTitleByJobId(interview.getJobId());
         String subject="Candidate Status and Feedback for Internal Level";
