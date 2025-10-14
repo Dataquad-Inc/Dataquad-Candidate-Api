@@ -496,9 +496,17 @@ public class InterviewService {
         if(interviewLevel.equalsIgnoreCase("EXTERNAL") ||
                 interviewLevel.equalsIgnoreCase("EXTERNAL-L1") ||
                 interviewLevel.equalsIgnoreCase("EXTERNAL-L2") ||
-                interviewLevel.equalsIgnoreCase("FINAL") && interviewStatus.equalsIgnoreCase("REJECTED")){
-            Submissions submissions=submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId,jobId);
-            submissions.setStatus("CLIENT REJECT");
+                interviewLevel.equalsIgnoreCase("FINAL") )
+            if(interviewStatus.equalsIgnoreCase("REJECTED")) {
+                Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
+                submissions.setStatus("CLIENT REJECT");
+            }else if (interviewStatus.equalsIgnoreCase("SELECTED")){
+                Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
+                submissions.setStatus("CLIENT SELECTED");
+        }
+        if(interviewStatus.equalsIgnoreCase("PLACED")){
+            Submissions submissions = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);
+            submissions.setStatus("PLACED");
         }
         // Handle the interview status update if provided
         if (interviewStatus != null && !interviewStatus.isEmpty()) {
