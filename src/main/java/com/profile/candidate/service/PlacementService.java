@@ -260,33 +260,6 @@ public class PlacementService {
         return updatedPlacements;
     }
 
-    public List<PlacementDetails> getAllPlacementsWithoutDate() {
-        LocalDate now = LocalDate.now();
-
-        logger.info("Fetching all placements without date filter");
-
-        // Fetch all placements
-        List<PlacementDetails> allPlacements = placementRepository.findAll();
-        logger.info("Total placements found: {}", allPlacements.size());
-
-        List<PlacementDetails> updatedPlacements = new ArrayList<>();
-        for (PlacementDetails placement : allPlacements) {
-            // Update status if endDate has passed and status is still active
-            if ("active".equalsIgnoreCase(placement.getStatus()) &&
-                    placement.getEndDate() != null &&
-                    now.isAfter(placement.getEndDate())) {
-
-                placement.setStatus("completed");
-                placementRepository.save(placement); // Save the change
-            }
-            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
-                updatedPlacements.add(placement);
-            }
-        }
-        logger.info("Filtered placements count: {}", updatedPlacements.size());
-        return updatedPlacements;
-    }
-
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
         LocalDate now = LocalDate.now();
         LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
