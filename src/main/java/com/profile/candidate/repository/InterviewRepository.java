@@ -61,7 +61,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     @Query(value = "SELECT user_name FROM user_details WHERE user_id = :userId", nativeQuery = true)
     String findUsernameByUserId(@Param("userId") String userId);
 
-    @Query("SELECT i FROM InterviewDetails i WHERE i.userId = :userId AND i.interviewDateTime BETWEEN :startDateTime AND :endDateTime")
+    @Query("SELECT i FROM InterviewDetails i WHERE i.userId = :userId AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
     List<InterviewDetails> findScheduledInterviewsByUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
@@ -70,7 +70,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
     @Query("SELECT i FROM InterviewDetails i " +
             "WHERE i.interviewDateTime IS NOT NULL " +
-            "AND FUNCTION('DATE', i.interviewDateTime) BETWEEN :startDate AND :endDate")
+            "AND FUNCTION('DATE', i.timestamp) BETWEEN :startDate AND :endDate")
     List<InterviewDetails> findScheduledInterviewsByDateOnly(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);

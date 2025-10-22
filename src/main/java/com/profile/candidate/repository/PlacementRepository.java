@@ -35,9 +35,9 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
             "(SELECT COUNT(*) FROM placements WHERE created_at BETWEEN :startDate AND :endDate AND LOWER(TRIM(status)) = 'active' AND employment_type = 'Full-time') AS fulltimePlacementsCount, " +
             "(SELECT COUNT(*) FROM bench_details WHERE created_date BETWEEN :startDate AND :endDate) AS benchCount, " +
             "(SELECT COUNT(*) FROM user_details WHERE created_at BETWEEN :startDate AND :endDate) AS usersCount, " +
-            "(SELECT COUNT(*) FROM production.interview_details WHERE interview_date_time BETWEEN :startDate AND :endDate) AS interviewsCount, " +
-            "(SELECT COUNT(*) FROM production.interview_details WHERE interview_date_time BETWEEN :startDate AND :endDate AND interview_level = 'INTERNAL') AS internalInterviewsCount, " +
-            "(SELECT COUNT(*) FROM production.interview_details WHERE interview_date_time BETWEEN :startDate AND :endDate AND " +
+            "(SELECT COUNT(*) FROM production.interview_details WHERE timestamp BETWEEN :startDate AND :endDate) AS interviewsCount, " +
+            "(SELECT COUNT(*) FROM production.interview_details WHERE timestamp BETWEEN :startDate AND :endDate AND interview_level = 'INTERNAL') AS internalInterviewsCount, " +
+            "(SELECT COUNT(*) FROM production.interview_details WHERE timestamp BETWEEN :startDate AND :endDate AND " +
             "       (interview_level = 'EXTERNAL' OR interview_level = 'EXTERNAL-L1' OR interview_level = 'EXTERNAL-L2' OR interview_level = 'FINAL')) AS externalInterviewsCount, " +
             "(SELECT COUNT(*) FROM job_recruiters jr " +
             "   JOIN requirements_model rm ON jr.job_id = rm.job_id " +
@@ -76,16 +76,16 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
             " WHERE ud.created_at BETWEEN :startDate AND :endDate) AS usersCount, " +
 
             "(SELECT COUNT(*) FROM production.interview_details id " +
-            " WHERE id.interview_date_time BETWEEN :startDate AND :endDate " +
+            " WHERE id.timestamp BETWEEN :startDate AND :endDate " +
             "   AND id.user_id = :recruiterId) AS interviewsCount, " +
 
             "(SELECT COUNT(*) FROM production.interview_details id " +
-            " WHERE id.interview_date_time BETWEEN :startDate AND :endDate " +
+            " WHERE id.timestamp BETWEEN :startDate AND :endDate " +
             "   AND id.user_id = :recruiterId " +
             "   AND id.interview_level = 'INTERNAL') AS internalInterviewsCount, " +
 
             "(SELECT COUNT(*) FROM production.interview_details id " +
-            " WHERE id.interview_date_time BETWEEN :startDate AND :endDate " +
+            " WHERE id.timestamp BETWEEN :startDate AND :endDate " +
             "   AND id.user_id = :recruiterId " +
             "   AND id.interview_level IN ('EXTERNAL', 'EXTERNAL-L1', 'EXTERNAL-L2', 'FINAL')) AS externalInterviewsCount, " +
 

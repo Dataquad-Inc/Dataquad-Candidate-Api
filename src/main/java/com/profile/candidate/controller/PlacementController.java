@@ -109,10 +109,8 @@ public class PlacementController {
         }
 
         List<PlacementDetails> placements;
-        if(startDate == null && endDate == null) {
-            placements = placementService.getAllPlacementsWithoutDate();
-        }
-        else if (email != null && !email.isEmpty()) {
+
+        if (email != null && !email.isEmpty()) {
             placements = placementService.getPlacementsByCandidateEmail(email);
         } else {
             placements = placementService.getAllPlacements(start, end);
