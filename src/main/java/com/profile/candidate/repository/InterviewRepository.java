@@ -118,7 +118,8 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     LEFT JOIN candidate_submissions s ON s.candidate_id = c.candidate_id AND s.job_id = c.job_id
     WHERE 
         c.job_id IN (
-            t         FROM requirements_model r
+           SELECT r.job_id
+           FROM requirements_model r
             JOIN bdm_client b 
                 ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
             JOIN user_details u 
