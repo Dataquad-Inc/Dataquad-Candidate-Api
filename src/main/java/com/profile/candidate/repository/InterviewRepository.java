@@ -61,7 +61,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     @Query(value = "SELECT user_name FROM user_details WHERE user_id = :userId", nativeQuery = true)
     String findUsernameByUserId(@Param("userId") String userId);
 
-    @Query("SELECT i FROM InterviewDetails i WHERE i.userId = :userId AND i.interviewDateTime BETWEEN :startDateTime AND :endDateTime")
+    @Query("SELECT i FROM InterviewDetails i WHERE i.userId = :userId AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
     List<InterviewDetails> findScheduledInterviewsByUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
@@ -70,7 +70,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
     @Query("SELECT i FROM InterviewDetails i " +
             "WHERE i.interviewDateTime IS NOT NULL " +
-            "AND FUNCTION('DATE', i.interviewDateTime) BETWEEN :startDate AND :endDate")
+            "AND FUNCTION('DATE', i.timestamp) BETWEEN :startDate AND :endDate")
     List<InterviewDetails> findScheduledInterviewsByDateOnly(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
@@ -118,8 +118,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     LEFT JOIN candidate_submissions s ON s.candidate_id = c.candidate_id AND s.job_id = c.job_id
     WHERE 
         c.job_id IN (
-            SELECT r.job_id
-            FROM requirements_model r
+            t         FROM requirements_model r
             JOIN bdm_client b 
                 ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
             JOIN user_details u 
@@ -137,7 +136,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
     @Query("SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END " +
             "FROM InterviewDetails i " +
-            "WHERE i.assignedTo = :userId AND i.interviewDateTime BETWEEN :start AND :end")
+            "WHERE i.assignedTo = :userId AND i.timestamp BETWEEN :start AND :end")
     boolean existsByAssignedToAndDateRange(@Param("userId") String userId,
                                            @Param("start") LocalDateTime start,
                                            @Param("end") LocalDateTime end);
