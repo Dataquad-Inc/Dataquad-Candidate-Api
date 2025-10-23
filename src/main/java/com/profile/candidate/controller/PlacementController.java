@@ -109,14 +109,17 @@ public class PlacementController {
         }
 
         List<PlacementDetails> placements;
-        if(startDate == null && endDate == null) {
+        // FIX: check email FIRST because it is most specific
+        if (email != null && !email.isEmpty()) {
+            placements = placementService.getPlacementsByCandidateEmail(email);
+        }
+        else if (startDate == null && endDate == null) {
             placements = placementService.getAllPlacementsWithoutDate();
         }
-        else if (email != null && !email.isEmpty()) {
-            placements = placementService.getPlacementsByCandidateEmail(email);
-        } else {
+        else {
             placements = placementService.getAllPlacements(start, end);
         }
+
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
