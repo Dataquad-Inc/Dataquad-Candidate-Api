@@ -36,9 +36,11 @@ public class PlacementController {
 
 
     // Save placement
-    @PostMapping("/placement/create-placement")
-    public ResponseEntity<?> savePlacement(@Valid @RequestBody PlacementDto placementDto) {
-        PlacementResponseDto savedPlacement = placementService.savePlacement(placementDto);
+    @PostMapping("/placement/create-placement/{userId}")
+    public ResponseEntity<?> savePlacement(
+            @PathVariable String userId,
+            @Valid @RequestBody PlacementDto placementDto) {
+        PlacementResponseDto savedPlacement = placementService.savePlacement(userId,placementDto);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
@@ -49,10 +51,12 @@ public class PlacementController {
     }
 
     // Update placement by ID
-    @PutMapping("/placement/update-placement/{id}")
-    public ResponseEntity<?> updatePlacement(@PathVariable String id, @Valid @RequestBody PlacementDto placementDto) {
+    @PutMapping("/placement/update-placement/{id}/{userId}")
+    public ResponseEntity<?> updatePlacement(@PathVariable String id,
+                                             @PathVariable String userId,
+                                             @Valid @RequestBody PlacementDto placementDto) {
         try {
-            PlacementResponseDto updated = placementService.updatePlacement(id, placementDto);
+            PlacementResponseDto updated = placementService.updatePlacement(id,userId, placementDto);
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("success", true);

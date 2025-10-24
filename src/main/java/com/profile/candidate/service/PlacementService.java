@@ -81,7 +81,7 @@ public class PlacementService {
 
 
     @Transactional
-    public PlacementResponseDto savePlacement(PlacementDto placementDto) {
+    public PlacementResponseDto savePlacement(String userId,PlacementDto placementDto) {
         PlacementDetails placementDetails = convertToEntity(placementDto);
 
         // Check for existing placement by candidateContactNo and clientName
@@ -94,6 +94,7 @@ public class PlacementService {
         // Generate custom ID
         placementDetails.setId(generateCustomId());
         logger.info("Generated ID is: {}", placementDetails.getId());
+        placementDetails.setCreatedBy(userId);
 
         // Check interview details and status
         Optional<InterviewDetails> interviewDetailsOpt = interviewRepository.findById(placementDto.getInterviewId());
@@ -140,9 +141,10 @@ public class PlacementService {
     }
 
 
-    public PlacementResponseDto updatePlacement(String id, PlacementDto dto) {
+    public PlacementResponseDto updatePlacement(String id, String userId,PlacementDto dto) {
         PlacementDetails existing = placementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Placement not found with ID: " + id));
+        existing.setUpdatedBy(userId);
 
         if (dto.getCandidateEmailId() != null && !dto.getCandidateEmailId().equals(existing.getCandidateEmailId())) {
             existing.setCandidateEmailId(dto.getCandidateEmailId());

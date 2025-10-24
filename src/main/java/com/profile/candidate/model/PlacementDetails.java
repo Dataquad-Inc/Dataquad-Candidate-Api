@@ -87,7 +87,8 @@ public class PlacementDetails {
     @Column(name = "isRegister")
     private Boolean isRegister = false;
 
-
+    private String createdBy;
+    private String updatedBy;
 
     @DecimalMin(value = "0.0", inclusive = false, message = "Pay Rate must be a positive number")
     @Digits(integer = 10, fraction = 5, message = "Invalid format for Pay Rate")
@@ -110,6 +111,22 @@ public class PlacementDetails {
     private String employeeWorkingType = "MONTHLY"; // Default value
 
     // getter and setter for isLogin
+
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+    }
+
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    public void setUpdatedBy(String updatedBy) {
+        this.updatedBy = updatedBy;
+    }
 
     public String getEmployeeWorkingType() {
         return employeeWorkingType;
