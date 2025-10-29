@@ -79,7 +79,6 @@ public class PlacementService {
         return String.format("PLMNT%04d", nextNumber);
     }
 
-
     @Transactional
     public PlacementResponseDto savePlacement(String userId, PlacementDto placementDto) {
         PlacementDetails placementDetails = convertToEntity(placementDto);
