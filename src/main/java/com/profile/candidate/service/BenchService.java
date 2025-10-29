@@ -35,20 +35,6 @@ public class BenchService {
         return benchRepository.findAll();
     }
 
-    public Optional<BenchDetails> findBenchDetailsById(String id) {
-        return benchRepository.findById(id);
-    }
-
-    public Optional<BenchDetails> findBenchDetailsByEmail(String email) {
-        return benchRepository.findByEmail(email);
-    }
-
-    public List<BenchDetails> findBenchDetailsByReferredBy(String referredBy) {
-        return benchRepository.findByReferredBy(referredBy);
-
-
-    }
-
     public String generateCustomId() {
         // Fetch all existing Bench IDs that follow the pattern "BENCH###"
         List<Integer> existingNumbers = benchRepository.findAll().stream()
@@ -150,14 +136,6 @@ public class BenchService {
         } catch (Exception e) {
             throw new RuntimeException("Error while deleting BenchDetails with ID: " + id + " -> " + e.getMessage());
         }
-    }
-
-    public boolean existsBenchDetailsById(String id) {
-        return benchRepository.existsById(id);
-    }
-
-    public boolean existsBenchDetailsByEmail(String email) {
-        return benchRepository.existsByEmail(email);
     }
 
     public List<BenchDetails> findBenchDetailsByDateRange(LocalDate startDate, LocalDate endDate) {

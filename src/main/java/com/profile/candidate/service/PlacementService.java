@@ -81,57 +81,74 @@ public class PlacementService {
 
 
     @Transactional
-    public PlacementResponseDto savePlacement(String userId,PlacementDto placementDto) {
+    public PlacementResponseDto savePlacement(String userId, PlacementDto placementDto) {
         PlacementDetails placementDetails = convertToEntity(placementDto);
 
         // Check for existing placement by candidateContactNo and clientName
         PlacementDetails existingPlacement = placementRepository
-                .findByCandidateContactNoAndClientName(placementDto.getCandidateContactNo(), placementDto.getClientName());
+                .findByCandidateContactNoAndClientName(
+                        placementDto.getCandidateContactNo(),
+                        placementDto.getClientName()
+                );
 
         if (existingPlacement != null) {
-            throw new CandidateAlreadyExistsException("Placement already exists for this candidate and client.");
+            throw new CandidateAlreadyExistsException(
+                    "Placement already exists for this candidate and client."
+            );
         }
+
         // Generate custom ID
         placementDetails.setId(generateCustomId());
         logger.info("Generated ID is: {}", placementDetails.getId());
         placementDetails.setCreatedBy(userId);
 
-        // Check interview details and status
-        Optional<InterviewDetails> interviewDetailsOpt = interviewRepository.findById(placementDto.getInterviewId());
-        if (interviewDetailsOpt.isPresent()) {
-            InterviewDetails interviewDetails = interviewDetailsOpt.get();
-            String latestStatus = interviewService.latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
-            logger.info("Latest interview status: {}", latestStatus);
+        // ✅ Validate interviewId before querying repository
+        String interviewId = placementDto.getInterviewId();
+        if (interviewId != null) {
+            logger.info("Interview ID received: {}", interviewId);
 
-            // Ensure status is "placed"
-            if (!"placed".equalsIgnoreCase(latestStatus)) {
-                throw new CandidateNotFoundException("Candidate status is not placed in the interview table.");
-            }
+            Optional<InterviewDetails> interviewDetailsOpt = interviewRepository.findById(interviewId);
+            if (interviewDetailsOpt.isPresent()) {
+                InterviewDetails interviewDetails = interviewDetailsOpt.get();
+                String latestStatus = interviewService.latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
+                logger.info("Latest interview status: {}", latestStatus);
 
-            // Check for duplicate interviewId
-            if (placementDto.getInterviewId() != null) {
-                boolean alreadyPlaced = placementRepository.existsByInterviewId(placementDto.getInterviewId());
+                // Ensure status is "placed"
+                if (!"placed".equalsIgnoreCase(latestStatus)) {
+                    throw new CandidateNotFoundException("Candidate status is not placed in the interview table.");
+                }
+
+                // Check for duplicate interviewId
+                boolean alreadyPlaced = placementRepository.existsByInterviewId(interviewId);
                 if (alreadyPlaced) {
                     throw new DuplicateInterviewPlacementException(
-                            "Interview ID " + placementDto.getInterviewId() + " is already used in a placement.");
+                            "Interview ID " + interviewId + " is already used in a placement."
+                    );
                 }
+
+                // Mark candidate as placed in interview
+                interviewDetails.setIsPlaced(true);
+                interviewRepository.save(interviewDetails);
+                logger.info("Interview details updated with isPlaced=true: {}", interviewDetails);
+            } else {
+                logger.warn("No matching interview details found for ID {}. Proceeding without updating interview.", interviewId);
             }
 
-            // Mark candidate as placed in interview
-            interviewDetails.setIsPlaced(true);
-            interviewRepository.save(interviewDetails);
-            logger.info("Interview details updated with isPlaced=true: {}", interviewDetails);
         } else {
-            logger.warn("No matching interview details found. Proceeding without updating interview.");
+            // ✅ Skip interview logic safely if interviewId is null
+            logger.warn("Interview ID is null — skipping interview linkage.");
         }
+        placementDetails.setUserId(userId);
 
+        // Default values for placement
         placementDetails.setEmployeeWorkingType("MONTHLY");
-        // Set placement status and save
         placementDetails.setStatus("Active");
-        PlacementDetails saved = placementRepository.save(placementDetails);
 
+        // Save placement details
+        PlacementDetails saved = placementRepository.save(placementDetails);
         boolean isPlaced = "Active".equalsIgnoreCase(saved.getStatus());
 
+        // Build response
         return new PlacementResponseDto(
                 saved.getId(),
                 saved.getCandidateFullName(),
@@ -139,6 +156,7 @@ public class PlacementService {
                 isPlaced
         );
     }
+
 
 
     public PlacementResponseDto updatePlacement(String id, String userId,PlacementDto dto) {
@@ -179,6 +197,9 @@ public class PlacementService {
 
         if (dto.getEmployeeWorkingType()!=null){
             existing.setEmployeeWorkingType(dto.getEmployeeWorkingType());
+        }
+        if( dto.getUserId()!=null){
+            existing.setUserId(dto.getUserId());
         }
 
         PlacementDetails updated = placementRepository.save(existing);
@@ -271,6 +292,62 @@ public class PlacementService {
         return allPlacements;
     }
 
+    public List<PlacementDetails> getPlacementsByUserId(String userId) {
+        LocalDate now = LocalDate.now();
+        LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
+        LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
+
+        logger.info("Fetching placements with userId={} between {} and {}", userId);
+        // Fetch placements filtered by userId and date range (implement this repo method)
+        List<PlacementDetails> placements = placementRepository
+                .findByUserId(userId);
+
+        logger.info("Placements found: {}", placements.size());
+
+        List<PlacementDetails> filteredPlacements = new ArrayList<>();
+
+        for (PlacementDetails placement : placements) {
+            // Update status if needed
+            if ("active".equalsIgnoreCase(placement.getStatus()) &&
+                    placement.getEndDate() != null &&
+                    now.isAfter(placement.getEndDate())) {
+
+                placement.setStatus("completed");
+                placementRepository.save(placement);
+            }
+            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                filteredPlacements.add(placement);
+            }
+        }
+        logger.info("Filtered placements count: {}", filteredPlacements.size());
+
+        return filteredPlacements;
+    }
+
+    public List<PlacementDetails> getPlacementsByRecruiterAndDateRange(String userId, LocalDate startDate, LocalDate endDate) {
+        LocalDate now = LocalDate.now();
+        LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
+
+        // Current/future month logic: show this month's and future placements
+        List<PlacementDetails> placements = placementRepository
+                .findByUserIdAndCreatedAtBetween(userId, startDate, endDate);
+
+        List<PlacementDetails> filteredPlacements = new ArrayList<>();
+
+        for (PlacementDetails placement : placements) {
+            if ("active".equalsIgnoreCase(placement.getStatus())
+                    && placement.getEndDate() != null
+                    && now.isAfter(placement.getEndDate())) {
+                placement.setStatus("completed");
+                placementRepository.save(placement);
+            }
+            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                filteredPlacements.add(placement);
+            }
+        }
+        return filteredPlacements;
+    }
+
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
         LocalDate now = LocalDate.now();
         LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
@@ -359,6 +436,7 @@ public class PlacementService {
         entity.setStatusMessage(dto.getStatusMessage());
         entity.setInterviewId(dto.getInterviewId());
         entity.setGrossProfit(dto.getGrossProfit());
+        entity.setUserId(dto.getUserId());
         return entity;
     }
 
