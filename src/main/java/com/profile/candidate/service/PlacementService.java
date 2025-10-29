@@ -79,8 +79,7 @@ public class PlacementService {
         return String.format("PLMNT%04d", nextNumber);
     }
 
-
-   @Transactional
+    @Transactional
     public PlacementResponseDto savePlacement(String userId, PlacementDto placementDto) {
         PlacementDetails placementDetails = convertToEntity(placementDto);
 
@@ -138,6 +137,7 @@ public class PlacementService {
             // ✅ Skip interview logic safely if interviewId is null
             logger.warn("Interview ID is null — skipping interview linkage.");
         }
+        placementDetails.setUserId(userId);
 
         // Default values for placement
         placementDetails.setEmployeeWorkingType("MONTHLY");
@@ -196,6 +196,9 @@ public class PlacementService {
 
         if (dto.getEmployeeWorkingType()!=null){
             existing.setEmployeeWorkingType(dto.getEmployeeWorkingType());
+        }
+        if( dto.getUserId()!=null){
+            existing.setUserId(dto.getUserId());
         }
 
         PlacementDetails updated = placementRepository.save(existing);
@@ -288,6 +291,62 @@ public class PlacementService {
         return allPlacements;
     }
 
+    public List<PlacementDetails> getPlacementsByUserId(String userId) {
+        LocalDate now = LocalDate.now();
+        LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
+        LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
+
+        logger.info("Fetching placements with userId={} between {} and {}", userId);
+        // Fetch placements filtered by userId and date range (implement this repo method)
+        List<PlacementDetails> placements = placementRepository
+                .findByUserId(userId);
+
+        logger.info("Placements found: {}", placements.size());
+
+        List<PlacementDetails> filteredPlacements = new ArrayList<>();
+
+        for (PlacementDetails placement : placements) {
+            // Update status if needed
+            if ("active".equalsIgnoreCase(placement.getStatus()) &&
+                    placement.getEndDate() != null &&
+                    now.isAfter(placement.getEndDate())) {
+
+                placement.setStatus("completed");
+                placementRepository.save(placement);
+            }
+            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                filteredPlacements.add(placement);
+            }
+        }
+        logger.info("Filtered placements count: {}", filteredPlacements.size());
+
+        return filteredPlacements;
+    }
+
+    public List<PlacementDetails> getPlacementsByRecruiterAndDateRange(String userId, LocalDate startDate, LocalDate endDate) {
+        LocalDate now = LocalDate.now();
+        LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
+
+        // Current/future month logic: show this month's and future placements
+        List<PlacementDetails> placements = placementRepository
+                .findByUserIdAndCreatedAtBetween(userId, startDate, endDate);
+
+        List<PlacementDetails> filteredPlacements = new ArrayList<>();
+
+        for (PlacementDetails placement : placements) {
+            if ("active".equalsIgnoreCase(placement.getStatus())
+                    && placement.getEndDate() != null
+                    && now.isAfter(placement.getEndDate())) {
+                placement.setStatus("completed");
+                placementRepository.save(placement);
+            }
+            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                filteredPlacements.add(placement);
+            }
+        }
+        return filteredPlacements;
+    }
+
     public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
         LocalDate now = LocalDate.now();
         LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
@@ -376,6 +435,7 @@ public class PlacementService {
         entity.setStatusMessage(dto.getStatusMessage());
         entity.setInterviewId(dto.getInterviewId());
         entity.setGrossProfit(dto.getGrossProfit());
+        entity.setUserId(dto.getUserId());
         return entity;
     }
 

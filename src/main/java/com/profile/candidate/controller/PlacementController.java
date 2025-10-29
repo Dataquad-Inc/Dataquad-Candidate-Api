@@ -95,6 +95,7 @@ public class PlacementController {
 
     @GetMapping("/placement/placements-list")
     public ResponseEntity<?> getAllPlacements(
+            @RequestParam(required = false) String userId,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
             @RequestParam(required = false) String email) {
@@ -117,13 +118,59 @@ public class PlacementController {
         if (email != null && !email.isEmpty()) {
             placements = placementService.getPlacementsByCandidateEmail(email);
         }
+        else if (userId != null && !userId.isEmpty() && startDate == null && endDate == null) {
+            placements = placementService.getPlacementsByUserId(userId);
+        }
         else if (startDate == null && endDate == null) {
             placements = placementService.getAllPlacementsWithoutDate();
+        }
+        else if (userId != null && !userId.isEmpty()){
+            placements = placementService.getPlacementsByRecruiterAndDateRange(userId,start,end);
         }
         else {
             placements = placementService.getAllPlacements(start, end);
         }
 
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Placements fetched successfully");
+        response.put("timestamp", LocalDateTime.now());
+        response.put("data", placements);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/placement/placementsByRecruiter/{userId}")
+    public ResponseEntity<?> getPlacementsByUserId(@PathVariable String userId) {
+        List<PlacementDetails> placements = placementService.getPlacementsByUserId(userId);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Placements fetched successfully");
+        response.put("timestamp", LocalDateTime.now());
+        response.put("data", placements);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/placement/placement-list/recruiter")
+    public ResponseEntity<?> getPlacementsByRecruiter(
+            @RequestParam String userId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+
+        LocalDate start;
+        LocalDate end;
+        LocalDate now = LocalDate.now();
+
+        // If startDate/endDate not provided, default to current month's range
+        if (startDate != null && endDate != null) {
+            start = LocalDate.parse(startDate); // Expecting yyyy-MM-dd
+            end = LocalDate.parse(endDate);
+        } else {
+            start = now.withDayOfMonth(1);
+            end = now.withDayOfMonth(now.lengthOfMonth());
+        }
+
+        List<PlacementDetails> placements = placementService.getPlacementsByRecruiterAndDateRange(userId, start, end);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);

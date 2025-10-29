@@ -110,7 +110,15 @@ public class PlacementDetails {
     @Column(name = "employee_working_type")
     private String employeeWorkingType = "MONTHLY"; // Default value
 
-    // getter and setter for isLogin
+    @Column(name = "user_id")
+    private String userId;
+
+    public String getUserId() {
+        return userId;
+    }
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
     public String getCreatedBy() {
         return createdBy;

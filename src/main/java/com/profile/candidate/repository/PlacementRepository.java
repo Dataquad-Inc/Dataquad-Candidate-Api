@@ -135,4 +135,7 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
     List<PlacementDetails> findByCandidateEmailIdAndStartDateBetweenOrStartDateAfter(String email, LocalDate start, LocalDate end, LocalDate afterDate);
 
 
+    List<PlacementDetails> findByUserId(String userId);
+
+    List<PlacementDetails> findByUserIdAndCreatedAtBetween(String userId, LocalDate startDate, LocalDate endDate);
 }
