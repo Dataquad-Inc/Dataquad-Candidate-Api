@@ -39,7 +39,7 @@ public class BenchService {
         // Fetch all existing Bench IDs that follow the pattern "BENCH###"
         List<Integer> existingNumbers = benchRepository.findAll().stream()
                 .map(BenchDetails::getId)
-                .filter(id -> id != null && id.matches("BENCH\\d{3}"))  // Filter only valid "BENCH###" IDs
+                .filter(id -> id != null && id.matches("BENCH\\d+"))  // Filter only valid "BENCH###" IDs
                 .map(id -> Integer.parseInt(id.replace("BENCH", "")))  // Extract number
                 .toList();
 
