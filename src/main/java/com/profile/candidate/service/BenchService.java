@@ -45,7 +45,6 @@ public class BenchService {
 
         // Find the highest existing number
         int nextNumber = existingNumbers.stream().max(Integer::compare).orElse(0) + 1;
-
         // ✅ Generate new ID in "BENCH001" format
         return String.format("BENCH%03d", nextNumber);
     }
