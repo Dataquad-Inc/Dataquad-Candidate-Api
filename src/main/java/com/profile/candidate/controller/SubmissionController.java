@@ -54,9 +54,14 @@ public class SubmissionController {
     private static final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
 
     @GetMapping("/submissions")
-    public ResponseEntity<SubmissionsGetResponse> getAllSubmissions(){
+    public ResponseEntity<SubmissionsGetResponse> getAllSubmissions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String candidateId,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String client){
 
-        return new  ResponseEntity<>(submissionService.getAllSubmissions(),HttpStatus.OK);
+        return new ResponseEntity<>(submissionService.getAllSubmissions(page, size, candidateId, fullName, client), HttpStatus.OK);
     }
     @GetMapping("/submissions/filterByDate")
     public ResponseEntity<List<SubmissionGetResponseDto>> getAllSubmissionsByDateRange(

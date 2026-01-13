@@ -4,6 +4,8 @@ import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.Submissions;
 import jakarta.persistence.Tuple;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -162,5 +164,42 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
     void updateRequirementStatus(@Param("jobId") String jobId);
     Optional<Submissions> findByCandidateCandidateIdAndJobId(String candidateId, String jobId);
 
+    @Query(value = """
+        SELECT s.* FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:candidateId IS NULL OR c.candidate_id LIKE CONCAT('%', :candidateId, '%')) 
+        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%')) 
+        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%')) 
+        AND c.candidate_id NOT IN (
+            SELECT DISTINCT i.candidate_id 
+            FROM interview_details i 
+            WHERE i.candidate_id IS NOT NULL
+        )
+        ORDER BY s.profile_received_date DESC
+        """, 
+        countQuery = """
+        SELECT COUNT(*) FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:candidateId IS NULL OR c.candidate_id LIKE CONCAT('%', :candidateId, '%')) 
+        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%')) 
+        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%')) 
+        AND c.candidate_id NOT IN (
+            SELECT DISTINCT i.candidate_id 
+            FROM interview_details i 
+            WHERE i.candidate_id IS NOT NULL
+        )
+        """, 
+        nativeQuery = true)
+    Page<Submissions> findSubmissionsWithFiltersAndPagination(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("client") String client,
+            Pageable pageable);
     List<Submissions> findByJobId(String jobId);
 }

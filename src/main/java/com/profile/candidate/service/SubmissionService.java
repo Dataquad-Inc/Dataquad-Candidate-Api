@@ -13,6 +13,9 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -42,43 +45,36 @@ public class SubmissionService {
 
     private static final Logger logger = LoggerFactory.getLogger(SubmissionService.class);
 
-    public SubmissionsGetResponse getAllSubmissions() {
+    public SubmissionsGetResponse getAllSubmissions(int page, int size, String candidateId, String fullName, String client) {
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
-
-        // Step 1: Fetch all submissions for this month
-        List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(startOfMonth, endOfMonth);
-
-        // Step 2: Fetch all candidateIds from interview table
-        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
-        Set<String> interviewedSet = interviewedCandidateIds.stream()
-                .filter(Objects::nonNull)
-                .map(id -> id.trim().toLowerCase())
-                .collect(Collectors.toSet());
-
-        // Step 3: Filter out submissions for candidates who are in interviews
-        List<Submissions> filteredSubmissions = submissions.stream()
-                .filter(sub -> {
-                    String candidateId = sub.getCandidate() != null ? sub.getCandidate().getCandidateId() : null;
-                    return candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
-                })
-                .collect(Collectors.toList());
-
-        // Step 4: Convert to response DTO
-        List<SubmissionsGetResponse.GetSubmissionData> data = filteredSubmissions.stream()
+        
+        Pageable pageable = PageRequest.of(page, size);
+        
+        // Fetch paginated submissions with filters (interview exclusion now in DB query)
+        Page<Submissions> submissionPage = submissionRepository.findSubmissionsWithFiltersAndPagination(
+                startOfMonth, endOfMonth, candidateId, fullName, client, pageable);
+        
+        // Convert to response DTO (no need for additional filtering)
+        List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
                 .map(this::convertToSubmissionsGetResponse)
                 .collect(Collectors.toList());
+        
+        logger.info("Paginated Submissions (Page {}, Size {}): Total={}, Returned={}",
+                page, size, submissionPage.getTotalElements(), data.size());
+        
+        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
+        response.setTotalElements(submissionPage.getTotalElements());
+        response.setTotalPages(submissionPage.getTotalPages());
+        response.setCurrentPage(page);
+        response.setPageSize(size);
+        
+        return response;
+    }
 
-        // ✅ Final log summary at the end
-        logger.info("Submissions Summary ({} to {}): Total={}, Interviewed={}, Excluded={}, Included={}",
-                startOfMonth, endOfMonth,
-                submissions.size(),
-                interviewedSet.size(),
-                submissions.size() - filteredSubmissions.size(),
-                filteredSubmissions.size()
-        );
-
-        return new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
+    // Backward compatibility method
+    public SubmissionsGetResponse getAllSubmissions() {
+        return getAllSubmissions(0, 10, null, null, null);
     }
 
 
