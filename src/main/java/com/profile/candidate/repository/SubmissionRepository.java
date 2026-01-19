@@ -165,35 +165,35 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
     Optional<Submissions> findByCandidateCandidateIdAndJobId(String candidateId, String jobId);
 
     @Query(value = """
-        SELECT s.* FROM candidate_submissions s 
-        JOIN candidates c ON s.candidate_id = c.candidate_id 
-        JOIN requirements_model r ON s.job_id = r.job_id 
-        WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-        AND (:candidateId IS NULL OR c.candidate_id LIKE CONCAT('%', :candidateId, '%')) 
-        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%')) 
-        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%')) 
-        AND c.candidate_id NOT IN (
-            SELECT DISTINCT i.candidate_id 
-            FROM interview_details i 
-            WHERE i.candidate_id IS NOT NULL
-        )
-        ORDER BY s.profile_received_date DESC
-        """, 
-        countQuery = """
-        SELECT COUNT(*) FROM candidate_submissions s 
-        JOIN candidates c ON s.candidate_id = c.candidate_id 
-        JOIN requirements_model r ON s.job_id = r.job_id 
-        WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-        AND (:candidateId IS NULL OR c.candidate_id LIKE CONCAT('%', :candidateId, '%')) 
-        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%')) 
-        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%')) 
-        AND c.candidate_id NOT IN (
-            SELECT DISTINCT i.candidate_id 
-            FROM interview_details i 
-            WHERE i.candidate_id IS NOT NULL
-        )
-        """, 
-        nativeQuery = true)
+            SELECT s.* 
+            FROM production.candidate_submissions s 
+            JOIN production.candidates c ON s.candidate_id = c.candidate_id 
+            JOIN production.requirements_model r ON s.job_id = r.job_id 
+            WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            AND NOT EXISTS (
+                SELECT 1 FROM production.interview_details i 
+                WHERE i.candidate_id = s.candidate_id
+            )
+            ORDER BY s.profile_received_date DESC
+            """,
+            countQuery = """
+                    SELECT COUNT(*)
+                    FROM production.candidate_submissions s 
+                    JOIN production.candidates c ON s.candidate_id = c.candidate_id 
+                    JOIN production.requirements_model r ON s.job_id = r.job_id 
+                    WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+                    AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+                    AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+                    AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+                    AND NOT EXISTS (
+                        SELECT 1 FROM production.interview_details i 
+                        WHERE i.candidate_id = s.candidate_id
+                    )
+                    """,
+            nativeQuery = true)
     Page<Submissions> findSubmissionsWithFiltersAndPagination(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
@@ -201,5 +201,6 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             @Param("fullName") String fullName,
             @Param("client") String client,
             Pageable pageable);
+
     List<Submissions> findByJobId(String jobId);
 }
