@@ -117,9 +117,15 @@ public class SubmissionController {
         return new ResponseEntity<>(submissionService.getSubmissionById(submissionId),HttpStatus.OK);
     }
     @GetMapping("/submissionsByUserId/{userId}")
-    public ResponseEntity<List<SubmissionGetResponseDto>> getSubmissionsByUserId(@PathVariable String userId){
-        logger.info("Getting Submissions for user Id {}",userId);
-        return new ResponseEntity<>(submissionService.getSubmissionsByUserId(userId),HttpStatus.OK);
+    public ResponseEntity<SubmissionsGetResponse> getSubmissionsByUserId(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String candidateId,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String client){
+        logger.info("Getting Submissions for user Id {} with pagination",userId);
+        return new ResponseEntity<>(submissionService.getSubmissionsByUserIdPaginated(userId, page, size, candidateId, fullName, client),HttpStatus.OK);
     }
 
     @GetMapping("/download-resume/{candidateId}/{jobId}")

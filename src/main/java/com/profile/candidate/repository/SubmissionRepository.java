@@ -18,7 +18,6 @@ import java.util.Optional;
 
 public interface SubmissionRepository extends JpaRepository<Submissions,String> {
 
-
      List<Submissions> findByCandidate_CandidateId(String candidateId);
 
      Submissions findByCandidate_CandidateIdAndJobId(String candidateId, String jobId);
@@ -47,6 +46,7 @@ public interface SubmissionRepository extends JpaRepository<Submissions,String> 
     LIMIT 1
 """, nativeQuery = true)
     String findRoleByUserId(@Param("userId") String userId);
+    
     @Query("SELECT s FROM Submissions s  WHERE s.userId = :userId AND s.profileReceivedDate BETWEEN :startDate AND :endDate")
     List<Submissions> findByUserIdAndProfileReceivedDateBetween(
             @Param("userId") String userId,
@@ -72,8 +72,8 @@ public interface SubmissionRepository extends JpaRepository<Submissions,String> 
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+    
     List<Submissions> findByProfileReceivedDateBetween(LocalDate start, LocalDate end);
-
 
 	@Query(value = """    
 SELECT 
@@ -116,6 +116,7 @@ AND cs.job_id IN (SELECT r2.job_id FROM requirements_model r2 WHERE r2.assigned_
 			@Param("startDate") LocalDateTime startDate,
 			@Param("endDate") LocalDateTime endDate
 	);
+	
 	@Query(value = """    
 SELECT         
     cs.submission_id,      
@@ -156,12 +157,14 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
 			@Param("startDate") LocalDateTime startDate,
 			@Param("endDate") LocalDateTime endDate
 	);
+	
     @Modifying
     @Transactional
     @Query(value = "UPDATE requirements_model r SET r.status = 'Submitted' " +
             "WHERE r.job_id = :jobId AND EXISTS " +
             "(SELECT 1 FROM candidate_submissions c WHERE c.job_id = :jobId)", nativeQuery = true)
     void updateRequirementStatus(@Param("jobId") String jobId);
+    
     Optional<Submissions> findByCandidateCandidateIdAndJobId(String candidateId, String jobId);
 
     @Query(value = """
@@ -203,4 +206,92 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             Pageable pageable);
 
     List<Submissions> findByJobId(String jobId);
+
+    @Query(value = """
+            SELECT s.* 
+            FROM candidate_submissions s 
+            JOIN candidates c ON s.candidate_id = c.candidate_id 
+            JOIN requirements_model r ON s.job_id = r.job_id 
+            WHERE s.user_id = :userId 
+            AND s.profile_received_date BETWEEN :startDate AND :endDate 
+            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            ORDER BY s.profile_received_date DESC
+            LIMIT :limit OFFSET :offset
+            """, nativeQuery = true)
+    List<Submissions> findByUserIdWithFiltersAndPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("client") String client,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM candidate_submissions s 
+            JOIN candidates c ON s.candidate_id = c.candidate_id 
+            JOIN requirements_model r ON s.job_id = r.job_id 
+            WHERE s.user_id = :userId 
+            AND s.profile_received_date BETWEEN :startDate AND :endDate 
+            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            """, nativeQuery = true)
+    long countByUserIdWithFilters(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("client") String client);
+
+    @Query(value = """
+            SELECT s.* 
+            FROM candidate_submissions s 
+            JOIN candidates c ON s.candidate_id = c.candidate_id 
+            JOIN requirements_model r ON s.job_id = r.job_id 
+            JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
+            JOIN user_details u ON b.on_boarded_by = u.user_name
+            WHERE u.user_id = :userId 
+            AND s.profile_received_date BETWEEN :startDate AND :endDate 
+            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            ORDER BY s.profile_received_date DESC
+            LIMIT :limit OFFSET :offset
+            """, nativeQuery = true)
+    List<Submissions> findBdmSubmissionsWithFiltersAndPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("client") String client,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM candidate_submissions s 
+            JOIN candidates c ON s.candidate_id = c.candidate_id 
+            JOIN requirements_model r ON s.job_id = r.job_id 
+            JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
+            JOIN user_details u ON b.on_boarded_by = u.user_name
+            WHERE u.user_id = :userId 
+            AND s.profile_received_date BETWEEN :startDate AND :endDate 
+            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            """, nativeQuery = true)
+    long countBdmSubmissionsWithFilters(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("client") String client);
 }
