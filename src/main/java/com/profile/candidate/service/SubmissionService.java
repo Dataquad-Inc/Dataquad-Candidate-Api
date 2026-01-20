@@ -831,6 +831,65 @@ public class SubmissionService {
         }
         return resume;
     }
+
+    public SubmissionsGetResponse getSubmissionsByUserIdPaginated(String userId, int page, int size, String candidateId, String fullName, String client) {
+        String role = submissionRepository.findRoleByUserId(userId);
+        if (role == null) {
+            throw new ResourceNotFoundException("User ID '" + userId + "' not found or role not assigned.");
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate startOfMonth = today.withDayOfMonth(1);
+        LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
+        
+        int offset = page * size;
+        List<Submissions> submissions;
+        long totalCount;
+
+        if ("EMPLOYEE".equalsIgnoreCase(role)) {
+            submissions = submissionRepository.findByUserIdWithFiltersAndPagination(
+                    userId, startOfMonth, endOfMonth, candidateId, fullName, client, size, offset);
+            totalCount = submissionRepository.countByUserIdWithFilters(
+                    userId, startOfMonth, endOfMonth, candidateId, fullName, client);
+        } else if ("BDM".equalsIgnoreCase(role)) {
+            submissions = submissionRepository.findBdmSubmissionsWithFiltersAndPagination(
+                    userId, startOfMonth, endOfMonth, candidateId, fullName, client, size, offset);
+            totalCount = submissionRepository.countBdmSubmissionsWithFilters(
+                    userId, startOfMonth, endOfMonth, candidateId, fullName, client);
+        } else {
+            throw new UnsupportedOperationException("Only EMPLOYEE and BDM roles are supported.");
+        }
+
+        // Apply same interview filtering as old flow
+        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        List<Submissions> filtered = submissions.stream()
+                .filter(sub -> sub.getCandidate() != null &&
+                        !interviewedSet.contains(sub.getCandidate().getCandidateId().trim().toLowerCase()))
+                .toList();
+
+        // Convert to response DTO
+        List<SubmissionsGetResponse.GetSubmissionData> data = filtered.stream()
+                .map(this::convertToSubmissionsGetResponse)
+                .collect(Collectors.toList());
+
+        int totalPages = (int) Math.ceil((double) totalCount / size);
+
+        logger.info("Paginated Submissions for userId {} (Role: {}, Page: {}, Size: {}): Total={}, Returned={}",
+                userId, role, page, size, totalCount, data.size());
+
+        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
+        response.setTotalElements(totalCount);
+        response.setTotalPages(totalPages);
+        response.setCurrentPage(page);
+        response.setPageSize(size);
+        
+        return response;
+    }
 }
 
 
