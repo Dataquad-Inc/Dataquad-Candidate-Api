@@ -227,10 +227,17 @@ public class SubmissionController {
     }
 
     @GetMapping("/submissions/teamlead/{userId}")
-    public ResponseEntity<TeamleadSubmissionsDTO> getSubmissionsForTeamlead(@PathVariable String userId) {
+    public ResponseEntity<TeamleadSubmissionsDTO> getSubmissionsForTeamlead(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String candidateId,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String client) {
         try {
-            // Call the service to get the submissions
-            TeamleadSubmissionsDTO submissionsDTO = submissionService.getSubmissionsForTeamlead(userId);
+            // Call the service to get the submissions with pagination and search
+            TeamleadSubmissionsDTO submissionsDTO = submissionService.getSubmissionsForTeamlead(
+                    userId, page, size, candidateId, fullName, client);
             // Return the response with status 200 OK
             return ResponseEntity.ok(submissionsDTO);
 
@@ -278,11 +285,18 @@ public class SubmissionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
     @GetMapping("/submissions/teamlead/{userId}/filterByDate")
-    public ResponseEntity<?> getSubmissionsByDateRange(@PathVariable String userId,
-      @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-      @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+    public ResponseEntity<?> getSubmissionsByDateRange(
+            @PathVariable String userId,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String candidateId,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String client) {
         try {
-            TeamleadSubmissionsDTO submissions = submissionService.getSubmissionsForTeamlead(userId, startDate, endDate);
+            TeamleadSubmissionsDTO submissions = submissionService.getSubmissionsForTeamlead(
+                    userId, startDate, endDate, page, size, candidateId, fullName, client);
             return ResponseEntity.ok(submissions);
         } catch (DateRangeValidationException e) {
             logger.warn("Invalid date range: {}", e.getMessage());

@@ -368,55 +368,82 @@ public class SubmissionService {
         return filePath.toString();
     }
 
-    public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId) {
+    // New method with pagination and search (preserves existing functionality when no filters)
+    public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId, int page, int size, 
+                                                           String candidateId, String fullName, String client) {
         LocalDate currentDate = LocalDate.now();
         LocalDate startOfMonth = currentDate.withDayOfMonth(1);
         LocalDate endOfMonth = currentDate.withDayOfMonth(currentDate.lengthOfMonth());
-        LocalDateTime startDateTime = startOfMonth.atStartOfDay();
-        LocalDateTime endDateTime = endOfMonth.atTime(LocalTime.MAX);
+        
+        return getSubmissionsForTeamlead(userId, startOfMonth, endOfMonth, page, size, candidateId, fullName, client);
+    }
 
-        logger.info("Fetching current month submissions for teamlead with userId: {} between {} and {}", userId, startDateTime, endDateTime);
+    // Enhanced method with date range, pagination and search
+    public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId, LocalDate startDate, LocalDate endDate,
+                                                           int page, int size, String candidateId, String fullName, String client) {
+        if (startDate == null || endDate == null) {
+            throw new DateRangeValidationException("Start date and end date must not be null.");
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new DateRangeValidationException("End date cannot be before start date.");
+        }
 
-        // Fetch all self/team submissions
-        List<Tuple> selfSubs = submissionRepository.findSelfSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
-        List<Tuple> teamSubs = submissionRepository.findTeamSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+        
+        Pageable pageable = PageRequest.of(page, size);
 
-        logger.info("Fetched {} self submissions", selfSubs.size());
-        logger.info("Fetched {} team submissions", teamSubs.size());
+        logger.info("Fetching paginated submissions for teamlead (userId: {}) from {} to {} (page: {}, size: {})", 
+                   userId, startDateTime, endDateTime, page, size);
 
-        // Fetch interviewed candidate IDs
+        // Fetch paginated data using Pageable
+        Page<Tuple> selfSubsPage = submissionRepository.findSelfSubmissionsByTeamleadWithPagination(
+                userId, startDateTime, endDateTime, candidateId, fullName, client, pageable);
+        Page<Tuple> teamSubsPage = submissionRepository.findTeamSubmissionsByTeamleadWithPagination(
+                userId, startDateTime, endDateTime, candidateId, fullName, client, pageable);
+
+        logger.info("Found {} self submissions and {} team submissions for teamlead {} (totals: self={}, team={})",
+                selfSubsPage.getContent().size(), teamSubsPage.getContent().size(), userId, 
+                selfSubsPage.getTotalElements(), teamSubsPage.getTotalElements());
+
+        // Filter out interviewed candidates
         List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
-        Set<String> normalizedInterviewedIds = interviewedCandidateIds.stream()
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
                 .filter(Objects::nonNull)
                 .map(id -> id.trim().toLowerCase())
                 .collect(Collectors.toSet());
+        
+        logger.info("Interviewed candidates count: {}", interviewedSet.size());
 
-        logger.info("Fetched {} interviewed candidate IDs", normalizedInterviewedIds.size());
-
-        // Filter out interviewed candidates from self submissions
-        List<Tuple> filteredSelfSubs = selfSubs.stream()
+        // Filter submissions
+        List<Tuple> filteredSelfSubs = selfSubsPage.getContent().stream()
                 .filter(t -> {
-                    String candidateId = (String) t.get("candidateId");
-                    return candidateId != null && !normalizedInterviewedIds.contains(candidateId.trim().toLowerCase());
+                    String candidateIdFromTuple = (String) t.get("candidateId");
+                    boolean include = candidateIdFromTuple != null && !interviewedSet.contains(candidateIdFromTuple.trim().toLowerCase());
+                    logger.debug("Self Candidate ID: {} -> {}", candidateIdFromTuple, include ? "Included" : "Excluded");
+                    return include;
                 })
                 .toList();
 
-        // Filter out interviewed candidates from team submissions
-        List<Tuple> filteredTeamSubs = teamSubs.stream()
+        List<Tuple> filteredTeamSubs = teamSubsPage.getContent().stream()
                 .filter(t -> {
-                    String candidateId = (String) t.get("candidateId");
-                    return candidateId != null && !normalizedInterviewedIds.contains(candidateId.trim().toLowerCase());
+                    String candidateIdFromTuple = (String) t.get("candidateId");
+                    boolean include = candidateIdFromTuple != null && !interviewedSet.contains(candidateIdFromTuple.trim().toLowerCase());
+                    logger.debug("Team Candidate ID: {} -> {}", candidateIdFromTuple, include ? "Included" : "Excluded");
+                    return include;
                 })
                 .toList();
 
-        logger.info("Filtered self submissions: {} excluded, {} remaining", selfSubs.size() - filteredSelfSubs.size(), filteredSelfSubs.size());
-        logger.info("Filtered team submissions: {} excluded, {} remaining", teamSubs.size() - filteredTeamSubs.size(), filteredTeamSubs.size());
+        logger.info("After filtering: {} self submissions and {} team submissions included",
+                filteredSelfSubs.size(), filteredTeamSubs.size());
 
         // Convert to DTOs
         List<SubmissionGetResponseDto> selfSubDtos = mapTuplesToResponseDto(filteredSelfSubs);
         List<SubmissionGetResponseDto> teamSubDtos = mapTuplesToResponseDto(filteredTeamSubs);
 
-        return new TeamleadSubmissionsDTO(selfSubDtos, teamSubDtos);
+        return new TeamleadSubmissionsDTO(selfSubDtos, teamSubDtos,
+                                        selfSubsPage.getTotalElements(), teamSubsPage.getTotalElements(),
+                                        selfSubsPage.getTotalPages(), teamSubsPage.getTotalPages(), page, size);
     }
 
     public List<SubmissionGetResponseDto> mapTuplesToResponseDto(List<Tuple> tuples) {
@@ -763,62 +790,7 @@ public class SubmissionService {
         }
 
     }
-    public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId, LocalDate startDate, LocalDate endDate) {
-        if (startDate == null || endDate == null) {
-            throw new DateRangeValidationException("Start date and end date must not be null.");
-        }
-        if (endDate.isBefore(startDate)) {
-            throw new DateRangeValidationException("End date cannot be before start date.");
-        }
 
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
-
-        logger.info("Fetching submissions for teamlead (userId: {}) from {} to {}", userId, startDateTime, endDateTime);
-
-        List<Tuple> selfSubs = submissionRepository.findSelfSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
-        List<Tuple> teamSubs = submissionRepository.findTeamSubmissionsByTeamleadAndDateRange(userId, startDateTime, endDateTime);
-
-        logger.info("Found {} self submissions and {} team submissions for teamlead {}",
-                selfSubs.size(), teamSubs.size(), userId);
-
-        // ✅ Normalize interview candidate IDs for safe comparison
-        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
-        Set<String> interviewedSet = interviewedCandidateIds.stream()
-                .filter(Objects::nonNull)
-                .map(id -> id.trim().toLowerCase())
-                .collect(Collectors.toSet());
-        logger.info("Interviewed candidates count: {}", interviewedSet.size());
-
-        // ✅ Filter self submissions
-        List<Tuple> filteredSelfSubs = selfSubs.stream()
-                .filter(t -> {
-                    String candidateId = (String) t.get("candidateId");
-                    boolean include = candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
-                    logger.debug("Self Candidate ID: {} -> {}", candidateId, include ? "Included" : "Excluded");
-                    return include;
-                })
-                .toList();
-
-        // ✅ Filter team submissions
-        List<Tuple> filteredTeamSubs = teamSubs.stream()
-                .filter(t -> {
-                    String candidateId = (String) t.get("candidateId");
-                    boolean include = candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
-                    logger.debug("Team Candidate ID: {} -> {}", candidateId, include ? "Included" : "Excluded");
-                    return include;
-                })
-                .toList();
-
-        logger.info("After filtering: {} self submissions and {} team submissions included",
-                filteredSelfSubs.size(), filteredTeamSubs.size());
-
-        // ✅ Convert to DTOs
-        List<SubmissionGetResponseDto> selfSubDtos = mapTuplesToResponseDto(filteredSelfSubs);
-        List<SubmissionGetResponseDto> teamSubDtos = mapTuplesToResponseDto(filteredTeamSubs);
-
-        return new TeamleadSubmissionsDTO(selfSubDtos, teamSubDtos);
-    }
 
     public byte[] getResumeByCandidateAndJob(String candidateId, String jobId) {
         Submissions submission = submissionRepository.findByCandidate_CandidateIdAndJobId(candidateId, jobId);

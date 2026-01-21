@@ -294,4 +294,131 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             @Param("candidateId") String candidateId,
             @Param("fullName") String fullName,
             @Param("client") String client);
+
+    // Paginated teamlead self submissions using Pageable
+    @Query(value = """
+            SELECT         
+                cs.submission_id,      
+                c.candidate_id AS candidateId,  
+                cs.recruiter_name as recruiter_name,       
+                cs.candidate_id AS candidate_id,        
+                c.full_name AS full_name,       
+                c.contact_number AS contact_number,      
+                c.candidate_email_id AS candidate_email_id,       
+                cs.skills AS skills,        
+                cs.job_id AS job_id,        
+                cs.user_id AS user_id,  
+                cs.user_email AS user_email,        
+                cs.preferred_location AS preferred_location,   
+                DATE_FORMAT(cs.profile_received_date, '%Y-%m-%d') AS profile_received_date,   
+                r.job_title AS job_title,       
+                r.client_name AS client_name,    
+                c.total_experience AS total_experience,
+                c.relevant_experience AS relevant_experience,
+                c.current_organization AS current_organization,
+                c.qualification AS qualification,
+                c.currentctc AS current_ctc,
+                c.expectedctc AS expected_ctc,
+                c.notice_period AS notice_period,
+                c.current_location AS current_location,
+                cs.communication_skills AS communication_skills,
+                cs.required_technologies_rating AS required_technologies_rating,
+                cs.overall_feedback AS overall_feedback,
+                cs.submitted_at AS submitted_at,
+                r.job_title AS technology
+            FROM candidates c     
+            JOIN candidate_submissions cs ON c.candidate_id = cs.candidate_id  
+            JOIN requirements_model r ON cs.job_id = r.job_id    
+            WHERE cs.user_id = :userId     
+            AND cs.profile_received_date BETWEEN :startDate AND :endDate
+            AND (:candidateId IS NULL OR cs.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            ORDER BY cs.profile_received_date DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*)
+            FROM candidates c     
+            JOIN candidate_submissions cs ON c.candidate_id = cs.candidate_id  
+            JOIN requirements_model r ON cs.job_id = r.job_id    
+            WHERE cs.user_id = :userId     
+            AND cs.profile_received_date BETWEEN :startDate AND :endDate
+            AND (:candidateId IS NULL OR cs.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            """,
+            nativeQuery = true)
+    Page<Tuple> findSelfSubmissionsByTeamleadWithPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("client") String client,
+            Pageable pageable);
+
+    // Paginated teamlead team submissions using Pageable
+    @Query(value = """
+            SELECT 
+                cs.submission_id,     
+                cs.candidate_id AS candidateId,       
+                cs.recruiter_name as recruiter_name,   
+                c.full_name AS full_name,    
+                cs.skills AS skills,      
+                cs.job_id AS job_id,
+                cs.user_id AS user_id,
+                cs.user_email AS user_email,
+                cs.preferred_location AS preferred_location,
+                DATE_FORMAT(cs.profile_received_date, '%Y-%m-%d') AS profile_received_date,
+                r.job_title AS job_title,    
+                r.client_name AS client_name,
+                c.contact_number AS contact_number,      
+                c.candidate_email_id AS candidate_email_id,  
+                c.total_experience AS total_experience,   
+                c.relevant_experience AS relevant_experience,
+                c.current_organization AS current_organization,
+                c.qualification AS qualification,
+                c.currentctc AS current_ctc,
+                c.expectedctc AS expected_ctc,
+                c.notice_period AS notice_period,
+                c.current_location AS current_location,
+                cs.communication_skills AS communication_skills,
+                cs.required_technologies_rating AS required_technologies_rating,
+                cs.overall_feedback AS overall_feedback,
+                cs.submitted_at AS submitted_at,
+                r.job_title AS technology
+            FROM user_details u 
+            JOIN requirements_model r ON r.assigned_by = u.user_name  
+            JOIN candidate_submissions cs ON cs.job_id = r.job_id    
+            JOIN candidates c ON c.candidate_id = cs.candidate_id   
+            WHERE u.user_id = :userId AND c.user_id != u.user_id   
+            AND cs.profile_received_date BETWEEN :startDate AND :endDate 
+            AND cs.job_id IN (SELECT r2.job_id FROM requirements_model r2 WHERE r2.assigned_by = u.user_name)
+            AND (:candidateId IS NULL OR cs.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            ORDER BY cs.profile_received_date DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*)
+            FROM user_details u 
+            JOIN requirements_model r ON r.assigned_by = u.user_name  
+            JOIN candidate_submissions cs ON cs.job_id = r.job_id    
+            JOIN candidates c ON c.candidate_id = cs.candidate_id   
+            WHERE u.user_id = :userId AND c.user_id != u.user_id   
+            AND cs.profile_received_date BETWEEN :startDate AND :endDate 
+            AND cs.job_id IN (SELECT r2.job_id FROM requirements_model r2 WHERE r2.assigned_by = u.user_name)
+            AND (:candidateId IS NULL OR cs.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+            """,
+            nativeQuery = true)
+    Page<Tuple> findTeamSubmissionsByTeamleadWithPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("client") String client,
+            Pageable pageable);
 }
