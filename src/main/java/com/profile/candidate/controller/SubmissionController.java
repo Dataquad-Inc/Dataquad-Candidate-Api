@@ -227,7 +227,7 @@ public class SubmissionController {
             @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam String globalSearch) {
+            @RequestParam(required = false)  String globalSearch) {
         try {
             // Call the service to get the submissions with pagination and search
             TeamleadSubmissionsDTO submissionsDTO = submissionService.getSubmissionsForTeamlead(
