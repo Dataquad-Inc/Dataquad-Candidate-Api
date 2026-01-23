@@ -4,6 +4,8 @@ import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.Submissions;
 import jakarta.persistence.Tuple;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SubmissionRepository extends JpaRepository<Submissions,String> {
-
 
      List<Submissions> findByCandidate_CandidateId(String candidateId);
 
@@ -45,6 +46,7 @@ public interface SubmissionRepository extends JpaRepository<Submissions,String> 
     LIMIT 1
 """, nativeQuery = true)
     String findRoleByUserId(@Param("userId") String userId);
+    
     @Query("SELECT s FROM Submissions s  WHERE s.userId = :userId AND s.profileReceivedDate BETWEEN :startDate AND :endDate")
     List<Submissions> findByUserIdAndProfileReceivedDateBetween(
             @Param("userId") String userId,
@@ -70,8 +72,8 @@ public interface SubmissionRepository extends JpaRepository<Submissions,String> 
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );
+    
     List<Submissions> findByProfileReceivedDateBetween(LocalDate start, LocalDate end);
-
 
 	@Query(value = """    
 SELECT 
@@ -114,6 +116,7 @@ AND cs.job_id IN (SELECT r2.job_id FROM requirements_model r2 WHERE r2.assigned_
 			@Param("startDate") LocalDateTime startDate,
 			@Param("endDate") LocalDateTime endDate
 	);
+	
 	@Query(value = """    
 SELECT         
     cs.submission_id,      
@@ -154,13 +157,358 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
 			@Param("startDate") LocalDateTime startDate,
 			@Param("endDate") LocalDateTime endDate
 	);
+	
     @Modifying
     @Transactional
     @Query(value = "UPDATE requirements_model r SET r.status = 'Submitted' " +
             "WHERE r.job_id = :jobId AND EXISTS " +
             "(SELECT 1 FROM candidate_submissions c WHERE c.job_id = :jobId)", nativeQuery = true)
     void updateRequirementStatus(@Param("jobId") String jobId);
+    
     Optional<Submissions> findByCandidateCandidateIdAndJobId(String candidateId, String jobId);
 
+    @Query(value = """
+    SELECT 
+        s.submission_id,
+        s.candidate_id,
+        s.job_id,
+        s.resume_file_path,
+        NULL as resume,
+        s.preferred_location,
+        s.skills,
+        s.client_name,
+        s.communication_skills,
+        s.required_technologies_rating,
+        s.overall_feedback,
+        s.profile_received_date,
+        s.submitted_at,
+        s.recruiter_name,
+        s.user_email,
+        s.user_id,
+        s.status
+    FROM production.candidate_submissions s 
+    JOIN production.candidates c ON s.candidate_id = c.candidate_id 
+    JOIN production.requirements_model r ON s.job_id = r.job_id 
+    WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+    AND (:globalSearch IS NULL OR :globalSearch = '' OR
+        s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+        c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+        r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+        s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+        s.job_id LIKE CONCAT('%', :globalSearch, '%')
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM production.interview_details i
+        WHERE i.candidate_id = s.candidate_id
+          AND i.interview_status = 'INTERNAL_REJECTED'
+          AND i.interview_status = 1
+    )
+    ORDER BY s.profile_received_date DESC
+    """,
+            countQuery = """
+        SELECT COUNT(*)
+        FROM production.candidate_submissions s 
+        JOIN production.candidates c ON s.candidate_id = c.candidate_id 
+        JOIN production.requirements_model r ON s.job_id = r.job_id 
+        WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:globalSearch IS NULL OR :globalSearch = '' OR
+            s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.job_id LIKE CONCAT('%', :globalSearch, '%')
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM production.interview_details i
+            WHERE i.candidate_id = s.candidate_id
+              AND i.interview_status = 'INTERNAL_REJECTED'
+              AND i.interview_status = 1
+        )
+        """,
+            nativeQuery = true)
+    Page<Submissions> findSubmissionsWithFiltersAndPagination(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("globalSearch") String globalSearch,
+            Pageable pageable);
+
+
     List<Submissions> findByJobId(String jobId);
+
+    @Query(value = """
+        SELECT 
+            s.submission_id,
+            s.candidate_id,
+            s.job_id,
+            s.resume_file_path,
+            NULL as resume,
+            s.preferred_location,
+            s.skills,
+            s.client_name,
+            s.communication_skills,
+            s.required_technologies_rating,
+            s.overall_feedback,
+            s.profile_received_date,
+            s.submitted_at,
+            s.recruiter_name,
+            s.user_email,
+            s.user_id,
+            s.status
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        WHERE s.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:globalSearch IS NULL OR 
+            s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.job_id LIKE CONCAT('%', :globalSearch, '%')
+        )
+        ORDER BY s.profile_received_date DESC
+        LIMIT :limit OFFSET :offset
+        """, nativeQuery = true)
+    List<Submissions> findByUserIdWithFiltersAndPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("globalSearch") String globalSearch,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    @Query(value = """
+        SELECT COUNT(*)
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        WHERE s.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:globalSearch IS NULL OR 
+            s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.job_id LIKE CONCAT('%', :globalSearch, '%')
+        )
+        """, nativeQuery = true)
+    long countByUserIdWithFilters(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("globalSearch") String globalSearch);
+
+    @Query(value = """
+        SELECT 
+            s.submission_id,
+            s.candidate_id,
+            s.job_id,
+            s.resume_file_path,
+            NULL as resume,
+            s.preferred_location,
+            s.skills,
+            s.client_name,
+            s.communication_skills,
+            s.required_technologies_rating,
+            s.overall_feedback,
+            s.profile_received_date,
+            s.submitted_at,
+            s.recruiter_name,
+            s.user_email,
+            s.user_id,
+            s.status
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
+        JOIN user_details u ON b.on_boarded_by = u.user_name
+        WHERE u.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:globalSearch IS NULL OR 
+            s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.job_id LIKE CONCAT('%', :globalSearch, '%')
+        )
+        ORDER BY s.profile_received_date DESC
+        LIMIT :limit OFFSET :offset
+        """, nativeQuery = true)
+    List<Submissions> findBdmSubmissionsWithFiltersAndPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("globalSearch") String globalSearch,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    @Query(value = """
+        SELECT COUNT(*)
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
+        JOIN user_details u ON b.on_boarded_by = u.user_name
+        WHERE u.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:globalSearch IS NULL OR 
+            s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            s.job_id LIKE CONCAT('%', :globalSearch, '%')
+        )
+        """, nativeQuery = true)
+    long countBdmSubmissionsWithFilters(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("globalSearch") String globalSearch);
+
+    @Query(value = """
+        SELECT
+            cs.submission_id,
+            c.candidate_id AS candidateId,  
+            cs.recruiter_name as recruiter_name,       
+            cs.candidate_id AS candidate_id,        
+            c.full_name AS full_name,       
+            c.contact_number AS contact_number,      
+            c.candidate_email_id AS candidate_email_id,       
+            cs.skills AS skills,        
+            cs.job_id AS job_id,        
+            cs.user_id AS user_id,  
+            cs.user_email AS user_email,        
+            cs.preferred_location AS preferred_location,   
+            DATE_FORMAT(cs.profile_received_date, '%Y-%m-%d') AS profile_received_date,   
+            r.job_title AS job_title,       
+            r.client_name AS client_name,    
+            c.total_experience AS total_experience,
+            c.relevant_experience AS relevant_experience,
+            c.current_organization AS current_organization,
+            c.qualification AS qualification,
+            c.currentctc AS current_ctc,
+            c.expectedctc AS expected_ctc,
+            c.notice_period AS notice_period,
+            c.current_location AS current_location,
+            cs.communication_skills AS communication_skills,
+            cs.required_technologies_rating AS required_technologies_rating,
+            cs.overall_feedback AS overall_feedback,
+            cs.submitted_at AS submitted_at,
+            r.job_title AS technology
+        FROM candidates c     
+        JOIN candidate_submissions cs ON c.candidate_id = cs.candidate_id  
+        JOIN requirements_model r ON cs.job_id = r.job_id    
+        WHERE cs.user_id = :userId     
+        AND cs.profile_received_date BETWEEN :startDate AND :endDate
+        AND (:globalSearch IS NULL OR 
+            cs.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.job_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.candidate_email_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.contact_number LIKE CONCAT('%', :globalSearch, '%')
+        )
+        ORDER BY cs.profile_received_date DESC
+        """,
+            countQuery = """
+        SELECT COUNT(*)
+        FROM candidates c     
+        JOIN candidate_submissions cs ON c.candidate_id = cs.candidate_id  
+        JOIN requirements_model r ON cs.job_id = r.job_id    
+        WHERE cs.user_id = :userId     
+        AND cs.profile_received_date BETWEEN :startDate AND :endDate
+        AND (:globalSearch IS NULL OR 
+            cs.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.job_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.candidate_email_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.contact_number LIKE CONCAT('%', :globalSearch, '%')
+        )
+        """,
+            nativeQuery = true)
+    Page<Tuple> findSelfSubmissionsByTeamleadWithPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("globalSearch") String globalSearch,
+            Pageable pageable);
+
+    @Query(value = """
+        SELECT 
+            cs.submission_id,     
+            cs.candidate_id AS candidateId,       
+            cs.recruiter_name as recruiter_name,   
+            c.full_name AS full_name,    
+            cs.skills AS skills,      
+            cs.job_id AS job_id,
+            cs.user_id AS user_id,
+            cs.user_email AS user_email,
+            cs.preferred_location AS preferred_location,
+            DATE_FORMAT(cs.profile_received_date, '%Y-%m-%d') AS profile_received_date,
+            r.job_title AS job_title,    
+            r.client_name AS client_name,
+            c.contact_number AS contact_number,      
+            c.candidate_email_id AS candidate_email_id,  
+            c.total_experience AS total_experience,   
+            c.relevant_experience AS relevant_experience,
+            c.current_organization AS current_organization,
+            c.qualification AS qualification,
+            c.currentctc AS current_ctc,
+            c.expectedctc AS expected_ctc,
+            c.notice_period AS notice_period,
+            c.current_location AS current_location,
+            cs.communication_skills AS communication_skills,
+            cs.required_technologies_rating AS required_technologies_rating,
+            cs.overall_feedback AS overall_feedback,
+            cs.submitted_at AS submitted_at,
+            r.job_title AS technology
+        FROM user_details u 
+        JOIN requirements_model r ON r.assigned_by = u.user_name  
+        JOIN candidate_submissions cs ON cs.job_id = r.job_id    
+        JOIN candidates c ON c.candidate_id = cs.candidate_id   
+        WHERE u.user_id = :userId AND c.user_id != u.user_id   
+        AND cs.profile_received_date BETWEEN :startDate AND :endDate 
+        AND cs.job_id IN (SELECT r2.job_id FROM requirements_model r2 WHERE r2.assigned_by = u.user_name)
+        AND (:globalSearch IS NULL OR 
+            cs.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.job_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.candidate_email_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.contact_number LIKE CONCAT('%', :globalSearch, '%')
+        )
+        ORDER BY cs.profile_received_date DESC
+        """,
+            countQuery = """
+        SELECT COUNT(*)
+        FROM user_details u 
+        JOIN requirements_model r ON r.assigned_by = u.user_name  
+        JOIN candidate_submissions cs ON cs.job_id = r.job_id    
+        JOIN candidates c ON c.candidate_id = cs.candidate_id   
+        WHERE u.user_id = :userId AND c.user_id != u.user_id   
+        AND cs.profile_received_date BETWEEN :startDate AND :endDate 
+        AND cs.job_id IN (SELECT r2.job_id FROM requirements_model r2 WHERE r2.assigned_by = u.user_name)
+        AND (:globalSearch IS NULL OR 
+            cs.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+            cs.job_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.candidate_email_id LIKE CONCAT('%', :globalSearch, '%') OR
+            c.contact_number LIKE CONCAT('%', :globalSearch, '%')
+        )
+        """,
+            nativeQuery = true)
+    Page<Tuple> findTeamSubmissionsByTeamleadWithPagination(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("globalSearch") String globalSearch,
+            Pageable pageable);
 }

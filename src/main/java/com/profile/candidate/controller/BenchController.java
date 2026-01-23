@@ -405,10 +405,13 @@ public class BenchController {
     public ResponseEntity<BenchResponseDto> autoPopulateBenchFromSubmissions(
             @RequestParam("userId") String userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String globalSearch
     ) {
         try {
-            TeamleadSubmissionsDTO submissionsDTO = service.getSubmissionsForTeamlead(userId, startDate, endDate);
+            TeamleadSubmissionsDTO submissionsDTO = service.getSubmissionsForTeamlead(userId, startDate, endDate,page, size,globalSearch);
 
             List<SubmissionGetResponseDto> allSubmissions = new ArrayList<>();
             List<SubmissionGetResponseDto> selfSubmissions = submissionsDTO.getSelfSubmissions();
