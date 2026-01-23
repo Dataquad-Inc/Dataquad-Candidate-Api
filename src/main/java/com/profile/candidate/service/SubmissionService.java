@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,7 +46,7 @@ public class SubmissionService {
 
     private static final Logger logger = LoggerFactory.getLogger(SubmissionService.class);
 
-    public SubmissionsGetResponse getAllSubmissions(int page, int size, String candidateId, String fullName, String client) {
+    public SubmissionsGetResponse getAllSubmissions(int page, int size, String globalSearch) {
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
         
@@ -53,7 +54,7 @@ public class SubmissionService {
         
         // Fetch paginated submissions with filters (interview exclusion now in DB query)
         Page<Submissions> submissionPage = submissionRepository.findSubmissionsWithFiltersAndPagination(
-                startOfMonth, endOfMonth, candidateId, fullName, client, pageable);
+                startOfMonth, endOfMonth, globalSearch, pageable);
         
         // Convert to response DTO (no need for additional filtering)
         List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
@@ -71,14 +72,6 @@ public class SubmissionService {
         
         return response;
     }
-
-    // Backward compatibility method
-    public SubmissionsGetResponse getAllSubmissions() {
-        return getAllSubmissions(0, 10, null, null, null);
-    }
-
-
-
 
     public SubmissionsGetResponse getSubmissions(String candidateId) {
         Optional<CandidateDetails> candidateDetails = candidateRepository.findById(candidateId);
@@ -369,18 +362,17 @@ public class SubmissionService {
     }
 
     // New method with pagination and search (preserves existing functionality when no filters)
-    public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId, int page, int size, 
-                                                           String candidateId, String fullName, String client) {
+    public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId, int page, int size, String globalSearch) {
         LocalDate currentDate = LocalDate.now();
         LocalDate startOfMonth = currentDate.withDayOfMonth(1);
         LocalDate endOfMonth = currentDate.withDayOfMonth(currentDate.lengthOfMonth());
         
-        return getSubmissionsForTeamlead(userId, startOfMonth, endOfMonth, page, size, candidateId, fullName, client);
+        return getSubmissionsForTeamlead(userId, startOfMonth, endOfMonth, page, size, globalSearch);
     }
 
     // Enhanced method with date range, pagination and search
     public TeamleadSubmissionsDTO getSubmissionsForTeamlead(String userId, LocalDate startDate, LocalDate endDate,
-                                                           int page, int size, String candidateId, String fullName, String client) {
+                                                           int page, int size, String globalSearch) {
         if (startDate == null || endDate == null) {
             throw new DateRangeValidationException("Start date and end date must not be null.");
         }
@@ -398,9 +390,9 @@ public class SubmissionService {
 
         // Fetch paginated data using Pageable
         Page<Tuple> selfSubsPage = submissionRepository.findSelfSubmissionsByTeamleadWithPagination(
-                userId, startDateTime, endDateTime, candidateId, fullName, client, pageable);
+                userId, startDateTime, endDateTime, globalSearch, pageable);
         Page<Tuple> teamSubsPage = submissionRepository.findTeamSubmissionsByTeamleadWithPagination(
-                userId, startDateTime, endDateTime, candidateId, fullName, client, pageable);
+                userId, startDateTime, endDateTime,globalSearch, pageable);
 
         logger.info("Found {} self submissions and {} team submissions for teamlead {} (totals: self={}, team={})",
                 selfSubsPage.getContent().size(), teamSubsPage.getContent().size(), userId, 
@@ -804,7 +796,7 @@ public class SubmissionService {
         return resume;
     }
 
-    public SubmissionsGetResponse getSubmissionsByUserIdPaginated(String userId, int page, int size, String candidateId, String fullName, String client) {
+    public SubmissionsGetResponse getSubmissionsByUserIdPaginated(String userId, int page, int size, String globalSearch) {
         String role = submissionRepository.findRoleByUserId(userId);
         if (role == null) {
             throw new ResourceNotFoundException("User ID '" + userId + "' not found or role not assigned.");
@@ -820,14 +812,14 @@ public class SubmissionService {
 
         if ("EMPLOYEE".equalsIgnoreCase(role)) {
             submissions = submissionRepository.findByUserIdWithFiltersAndPagination(
-                    userId, startOfMonth, endOfMonth, candidateId, fullName, client, size, offset);
+                    userId, startOfMonth, endOfMonth, globalSearch, size, offset);
             totalCount = submissionRepository.countByUserIdWithFilters(
-                    userId, startOfMonth, endOfMonth, candidateId, fullName, client);
+                    userId, startOfMonth, endOfMonth, globalSearch);
         } else if ("BDM".equalsIgnoreCase(role)) {
             submissions = submissionRepository.findBdmSubmissionsWithFiltersAndPagination(
-                    userId, startOfMonth, endOfMonth, candidateId, fullName, client, size, offset);
+                    userId, startOfMonth, endOfMonth, globalSearch, size, offset);
             totalCount = submissionRepository.countBdmSubmissionsWithFilters(
-                    userId, startOfMonth, endOfMonth, candidateId, fullName, client);
+                    userId, startOfMonth, endOfMonth,globalSearch);
         } else {
             throw new UnsupportedOperationException("Only EMPLOYEE and BDM roles are supported.");
         }
