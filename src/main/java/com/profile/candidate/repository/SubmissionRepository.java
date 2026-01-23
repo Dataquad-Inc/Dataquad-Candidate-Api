@@ -225,7 +225,7 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
     Page<Submissions> findSubmissionsWithFiltersAndPagination(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
-            @Param("globalSearch") String globalSearch,
+            @Param("globalSearch") String globalSearch,  // Add global search parameter
             Pageable pageable);
 
     List<Submissions> findByJobId(String jobId);
