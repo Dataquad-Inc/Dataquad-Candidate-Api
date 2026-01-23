@@ -167,35 +167,53 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
     
     Optional<Submissions> findByCandidateCandidateIdAndJobId(String candidateId, String jobId);
 
+
     @Query(value = """
-            SELECT s.* 
-            FROM production.candidate_submissions s 
-            JOIN production.candidates c ON s.candidate_id = c.candidate_id 
-            JOIN production.requirements_model r ON s.job_id = r.job_id 
-            WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
-            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
-            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
-            AND NOT EXISTS (
-                SELECT 1 FROM production.interview_details i 
-                WHERE i.candidate_id = s.candidate_id
-            )
-            ORDER BY s.profile_received_date DESC
-            """,
+        SELECT 
+            s.submission_id,
+            s.candidate_id,
+            s.job_id,
+            s.resume_file_path,
+            NULL as resume,
+            s.preferred_location,
+            s.skills,
+            s.client_name,
+            s.communication_skills,
+            s.required_technologies_rating,
+            s.overall_feedback,
+            s.profile_received_date,
+            s.submitted_at,
+            s.recruiter_name,
+            s.user_email,
+            s.user_id,
+            s.status
+        FROM production.candidate_submissions s 
+        JOIN production.candidates c ON s.candidate_id = c.candidate_id 
+        JOIN production.requirements_model r ON s.job_id = r.job_id 
+        WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+        AND NOT EXISTS (
+            SELECT 1 FROM production.interview_details i 
+            WHERE i.candidate_id = s.candidate_id
+        )
+        ORDER BY s.profile_received_date DESC
+        """,
             countQuery = """
-                    SELECT COUNT(*)
-                    FROM production.candidate_submissions s 
-                    JOIN production.candidates c ON s.candidate_id = c.candidate_id 
-                    JOIN production.requirements_model r ON s.job_id = r.job_id 
-                    WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-                    AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
-                    AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
-                    AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
-                    AND NOT EXISTS (
-                        SELECT 1 FROM production.interview_details i 
-                        WHERE i.candidate_id = s.candidate_id
-                    )
-                    """,
+                SELECT COUNT(*)
+                FROM production.candidate_submissions s 
+                JOIN production.candidates c ON s.candidate_id = c.candidate_id 
+                JOIN production.requirements_model r ON s.job_id = r.job_id 
+                WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+                AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+                AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+                AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+                AND NOT EXISTS (
+                    SELECT 1 FROM production.interview_details i 
+                    WHERE i.candidate_id = s.candidate_id
+                )
+                """,
             nativeQuery = true)
     Page<Submissions> findSubmissionsWithFiltersAndPagination(
             @Param("startDate") LocalDate startDate,
@@ -208,18 +226,35 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
     List<Submissions> findByJobId(String jobId);
 
     @Query(value = """
-            SELECT s.* 
-            FROM candidate_submissions s 
-            JOIN candidates c ON s.candidate_id = c.candidate_id 
-            JOIN requirements_model r ON s.job_id = r.job_id 
-            WHERE s.user_id = :userId 
-            AND s.profile_received_date BETWEEN :startDate AND :endDate 
-            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
-            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
-            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
-            ORDER BY s.profile_received_date DESC
-            LIMIT :limit OFFSET :offset
-            """, nativeQuery = true)
+        SELECT 
+            s.submission_id,
+            s.candidate_id,
+            s.job_id,
+            s.resume_file_path,
+            NULL as resume,
+            s.preferred_location,
+            s.skills,
+            s.client_name,
+            s.communication_skills,
+            s.required_technologies_rating,
+            s.overall_feedback,
+            s.profile_received_date,
+            s.submitted_at,
+            s.recruiter_name,
+            s.user_email,
+            s.user_id,
+            s.status
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        WHERE s.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+        ORDER BY s.profile_received_date DESC
+        LIMIT :limit OFFSET :offset
+        """, nativeQuery = true)
     List<Submissions> findByUserIdWithFiltersAndPagination(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
@@ -231,16 +266,16 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             @Param("offset") int offset);
 
     @Query(value = """
-            SELECT COUNT(*)
-            FROM candidate_submissions s 
-            JOIN candidates c ON s.candidate_id = c.candidate_id 
-            JOIN requirements_model r ON s.job_id = r.job_id 
-            WHERE s.user_id = :userId 
-            AND s.profile_received_date BETWEEN :startDate AND :endDate 
-            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
-            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
-            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
-            """, nativeQuery = true)
+        SELECT COUNT(*)
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        WHERE s.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+        """, nativeQuery = true)
     long countByUserIdWithFilters(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
@@ -250,20 +285,37 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             @Param("client") String client);
 
     @Query(value = """
-            SELECT s.* 
-            FROM candidate_submissions s 
-            JOIN candidates c ON s.candidate_id = c.candidate_id 
-            JOIN requirements_model r ON s.job_id = r.job_id 
-            JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
-            JOIN user_details u ON b.on_boarded_by = u.user_name
-            WHERE u.user_id = :userId 
-            AND s.profile_received_date BETWEEN :startDate AND :endDate 
-            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
-            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
-            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
-            ORDER BY s.profile_received_date DESC
-            LIMIT :limit OFFSET :offset
-            """, nativeQuery = true)
+        SELECT 
+            s.submission_id,
+            s.candidate_id,
+            s.job_id,
+            s.resume_file_path,
+            NULL as resume,
+            s.preferred_location,
+            s.skills,
+            s.client_name,
+            s.communication_skills,
+            s.required_technologies_rating,
+            s.overall_feedback,
+            s.profile_received_date,
+            s.submitted_at,
+            s.recruiter_name,
+            s.user_email,
+            s.user_id,
+            s.status
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
+        JOIN user_details u ON b.on_boarded_by = u.user_name
+        WHERE u.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+        ORDER BY s.profile_received_date DESC
+        LIMIT :limit OFFSET :offset
+        """, nativeQuery = true)
     List<Submissions> findBdmSubmissionsWithFiltersAndPagination(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
@@ -275,18 +327,18 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             @Param("offset") int offset);
 
     @Query(value = """
-            SELECT COUNT(*)
-            FROM candidate_submissions s 
-            JOIN candidates c ON s.candidate_id = c.candidate_id 
-            JOIN requirements_model r ON s.job_id = r.job_id 
-            JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
-            JOIN user_details u ON b.on_boarded_by = u.user_name
-            WHERE u.user_id = :userId 
-            AND s.profile_received_date BETWEEN :startDate AND :endDate 
-            AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
-            AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
-            AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
-            """, nativeQuery = true)
+        SELECT COUNT(*)
+        FROM candidate_submissions s 
+        JOIN candidates c ON s.candidate_id = c.candidate_id 
+        JOIN requirements_model r ON s.job_id = r.job_id 
+        JOIN bdm_client b ON TRIM(UPPER(r.client_name)) COLLATE utf8mb4_bin = TRIM(UPPER(b.client_name)) COLLATE utf8mb4_bin
+        JOIN user_details u ON b.on_boarded_by = u.user_name
+        WHERE u.user_id = :userId 
+        AND s.profile_received_date BETWEEN :startDate AND :endDate 
+        AND (:candidateId IS NULL OR s.candidate_id LIKE CONCAT('%', :candidateId, '%'))
+        AND (:fullName IS NULL OR c.full_name LIKE CONCAT('%', :fullName, '%'))
+        AND (:client IS NULL OR r.client_name LIKE CONCAT('%', :client, '%'))
+        """, nativeQuery = true)
     long countBdmSubmissionsWithFilters(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
@@ -297,8 +349,8 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
 
     // Paginated teamlead self submissions using Pageable
     @Query(value = """
-            SELECT         
-                cs.submission_id,      
+            SELECT
+                cs.submission_id,
                 c.candidate_id AS candidateId,  
                 cs.recruiter_name as recruiter_name,       
                 cs.candidate_id AS candidate_id,        
