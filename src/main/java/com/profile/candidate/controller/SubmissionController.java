@@ -57,11 +57,9 @@ public class SubmissionController {
     public ResponseEntity<SubmissionsGetResponse> getAllSubmissions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String candidateId,
-            @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String client){
+            @RequestParam(required = false)  String globalSearch){
 
-        return new ResponseEntity<>(submissionService.getAllSubmissions(page, size, candidateId, fullName, client), HttpStatus.OK);
+        return new ResponseEntity<>(submissionService.getAllSubmissions(page, size,globalSearch), HttpStatus.OK);
     }
     @GetMapping("/submissions/filterByDate")
     public ResponseEntity<List<SubmissionGetResponseDto>> getAllSubmissionsByDateRange(
@@ -121,11 +119,9 @@ public class SubmissionController {
             @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String candidateId,
-            @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String client){
+            @RequestParam(required = false)  String globalSearch){
         logger.info("Getting Submissions for user Id {} with pagination",userId);
-        return new ResponseEntity<>(submissionService.getSubmissionsByUserIdPaginated(userId, page, size, candidateId, fullName, client),HttpStatus.OK);
+        return new ResponseEntity<>(submissionService.getSubmissionsByUserIdPaginated(userId, page, size, globalSearch),HttpStatus.OK);
     }
 
     @GetMapping("/download-resume/{candidateId}/{jobId}")
@@ -231,13 +227,11 @@ public class SubmissionController {
             @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String candidateId,
-            @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String client) {
+            @RequestParam(required = false)  String globalSearch) {
         try {
             // Call the service to get the submissions with pagination and search
             TeamleadSubmissionsDTO submissionsDTO = submissionService.getSubmissionsForTeamlead(
-                    userId, page, size, candidateId, fullName, client);
+                    userId, page, size,globalSearch);
             // Return the response with status 200 OK
             return ResponseEntity.ok(submissionsDTO);
 
@@ -291,12 +285,10 @@ public class SubmissionController {
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String candidateId,
-            @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String client) {
+            @RequestParam(required = false)  String globalSearch) {
         try {
             TeamleadSubmissionsDTO submissions = submissionService.getSubmissionsForTeamlead(
-                    userId, startDate, endDate, page, size, candidateId, fullName, client);
+                    userId, startDate, endDate, page, size, globalSearch);
             return ResponseEntity.ok(submissions);
         } catch (DateRangeValidationException e) {
             logger.warn("Invalid date range: {}", e.getMessage());

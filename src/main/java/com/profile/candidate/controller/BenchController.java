@@ -408,12 +408,10 @@ public class BenchController {
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String candidateId,
-            @RequestParam(required = false) String fullName,
-            @RequestParam(required = false) String client
+            @RequestParam(required = false) String globalSearch
     ) {
         try {
-            TeamleadSubmissionsDTO submissionsDTO = service.getSubmissionsForTeamlead(userId, startDate, endDate,page, size, candidateId, fullName, client);
+            TeamleadSubmissionsDTO submissionsDTO = service.getSubmissionsForTeamlead(userId, startDate, endDate,page, size,globalSearch);
 
             List<SubmissionGetResponseDto> allSubmissions = new ArrayList<>();
             List<SubmissionGetResponseDto> selfSubmissions = submissionsDTO.getSelfSubmissions();
