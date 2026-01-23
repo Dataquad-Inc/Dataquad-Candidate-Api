@@ -168,29 +168,51 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
     Optional<Submissions> findByCandidateCandidateIdAndJobId(String candidateId, String jobId);
 
     @Query(value = """
-        SELECT 
-            s.submission_id,
-            s.candidate_id,
-            s.job_id,
-            s.resume_file_path,
-            NULL as resume,
-            s.preferred_location,
-            s.skills,
-            s.client_name,
-            s.communication_skills,
-            s.required_technologies_rating,
-            s.overall_feedback,
-            s.profile_received_date,
-            s.submitted_at,
-            s.recruiter_name,
-            s.user_email,
-            s.user_id,
-            s.status
+    SELECT 
+        s.submission_id,
+        s.candidate_id,
+        s.job_id,
+        s.resume_file_path,
+        NULL as resume,
+        s.preferred_location,
+        s.skills,
+        s.client_name,
+        s.communication_skills,
+        s.required_technologies_rating,
+        s.overall_feedback,
+        s.profile_received_date,
+        s.submitted_at,
+        s.recruiter_name,
+        s.user_email,
+        s.user_id,
+        s.status
+    FROM production.candidate_submissions s 
+    JOIN production.candidates c ON s.candidate_id = c.candidate_id 
+    JOIN production.requirements_model r ON s.job_id = r.job_id 
+    WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
+    AND (:globalSearch IS NULL OR :globalSearch = '' OR
+        s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+        c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+        r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+        s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+        s.job_id LIKE CONCAT('%', :globalSearch, '%')
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM production.interview_details i
+        WHERE i.candidate_id = s.candidate_id
+          AND i.interview_status = 'INTERNAL_REJECTED'
+          AND i.interview_status = 1
+    )
+    ORDER BY s.profile_received_date DESC
+    """,
+            countQuery = """
+        SELECT COUNT(*)
         FROM production.candidate_submissions s 
         JOIN production.candidates c ON s.candidate_id = c.candidate_id 
         JOIN production.requirements_model r ON s.job_id = r.job_id 
         WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-        AND (:globalSearch IS NULL OR 
+        AND (:globalSearch IS NULL OR :globalSearch = '' OR
             s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
             c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
             r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
@@ -198,35 +220,20 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             s.job_id LIKE CONCAT('%', :globalSearch, '%')
         )
         AND NOT EXISTS (
-            SELECT 1 FROM production.interview_details i 
+            SELECT 1
+            FROM production.interview_details i
             WHERE i.candidate_id = s.candidate_id
+              AND i.interview_status = 'INTERNAL_REJECTED'
+              AND i.interview_status = 1
         )
-        ORDER BY s.profile_received_date DESC
         """,
-            countQuery = """
-                SELECT COUNT(*)
-                FROM production.candidate_submissions s 
-                JOIN production.candidates c ON s.candidate_id = c.candidate_id 
-                JOIN production.requirements_model r ON s.job_id = r.job_id 
-                WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-                AND (:globalSearch IS NULL OR 
-                    s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
-                    c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
-                    r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
-                    s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
-                    s.job_id LIKE CONCAT('%', :globalSearch, '%')
-                )
-                AND NOT EXISTS (
-                    SELECT 1 FROM production.interview_details i 
-                    WHERE i.candidate_id = s.candidate_id
-                )
-                """,
             nativeQuery = true)
     Page<Submissions> findSubmissionsWithFiltersAndPagination(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
-            @Param("globalSearch") String globalSearch,  // Add global search parameter
+            @Param("globalSearch") String globalSearch,
             Pageable pageable);
+
 
     List<Submissions> findByJobId(String jobId);
 
