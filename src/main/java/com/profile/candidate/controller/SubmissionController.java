@@ -54,9 +54,12 @@ public class SubmissionController {
     private static final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
 
     @GetMapping("/submissions")
-    public ResponseEntity<SubmissionsGetResponse> getAllSubmissions(){
+    public ResponseEntity<SubmissionsGetResponse> getAllSubmissions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false)  String globalSearch){
 
-        return new  ResponseEntity<>(submissionService.getAllSubmissions(),HttpStatus.OK);
+        return new ResponseEntity<>(submissionService.getAllSubmissions(page, size,globalSearch), HttpStatus.OK);
     }
     @GetMapping("/submissions/filterByDate")
     public ResponseEntity<List<SubmissionGetResponseDto>> getAllSubmissionsByDateRange(
@@ -112,9 +115,13 @@ public class SubmissionController {
         return new ResponseEntity<>(submissionService.getSubmissionById(submissionId),HttpStatus.OK);
     }
     @GetMapping("/submissionsByUserId/{userId}")
-    public ResponseEntity<List<SubmissionGetResponseDto>> getSubmissionsByUserId(@PathVariable String userId){
-        logger.info("Getting Submissions for user Id {}",userId);
-        return new ResponseEntity<>(submissionService.getSubmissionsByUserId(userId),HttpStatus.OK);
+    public ResponseEntity<SubmissionsGetResponse> getSubmissionsByUserId(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false)  String globalSearch){
+        logger.info("Getting Submissions for user Id {} with pagination",userId);
+        return new ResponseEntity<>(submissionService.getSubmissionsByUserIdPaginated(userId, page, size, globalSearch),HttpStatus.OK);
     }
 
     @GetMapping("/download-resume/{candidateId}/{jobId}")
@@ -216,10 +223,15 @@ public class SubmissionController {
     }
 
     @GetMapping("/submissions/teamlead/{userId}")
-    public ResponseEntity<TeamleadSubmissionsDTO> getSubmissionsForTeamlead(@PathVariable String userId) {
+    public ResponseEntity<TeamleadSubmissionsDTO> getSubmissionsForTeamlead(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false)  String globalSearch) {
         try {
-            // Call the service to get the submissions
-            TeamleadSubmissionsDTO submissionsDTO = submissionService.getSubmissionsForTeamlead(userId);
+            // Call the service to get the submissions with pagination and search
+            TeamleadSubmissionsDTO submissionsDTO = submissionService.getSubmissionsForTeamlead(
+                    userId, page, size,globalSearch);
             // Return the response with status 200 OK
             return ResponseEntity.ok(submissionsDTO);
 
@@ -267,11 +279,16 @@ public class SubmissionController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
     @GetMapping("/submissions/teamlead/{userId}/filterByDate")
-    public ResponseEntity<?> getSubmissionsByDateRange(@PathVariable String userId,
-      @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-      @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+    public ResponseEntity<?> getSubmissionsByDateRange(
+            @PathVariable String userId,
+            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false)  String globalSearch) {
         try {
-            TeamleadSubmissionsDTO submissions = submissionService.getSubmissionsForTeamlead(userId, startDate, endDate);
+            TeamleadSubmissionsDTO submissions = submissionService.getSubmissionsForTeamlead(
+                    userId, startDate, endDate, page, size, globalSearch);
             return ResponseEntity.ok(submissions);
         } catch (DateRangeValidationException e) {
             logger.warn("Invalid date range: {}", e.getMessage());

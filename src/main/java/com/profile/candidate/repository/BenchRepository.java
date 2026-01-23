@@ -2,6 +2,8 @@ package com.profile.candidate.repository;
 import com.profile.candidate.model.BenchDetails;
 import com.profile.candidate.model.Submissions;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -37,5 +39,22 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
     @Query("SELECT b FROM BenchDetails b WHERE b.createdDate BETWEEN :startDate AND :endDate")
     List<BenchDetails> findByCreatedDateBetween(@Param("startDate") LocalDate startDate,
                                                 @Param("endDate") LocalDate endDate);
+
+    @Query(value = "SELECT * FROM bench_details WHERE " +
+           "(:search IS NULL OR :search = '' OR " +
+           "full_name LIKE CONCAT('%', :search, '%') OR " +
+           "email LIKE CONCAT('%', :search, '%') OR " +
+           "technology LIKE CONCAT('%', :search, '%') OR " +
+           "skills LIKE CONCAT('%', :search, '%') OR " +
+           "referred_by LIKE CONCAT('%', :search, '%'))",
+           countQuery = "SELECT COUNT(*) FROM bench_details WHERE " +
+           "(:search IS NULL OR :search = '' OR " +
+           "full_name LIKE CONCAT('%', :search, '%') OR " +
+           "email LIKE CONCAT('%', :search, '%') OR " +
+           "technology LIKE CONCAT('%', :search, '%') OR " +
+           "skills LIKE CONCAT('%', :search, '%') OR " +
+           "referred_by LIKE CONCAT('%', :search, '%'))",
+           nativeQuery = true)
+    Page<BenchDetails> findAllWithSearch(@Param("search") String search, Pageable pageable);
 
 }

@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
 
 @CrossOrigin(origins = {"http://35.188.150.92", "http://192.168.0.140:3000", "http://192.168.0.139:3000","https://mymulya.com", "http://localhost:3000", "http://192.168.0.135:8080",
         "http://192.168.0.135:80",
@@ -160,12 +161,14 @@ public class BenchController {
 
 
     @GetMapping("/bench/getBenchList")
-    public ResponseEntity<List<BenchDetailsDto>> getAllBenchDetails() {
+    public ResponseEntity<?> getAllBenchDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search) {
         try {
-            List<BenchDetails> benchDetailsList = benchService.findAllBenchDetails();
+            Page<BenchDetails> benchPage = benchService.findAllBenchDetailsWithPagination(page, size, search);
 
-            // ✅ Convert BenchDetails to BenchDetailsDto (excluding resume)
-            List<BenchDetailsDto> dtoList = benchDetailsList.stream()
+            List<BenchDetailsDto> dtoList = benchPage.getContent().stream()
                     .map(bench -> new BenchDetailsDto(
                             bench.getId(),
                             bench.getFullName(),
@@ -173,7 +176,7 @@ public class BenchController {
                             bench.getRelevantExperience(),
                             bench.getTotalExperience(),
                             bench.getContactNumber(),
-                            bench.getSkills() != null ? bench.getSkills() : Collections.<String>emptyList(),  // ✅ Ensure skills is a List<String>
+                            bench.getSkills() != null ? bench.getSkills() : Collections.<String>emptyList(),
                             bench.getLinkedin(),
                             bench.getReferredBy(),
                             bench.getCreatedDate(),
@@ -182,9 +185,18 @@ public class BenchController {
                     ))
                     .collect(Collectors.toList());
 
-            return ResponseEntity.ok(dtoList);
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", dtoList);
+            response.put("totalElements", benchPage.getTotalElements());
+            response.put("totalPages", benchPage.getTotalPages());
+            response.put("currentPage", benchPage.getNumber());
+            response.put("size", benchPage.getSize());
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+            logger.error("Error fetching bench details: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("error", "Failed to fetch bench details"));
         }
     }
 
@@ -405,10 +417,13 @@ public class BenchController {
     public ResponseEntity<BenchResponseDto> autoPopulateBenchFromSubmissions(
             @RequestParam("userId") String userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String globalSearch
     ) {
         try {
-            TeamleadSubmissionsDTO submissionsDTO = service.getSubmissionsForTeamlead(userId, startDate, endDate);
+            TeamleadSubmissionsDTO submissionsDTO = service.getSubmissionsForTeamlead(userId, startDate, endDate,page, size,globalSearch);
 
             List<SubmissionGetResponseDto> allSubmissions = new ArrayList<>();
             List<SubmissionGetResponseDto> selfSubmissions = submissionsDTO.getSelfSubmissions();
