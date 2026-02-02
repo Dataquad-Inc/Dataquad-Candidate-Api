@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -544,62 +543,57 @@ public class SubmissionService {
     }
 
 
-    public List<SubmissionGetResponseDto> getSubmissionsByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate) {
+    public SubmissionsGetResponse getSubmissionsByUserIdAndDateRange(String userId, LocalDate startOfMonth, LocalDate endOfMonth, int page, int size, String globalSearch) {
 
-        if (endDate.isBefore(startDate)) {
-            throw new DateRangeValidationException("End date cannot be before start date.");
+        String role = submissionRepository.findRoleByUserId(userId);
+        if (role == null) {
+            throw new ResourceNotFoundException("User ID '" + userId + "' not found or role not assigned.");
         }
-
-        // ✅ Fetch role
-        String role = submissionRepository.findRoleByUserId(userId); // Assumes role is not null
-        logger.info("User ID: {} has role: {}", userId, role);
-
+        int offset = page * size;
         List<Submissions> submissions;
+        long totalCount;
 
         if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            submissions = submissionRepository.findByUserIdAndProfileReceivedDateBetween(userId, startDate, endDate);
+            submissions = submissionRepository.findByUserIdWithFiltersAndPagination(
+                    userId, startOfMonth, endOfMonth, globalSearch, size, offset);
+            totalCount = submissionRepository.countByUserIdWithFilters(
+                    userId, startOfMonth, endOfMonth, globalSearch);
         } else if ("BDM".equalsIgnoreCase(role)) {
-            submissions = submissionRepository.findSubmissionsByBdmUserIdAndDateRange(userId, startDate, endDate);
+            submissions = submissionRepository.findBdmSubmissionsWithFiltersAndPagination(
+                    userId, startOfMonth, endOfMonth, globalSearch, size, offset);
+            totalCount = submissionRepository.countBdmSubmissionsWithFilters(
+                    userId, startOfMonth, endOfMonth,globalSearch);
         } else {
             throw new UnsupportedOperationException("Only EMPLOYEE and BDM roles are supported.");
         }
 
-        logger.info("Fetched {} submissions for user {} (role: {}) between {} and {}",
-                submissions.size(), userId, role, startDate, endDate);
-
-        if (submissions.isEmpty()) {
-            throw new CandidateNotFoundException("No submissions found for userId: " + userId + " between " + startDate + " and " + endDate);
-        }
-
-        // ✅ Get interviewed candidate IDs and normalize
+        // Apply same interview filtering as old flow
         List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
         Set<String> interviewedSet = interviewedCandidateIds.stream()
                 .filter(Objects::nonNull)
                 .map(id -> id.trim().toLowerCase())
                 .collect(Collectors.toSet());
 
-        logger.info("Total interviewed candidate IDs: {}", interviewedSet.size());
+        List<Submissions> filtered = submissions.stream()
+                .filter(sub -> sub.getCandidate() != null &&
+                        !interviewedSet.contains(sub.getCandidate().getCandidateId().trim().toLowerCase()))
+                .toList();
 
-        // ✅ Filter and enrich DTOs
-        List<SubmissionGetResponseDto> response = submissions.stream()
-                .filter(sub -> {
-                    String candidateId = sub.getCandidate() != null ? sub.getCandidate().getCandidateId() : null;
-                    boolean include = candidateId != null && !interviewedSet.contains(candidateId.trim().toLowerCase());
-                    logger.debug("Candidate ID: {} -> {}", candidateId, include ? "Included" : "Excluded (interview)");
-                    return include;
-                })
-                .map(submission -> {
-                    Optional<String> clientNameOpt = candidateRepository.findClientNameByJobId(submission.getJobId());
-                    String technology = submissionRepository.findJobTitleByJobId(submission.getJobId());
-
-                    SubmissionGetResponseDto dto = convertToSubmissionGetResponseDto(submission);
-                    dto.setTechnology(technology);
-                    clientNameOpt.ifPresent(dto::setClientName);
-                    return dto;
-                })
+        // Convert to response DTO
+        List<SubmissionsGetResponse.GetSubmissionData> data = filtered.stream()
+                .map(this::convertToSubmissionsGetResponse)
                 .collect(Collectors.toList());
 
-        logger.info("Final DTO count after filtering: {}", response.size());
+        int totalPages = (int) Math.ceil((double) totalCount / size);
+
+        logger.info("Paginated Submissions for userId {} (Role: {}, Page: {}, Size: {}): Total={}, Returned={}",
+                userId, role, page, size, totalCount, data.size());
+
+        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
+        response.setTotalElements(totalCount);
+        response.setTotalPages(totalPages);
+        response.setCurrentPage(page);
+        response.setPageSize(size);
 
         return response;
     }
@@ -639,6 +633,28 @@ public class SubmissionService {
 
         return dto;
     }
+    public SubmissionsGetResponse getAllSubmissionsByDateRange(LocalDate startDate, LocalDate endDate, int page, int size, String globalSearch) {
+        if (endDate.isBefore(startDate)) {
+            throw new DateRangeValidationException("End date cannot be before start date.");
+        }
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Submissions> submissionPage = submissionRepository.findSubmissionsWithFiltersAndPagination(
+                startDate, endDate, globalSearch, pageable);
+        
+        List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
+                .map(this::convertToSubmissionsGetResponse)
+                .collect(Collectors.toList());
+        
+        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Submissions Found", data, null);
+        response.setTotalElements(submissionPage.getTotalElements());
+        response.setTotalPages(submissionPage.getTotalPages());
+        response.setCurrentPage(page);
+        response.setPageSize(size);
+        
+        return response;
+    }
+
     public List<SubmissionGetResponseDto> getAllSubmissionsByDateRange(LocalDate startDate, LocalDate endDate) {
 
         if (endDate.isBefore(startDate)) {
