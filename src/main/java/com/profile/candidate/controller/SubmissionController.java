@@ -62,47 +62,29 @@ public class SubmissionController {
         return new ResponseEntity<>(submissionService.getAllSubmissions(page, size,globalSearch), HttpStatus.OK);
     }
     @GetMapping("/submissions/filterByDate")
-    public ResponseEntity<List<SubmissionGetResponseDto>> getAllSubmissionsByDateRange(
+    public ResponseEntity<SubmissionsGetResponse> getAllSubmissionsByDateRange(
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<SubmissionGetResponseDto> submissions =
-                submissionService.getAllSubmissionsByDateRange(startDate, endDate);
-        if (submissions.isEmpty()) {
-            logger.warn("No submissions found between {} and {}", startDate, endDate);
-            throw new CandidateNotFoundException("No submissions found in the given date range.");
-        }
-        logger.info("Fetched {} submissions between {} and {}", submissions.size(), startDate, endDate);
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String globalSearch) {
+        SubmissionsGetResponse submissions = submissionService.getAllSubmissionsByDateRange(
+                startDate, endDate, page, size, globalSearch);
+        logger.info("Fetched submissions between {} and {} with pagination", startDate, endDate);
         return ResponseEntity.ok(submissions);
     }
     @GetMapping("/submissions/{userId}/filterByDate")
-    public ResponseEntity<?> getSubmissionsByUserIdAndDateRange(
+    public ResponseEntity<SubmissionsGetResponse> getSubmissionsByUserIdAndDateRange(
             @PathVariable String userId,
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        try {
-            // Fetch submissions by userId within the given date range
-            List<SubmissionGetResponseDto> submissions = submissionService.getSubmissionsByUserIdAndDateRange(userId, startDate, endDate);
-            // Check if submissions are found
-            if (submissions.isEmpty()) {
-                logger.warn("No submissions found for userId: {} between {} and {}", userId, startDate, endDate);
-                throw new CandidateNotFoundException("No submissions found for userId: " + userId + " between " + startDate + " and " + endDate);
-            }
-            // Log success
-            logger.info("Fetched {} submissions successfully for userId: {} between {} and {}", submissions.size(), userId, startDate, endDate);
-            // Return all candidate details with status 200 OK
-            return ResponseEntity.ok(submissions);
-        } catch (CandidateNotFoundException ex) {
-            // Return message in JSON body for 404
-            logger.error("No submissions found for userId: {} between {} and {}", userId, startDate, endDate);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Collections.singletonMap("message", ex.getMessage()));
-
-        } catch (Exception ex) {
-            // Log the error and return HTTP 500 with message
-            logger.error("An error occurred while fetching submissions: {}", ex.getMessage(), ex);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.singletonMap("message", "An internal error occurred while fetching submissions."));
-        }
+            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String globalSearch) {
+        SubmissionsGetResponse submissions = submissionService.getSubmissionsByUserIdAndDateRange(
+                userId, startDate, endDate, page, size, globalSearch);
+        logger.info("Fetched submissions for userId: {} between {} and {} with pagination", userId, startDate, endDate);
+        return ResponseEntity.ok(submissions);
     }
     @GetMapping("/submissions/{candidateId}")
     public ResponseEntity<SubmissionsGetResponse> getSubmissions(@PathVariable String candidateId){
