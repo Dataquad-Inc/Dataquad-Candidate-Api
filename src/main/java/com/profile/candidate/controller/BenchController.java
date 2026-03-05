@@ -188,6 +188,13 @@ public class BenchController {
         }
     }
 
+    @GetMapping("/bench/technology-count")
+    public ResponseEntity<List<Map<String, Object>>> getTechnologyCounts() {
+
+        List<Map<String, Object>> result = benchService.getTechnologyCounts();
+
+        return ResponseEntity.ok(result);
+    }
 
     @GetMapping("/bench/filter-by-date")
     public ResponseEntity<?> getBenchDetailsByDateRange(

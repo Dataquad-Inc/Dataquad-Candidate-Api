@@ -16,8 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class BenchService {
@@ -48,7 +47,21 @@ public class BenchService {
         // ✅ Generate new ID in "BENCH001" format
         return String.format("BENCH%03d", nextNumber);
     }
+    public List<Map<String, Object>> getTechnologyCounts() {
 
+        List<Object[]> results = benchRepository.countProfilesByTechnology();
+
+        List<Map<String, Object>> response = new ArrayList<>();
+
+        for (Object[] row : results) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("roleName", row[0]);
+            map.put("count", row[1]);
+            response.add(map);
+        }
+
+        return response;
+    }
 
 
     @Transactional
