@@ -38,4 +38,7 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
     List<BenchDetails> findByCreatedDateBetween(@Param("startDate") LocalDate startDate,
                                                 @Param("endDate") LocalDate endDate);
 
+    @Query("SELECT b.technology, COUNT(b) FROM BenchDetails b WHERE b.technology IS NOT NULL GROUP BY b.technology")
+    List<Object[]> countProfilesByTechnology();
+
 }
