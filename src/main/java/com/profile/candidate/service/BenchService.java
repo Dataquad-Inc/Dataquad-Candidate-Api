@@ -12,11 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -31,8 +36,18 @@ public class BenchService {
         this.benchRepository = benchRepository;
     }
 
-    public List<BenchDetails> findAllBenchDetails() {
-        return benchRepository.findAll();
+    public Map<String, Object> findAllBenchDetails(int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<BenchDetails> benchPage = benchRepository.findAll(pageable);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", benchPage.getContent());
+        response.put("currentPage", benchPage.getNumber());
+        response.put("totalItems", benchPage.getTotalElements());
+        response.put("totalPages", benchPage.getTotalPages());
+
+        return response;
     }
 
     public String generateCustomId() {

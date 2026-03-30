@@ -160,12 +160,17 @@ public class BenchController {
 
 
     @GetMapping("/bench/getBenchList")
-    public ResponseEntity<List<BenchDetailsDto>> getAllBenchDetails() {
-        try {
-            List<BenchDetails> benchDetailsList = benchService.findAllBenchDetails();
+    public ResponseEntity<?> getAllBenchDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
-            // ✅ Convert BenchDetails to BenchDetailsDto (excluding resume)
-            List<BenchDetailsDto> dtoList = benchDetailsList.stream()
+        try {
+            Map<String, Object> response = benchService.findAllBenchDetails(page, size);
+
+
+            List<BenchDetails> benchList = (List<BenchDetails>) response.get("data");
+
+            List<BenchDetailsDto> dtoList = benchList.stream()
                     .map(bench -> new BenchDetailsDto(
                             bench.getId(),
                             bench.getFullName(),
@@ -173,7 +178,7 @@ public class BenchController {
                             bench.getRelevantExperience(),
                             bench.getTotalExperience(),
                             bench.getContactNumber(),
-                            bench.getSkills() != null ? bench.getSkills() : Collections.<String>emptyList(),  // ✅ Ensure skills is a List<String>
+                            bench.getSkills() != null ? bench.getSkills() : Collections.emptyList(),
                             bench.getLinkedin(),
                             bench.getReferredBy(),
                             bench.getCreatedDate(),
@@ -182,7 +187,11 @@ public class BenchController {
                     ))
                     .collect(Collectors.toList());
 
-            return ResponseEntity.ok(dtoList);
+
+            response.put("data", dtoList);
+
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
         }
