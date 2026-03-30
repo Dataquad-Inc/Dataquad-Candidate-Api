@@ -167,7 +167,7 @@ public class BenchController {
         try {
             Map<String, Object> response = benchService.findAllBenchDetails(page, size);
 
-            // Convert to DTO
+
             List<BenchDetails> benchList = (List<BenchDetails>) response.get("data");
 
             List<BenchDetailsDto> dtoList = benchList.stream()
@@ -187,7 +187,7 @@ public class BenchController {
                     ))
                     .collect(Collectors.toList());
 
-            // Replace data with DTO list
+
             response.put("data", dtoList);
 
             return ResponseEntity.ok(response);

@@ -38,23 +38,14 @@ public class BenchService {
 
     public Map<String, Object> findAllBenchDetails(int page, int size) {
 
-
-
         Pageable pageable = PageRequest.of(page, size);
         Page<BenchDetails> benchPage = benchRepository.findAll(pageable);
 
-
-
-        // Prepare response
         Map<String, Object> response = new HashMap<>();
         response.put("data", benchPage.getContent());
         response.put("currentPage", benchPage.getNumber());
         response.put("totalItems", benchPage.getTotalElements());
         response.put("totalPages", benchPage.getTotalPages());
-
-
-
-
 
         return response;
     }
