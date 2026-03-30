@@ -38,12 +38,12 @@ public class BenchService {
 
     public Map<String, Object> findAllBenchDetails(int page, int size) {
 
-        long start = System.currentTimeMillis(); // ⏱ start time
+
 
         Pageable pageable = PageRequest.of(page, size);
         Page<BenchDetails> benchPage = benchRepository.findAll(pageable);
 
-        long end = System.currentTimeMillis(); // ⏱ end time
+
 
         // Prepare response
         Map<String, Object> response = new HashMap<>();
@@ -51,10 +51,10 @@ public class BenchService {
         response.put("currentPage", benchPage.getNumber());
         response.put("totalItems", benchPage.getTotalElements());
         response.put("totalPages", benchPage.getTotalPages());
-        response.put("executionTimeMs", (end - start)); // 🔥 important for TL
 
-        logger.info("Execution Time for fetching {} records: {} ms",
-                size, (end - start));
+
+
+
 
         return response;
     }
