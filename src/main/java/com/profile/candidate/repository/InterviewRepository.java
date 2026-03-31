@@ -2,6 +2,8 @@ package com.profile.candidate.repository;
 
 import com.profile.candidate.model.InterviewDetails;
 import jakarta.persistence.Tuple;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,10 +25,11 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     String findClientIdByClientName(@Param("clientName") String clientName);
 
     @Query("SELECT i FROM InterviewDetails i WHERE i.assignedTo = :userId AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
-    List<InterviewDetails> findScheduledInterviewsByAssignedToAndDateRange(
+    Page<InterviewDetails> findScheduledInterviewsByAssignedToAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
-            @Param("endDateTime") LocalDateTime endDateTime);
+            @Param("endDateTime") LocalDateTime endDateTime ,
+            Pageable pageable);
 
     @Query(value = "SELECT email FROM user_details  " +
             "WHERE user_id = :userId ", nativeQuery = true)
@@ -62,18 +65,29 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     String findUsernameByUserId(@Param("userId") String userId);
 
     @Query("SELECT i FROM InterviewDetails i WHERE i.userId = :userId AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
-    List<InterviewDetails> findScheduledInterviewsByUserIdAndDateRange(
+    Page<InterviewDetails> findScheduledInterviewsByUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
-            @Param("endDateTime") LocalDateTime endDateTime);
+            @Param("endDateTime") LocalDateTime endDateTime,
+            Pageable pageable);
 
 
+    //without pagination
     @Query("SELECT i FROM InterviewDetails i " +
             "WHERE i.interviewDateTime IS NOT NULL " +
             "AND FUNCTION('DATE', i.timestamp) BETWEEN :startDate AND :endDate")
     List<InterviewDetails> findScheduledInterviewsByDateOnly(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
+
+    //with pagination
+    @Query("SELECT i FROM InterviewDetails i " +
+            "WHERE i.interviewDateTime IS NOT NULL " +
+            "AND FUNCTION('DATE', i.timestamp) BETWEEN :startDate AND :endDate")
+    Page<InterviewDetails> findScheduledInterviewsByDateOnly(
+            LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable);
 
 
     @Query(value = """

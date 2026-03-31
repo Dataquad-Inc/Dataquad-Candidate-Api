@@ -10,6 +10,7 @@ import com.profile.candidate.service.SubmissionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = {"http://35.188.150.92", "http://192.168.0.140:3000", "http://192.168.0.139:3000","https://mymulya.com", "http://localhost:3000","http://192.168.0.135:3000",
         "http://192.168.0.135:80",
@@ -235,12 +237,15 @@ public class InterviewController {
             return ResponseEntity.ok(response);
     }
     @GetMapping("/interviews/interviewsByUserId/{userId}")
-    public ResponseEntity<List<GetInterviewResponseDto>> getInterviewsByUserId(
+    public ResponseEntity<Map<String , Object>> getInterviewsByUserId(
             @PathVariable String userId,
             @RequestParam(defaultValue = "ALL") String interviewLevel,
-            @RequestParam(defaultValue = "false") boolean coordinator  // NEW: optional
+            @RequestParam(defaultValue = "false") boolean coordinator,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+            // NEW: optional
     ) throws JsonProcessingException {
-        List<GetInterviewResponseDto> interviews = interviewService.getAllScheduledInterviewsByUserId(userId, interviewLevel, coordinator);
+        Map<String , Object> interviews = interviewService.getAllScheduledInterviewsByUserId(userId, interviewLevel, coordinator, page ,size);
         return new ResponseEntity<>(interviews, HttpStatus.OK);
     }
 
@@ -250,10 +255,11 @@ public class InterviewController {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(defaultValue = "false") boolean coordinator,
-            @RequestParam(defaultValue = "ALL") String interviewLevel // NEW: filter by level
+            @RequestParam(defaultValue = "ALL") String interviewLevel,
+            Pageable pageable//filter by level
     ) {
         GetInterviewResponse interviews = interviewService.getScheduledInterviewsByUserIdAndDateRange(
-                userId, startDate, endDate, coordinator,interviewLevel);
+                userId, startDate, endDate, coordinator,interviewLevel, pageable);
         return ResponseEntity.ok(interviews);
     }
 
