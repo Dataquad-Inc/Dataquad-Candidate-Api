@@ -73,12 +73,12 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
 
     //without pagination
-    @Query("SELECT i FROM InterviewDetails i " +
-            "WHERE i.interviewDateTime IS NOT NULL " +
-            "AND FUNCTION('DATE', i.timestamp) BETWEEN :startDate AND :endDate")
-    List<InterviewDetails> findScheduledInterviewsByDateOnly(
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
+//    @Query("SELECT i FROM InterviewDetails i " +
+//            "WHERE i.interviewDateTime IS NOT NULL " +
+//            "AND FUNCTION('DATE', i.timestamp) BETWEEN :startDate AND :endDate")
+//    List<InterviewDetails> findScheduledInterviewsByDateOnly(
+//            @Param("startDate") LocalDate startDate,
+//            @Param("endDate") LocalDate endDate);
 
     //with pagination
     @Query("SELECT i FROM InterviewDetails i " +

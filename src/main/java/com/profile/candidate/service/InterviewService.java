@@ -641,10 +641,10 @@ public class InterviewService {
 
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
-
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("timestamp").descending());
         // Use your custom query to fetch scheduled interviews for the current month
-        List<InterviewDetails> interviewDetails = interviewRepository
-                .findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth);
+        Page<InterviewDetails> interviewDetails = interviewRepository
+                .findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth, pageable);
 
         List<GetInterviewResponse.InterviewData> dataList = interviewDetails.stream()
                 .map(i -> {
@@ -1043,9 +1043,10 @@ public class InterviewService {
             }
 
             if ("SUPERADMIN".equalsIgnoreCase(role)) {
-                List<InterviewDetails> superAdminInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate);
-                logger.info("Fetched {} interviews for SUPERADMIN", superAdminInterviews.size());
-                payloadList.addAll(buildInterviewDataList(superAdminInterviews));
+
+                Page<InterviewDetails> superAdminInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate, pageable);
+                //logger.info("Fetched {} interviews for SUPERADMIN", superAdminInterviews.size());
+                payloadList.addAll(buildInterviewDataList(superAdminInterviews.getContent()));
             }
         }
 
@@ -1296,16 +1297,17 @@ public class InterviewService {
 
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("timestamp").descending());
 
         logger.info("Fetching scheduled interviews between {} and {}", startDateTime, endDateTime);
-        List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate);
+        Page<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate, pageable);
 
         if (interviewDetails.isEmpty()) {
             logger.warn("No interviews found between {} and {}", startDate, endDate);
             throw new CandidateNotFoundException("No interviews found between " + startDate + " and " + endDate);
         }
 
-        logger.info("Fetched {} interviews between {} and {}", interviewDetails.size(), startDate, endDate);
+        //logger.info("Fetched {} interviews between {} and {}", interviewDetails.size(), startDate, endDate);
 
         List<GetInterviewResponse.InterviewData> payloadList = interviewDetails.stream()
                 .map(i -> {

@@ -242,7 +242,8 @@ public class InterviewController {
             @RequestParam(defaultValue = "ALL") String interviewLevel,
             @RequestParam(defaultValue = "false") boolean coordinator,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "20") int size
+            
             // NEW: optional
     ) throws JsonProcessingException {
         Map<String , Object> interviews = interviewService.getAllScheduledInterviewsByUserId(userId, interviewLevel, coordinator, page ,size);
