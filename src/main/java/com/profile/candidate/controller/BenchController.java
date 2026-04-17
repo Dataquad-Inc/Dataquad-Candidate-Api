@@ -162,10 +162,11 @@ public class BenchController {
     @GetMapping("/bench/getBenchList")
     public ResponseEntity<?> getAllBenchDetails(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
 
         try {
-            Map<String, Object> response = benchService.findAllBenchDetails(page, size);
+            Map<String, Object> response = benchService.findAllBenchDetails(page, size,search);
 
 
             List<BenchDetails> benchList = (List<BenchDetails>) response.get("data");

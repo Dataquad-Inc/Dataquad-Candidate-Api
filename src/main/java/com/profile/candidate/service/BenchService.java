@@ -36,10 +36,15 @@ public class BenchService {
         this.benchRepository = benchRepository;
     }
 
-    public Map<String, Object> findAllBenchDetails(int page, int size) {
+    public Map<String, Object> findAllBenchDetails(int page, int size,String search) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<BenchDetails> benchPage = benchRepository.findAll(pageable);
+        Page<BenchDetails> benchPage;
+        if (search != null && !search.trim().isEmpty()) {
+            benchPage = benchRepository.searchBenchDetails(search, pageable);
+        } else {
+            benchPage = benchRepository.findAll(pageable);
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("data", benchPage.getContent());
