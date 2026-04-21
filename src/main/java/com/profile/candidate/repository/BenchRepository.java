@@ -17,7 +17,14 @@ import java.util.Optional;
 
 @Repository
 public interface BenchRepository extends JpaRepository<BenchDetails, String> {
-    Page<BenchDetails>findAll(Pageable pageable);
+    Page<BenchDetails> findAll(Pageable pageable);
+
+    @Query("SELECT b FROM BenchDetails b " +
+            "WHERE LOWER(b.id) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(b.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(b.technology) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(b.referredBy) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<BenchDetails> searchBenchDetails(@Param("search") String search, Pageable pageable);
 
     Optional<BenchDetails> findByEmail(String email);
 
