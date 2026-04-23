@@ -7,17 +7,16 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
-@FeignClient(name = "user-service", url = "http://dataquad-userregister-prod:8083/users")
+@FeignClient(name = "register-user", url = "http://dataquad-userregister-prod:8083/users")
 public interface UserClient {
 
-    @PostMapping("/register")
+    @PostMapping("/users/register")
     ResponseEntity<ApiResponse<UserDetailsDTO>> registerUser(@RequestBody UserDetailsDTO userDto);
 
-    @GetMapping("/email")
+    @GetMapping("/users/email")
     ResponseEntity<ApiResponse<UserDetailsDTO>> getUserByEmail(@RequestParam("email") String email);
 
-    @GetMapping("/{userId}/login-status")
+    @GetMapping("/users/{userId}/login-status")
     ResponseEntity<ApiResponse<UserLoginStatusDTO>> getLoginStatusByUserId(@PathVariable("userId") String userId);
 
 }
