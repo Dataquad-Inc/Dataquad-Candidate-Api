@@ -18,6 +18,7 @@ public class BenchDetailsDto {
     private LocalDate createdDate;
     private String technology;
     private String remarks;
+    private String tags;
 
     public BenchDetailsDto(String id, String fullName,
                            String email, BigDecimal relevantExperience,
@@ -37,6 +38,17 @@ public class BenchDetailsDto {
         this.createdDate = createdDate;
         this.technology = technology;
         this.remarks = remarks;
+    }
+
+    public BenchDetailsDto(String id, String fullName,
+                           String email, BigDecimal relevantExperience,
+                           BigDecimal totalExperience, String contactNumber,
+                           List<String> skills, String linkedin,
+                           String referredBy, LocalDate createdDate,
+                           String technology, String remarks, String tags) {
+        this(id, fullName, email, relevantExperience, totalExperience, contactNumber,
+                skills, linkedin, referredBy, createdDate, technology, remarks);
+        this.tags = tags;
     }
 
     public BenchDetailsDto() {
@@ -138,5 +150,13 @@ public class BenchDetailsDto {
 
     public void setRemarks(String remarks) {
         this.remarks = remarks;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
     }
 }
