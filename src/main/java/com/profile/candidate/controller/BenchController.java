@@ -72,7 +72,8 @@ public class BenchController {
             @RequestParam(value = "linkedin", required = false) String linkedin,
             @RequestParam(value = "referredBy", required = false) String referredBy,
             @RequestParam(value = "technology", required = false) String technology,
-            @RequestParam(value="remarks", required = false) String remarks)
+            @RequestParam(value = "remarks", required = false) String remarks,
+            @RequestParam(value = "tags", required = false) String tags)
 
     {
         try {
@@ -90,6 +91,7 @@ public class BenchController {
             benchDetails.setReferredBy(referredBy);
             benchDetails.setTechnology(technology);
             benchDetails.setRemarks(remarks);
+            benchDetails.setTags(tags);
             // Process resume file
             if (resumeFile != null && !resumeFile.isEmpty()) {
                 benchDetails.setResume(resumeFile.getBytes());
@@ -173,12 +175,13 @@ public class BenchController {
                             bench.getRelevantExperience(),
                             bench.getTotalExperience(),
                             bench.getContactNumber(),
-                            bench.getSkills() != null ? bench.getSkills() : Collections.<String>emptyList(),  // ✅ Ensure skills is a List<String>
+                            bench.getSkills() != null ? bench.getSkills() : Collections.<String>emptyList(),
                             bench.getLinkedin(),
                             bench.getReferredBy(),
                             bench.getCreatedDate(),
                             bench.getTechnology(),
-                            bench.getRemarks()
+                            bench.getRemarks(),
+                            bench.getTags()
                     ))
                     .collect(Collectors.toList());
 
@@ -210,7 +213,8 @@ public class BenchController {
                             bench.getReferredBy(),
                             bench.getCreatedDate(),
                             bench.getTechnology(),
-                            bench.getRemarks()
+                            bench.getRemarks(),
+                            bench.getTags()
                     ))
                     .collect(Collectors.toList());
 
@@ -254,7 +258,8 @@ public class BenchController {
             @RequestParam(value = "linkedin", required = false) String linkedin,
             @RequestParam(value = "referredBy", required = false) String referredBy,
             @RequestParam(value = "technology", required = false) String technology,
-            @RequestParam(value="remarks",required = false) String remarks
+            @RequestParam(value = "remarks", required = false) String remarks,
+            @RequestParam(value = "tags", required = false) String tags
 
     ) {
         try {
@@ -287,6 +292,7 @@ public class BenchController {
             benchDetails.setResume(resumeData);
             benchDetails.setTechnology(technology);
             benchDetails.setRemarks(remarks);
+            benchDetails.setTags(tags);
             // ✅ Call service to update details
             BenchDetails updatedBenchDetails = benchService.updateBenchDetails(id, benchDetails);
 

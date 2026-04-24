@@ -132,7 +132,8 @@ public class BenchService {
             if (benchDetails.getLinkedin() != null) existingBench.setLinkedin(benchDetails.getLinkedin());
             if (benchDetails.getReferredBy() != null) existingBench.setReferredBy(benchDetails.getReferredBy());
             if (benchDetails.getTechnology() != null) existingBench.setTechnology(benchDetails.getTechnology());
-             if(benchDetails.getRemarks()!=null) existingBench.setRemarks(benchDetails.getRemarks());
+            if (benchDetails.getRemarks() != null) existingBench.setRemarks(benchDetails.getRemarks());
+            if (benchDetails.getTags() != null) existingBench.setTags(benchDetails.getTags());
             return benchRepository.save(existingBench);
         }).orElseThrow(() -> new IllegalArgumentException("BenchDetails with ID " + id + " not found"));
     }
@@ -209,6 +210,8 @@ public class BenchService {
             dto.setReferredBy(bench.getReferredBy());
             dto.setCreatedDate(bench.getCreatedDate());
             dto.setTechnology(bench.getTechnology());
+            dto.setRemarks(bench.getRemarks());
+            dto.setTags(bench.getTags());
 
             return dto;
         } else {
