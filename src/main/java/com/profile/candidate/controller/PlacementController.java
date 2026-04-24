@@ -324,6 +324,33 @@ public class PlacementController {
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
+    @PostMapping("/register-user")
+    public ResponseEntity<ApiResponse<UserResponseDTO>> registerUser(
+            @RequestBody @Valid UserRegisterRequest request) {
+
+        try {
+            UserDetailsDTO createdUser = placementService.registerUserDirect(request);
+
+            UserResponseDTO responseDto = new UserResponseDTO();
+            responseDto.setUserId(createdUser.getUserId());
+            responseDto.setUserName(createdUser.getUserName());
+            responseDto.setPassword(createdUser.getPassword());
+            responseDto.setConfirmPassword(createdUser.getConfirmPassword());
+            responseDto.setEmail(createdUser.getEmail());
+            responseDto.setRoles(createdUser.getRoles());
+            responseDto.setStatus(createdUser.getStatus());
+            responseDto.setEntity(createdUser.getEntity());
+
+            return ResponseEntity.ok(
+                    ApiResponse.success("User registered successfully.", responseDto)
+            );
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(
+                    ApiResponse.error("User registration failed", "USER_REGISTRATION_ERROR", e.getMessage())
+            );
+        }
+    }
 
     @GetMapping("/allVendors")
     public ResponseEntity<ApiResponse<List<String>>> getAllVendorNames() {

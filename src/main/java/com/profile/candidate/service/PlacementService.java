@@ -931,6 +931,108 @@ public class PlacementService {
 
         return userDto;
     }
+    public UserDetailsDTO registerUserDirect(UserRegisterRequest request) {
+
+        UserDetailsDTO userDto = new UserDetailsDTO();
+
+        userDto.setUserId(generateNextUserId());
+        userDto.setUserName(request.getFullName());
+        userDto.setEmail(request.getEmail());
+
+        // map required fields
+        logger.info("Registering user with email: {}", userDto.getEmail());
+        logger.info("Role being sent: {}", userDto.getRoles());
+        userDto.setPersonalemail(request.getEmail());
+        userDto.setPhoneNumber(request.getContactNumber());
+
+        // default values
+        userDto.setDob("1990-01-01");
+        userDto.setGender("male");
+        userDto.setJoiningDate(LocalDate.now());
+        userDto.setDesignation("Candidate");
+        userDto.setStatus("ACTIVE");
+        userDto.setEntity("IN");
+
+        //ROLE HANDLING
+        String role = request.getRole();
+        userDto.setRoles(Collections.singleton(role));
+
+        // password
+        String randomPassword = PasswordGenerator.generateRandomPassword(8);
+        userDto.setPassword(randomPassword);
+        userDto.setConfirmPassword(randomPassword);
+
+        try {
+            ResponseEntity<ApiResponse<UserDetailsDTO>> response =
+                    userClient.registerUser(userDto);
+
+            ApiResponse<UserDetailsDTO> apiResponse = response.getBody();
+
+            if (response.getStatusCode().is2xxSuccessful()
+                    && apiResponse != null
+                    && apiResponse.isSuccess()) {
+
+                // Initialize leave
+                EmployeeLeaveSummaryDto leaveInitDto = new EmployeeLeaveSummaryDto();
+                leaveInitDto.setUserId(userDto.getUserId());
+                leaveInitDto.setEmployeeName(userDto.getUserName());
+                leaveInitDto.setEmployeeType("FULL_TIME");
+                leaveInitDto.setJoiningDate(LocalDate.now());
+                leaveInitDto.setUpdatedBy(request.getFullName());
+
+                ApiResponse<EmployeeLeaveSummaryDto> leaveResponse =
+                        timesheetClient.initializeLeave(leaveInitDto);
+
+                if (leaveResponse == null || !leaveResponse.isSuccess()) {
+                    String errorCode = (leaveResponse != null && leaveResponse.getError() != null)
+                            ? leaveResponse.getError().getErrorCode()
+                            : "UNKNOWN_ERROR";
+
+                    String errorMessage = (leaveResponse != null && leaveResponse.getError() != null)
+                            ? leaveResponse.getError().getErrorMessage()
+                            : "Leave initialization failed";
+
+                    throw new RuntimeException(
+                            "Leave initialization failed with error code: "
+                                    + errorCode + ", message: " + errorMessage
+                    );
+                }
+
+                // SEND EMAIL
+                logger.info("About to send email → to: {}, name: {}, password: {}",userDto.getEmail(), userDto.getUserName(), randomPassword);
+
+                try {
+                    emailregisterService.sendPasswordEmailHtml(
+                            userDto.getEmail(),
+                            userDto.getUserName(),
+                            randomPassword
+                    );
+                    logger.info("Email send method executed successfully for {}", userDto.getEmail());
+                } catch (Exception e) {
+                    logger.error("Email sending FAILED for {}. Error: {}", userDto.getEmail(), e.getMessage(), e);
+                }
+
+            } else {
+                String errorCode = (apiResponse != null && apiResponse.getError() != null)
+                        ? apiResponse.getError().getErrorCode()
+                        : "UNKNOWN_ERROR";
+
+                String errorMessage = (apiResponse != null && apiResponse.getError() != null)
+                        ? apiResponse.getError().getErrorMessage()
+                        : "User registration failed";
+
+                throw new RuntimeException(
+                        "User creation failed with error code: "
+                                + errorCode + ", message: " + errorMessage
+                );
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Exception during user registration: " + e.getMessage(), e);
+        }
+
+        return userDto;
+    }
 
     public List<String> getAllVendorNames() {
         List<PlacementDetails> placements = placementRepository.findAll();
