@@ -70,6 +70,9 @@ public class BenchDetails {
  @JdbcTypeCode(SqlTypes.JSON)
  private byte[] resume;
 
+ @Column(name = "tags")
+ private String tags;
+
  @Column(name = "linkedin", columnDefinition = "TEXT")
  private String linkedin;
 
@@ -160,6 +163,14 @@ public class BenchDetails {
 
  public void setResume(byte[] resume) {
   this.resume = resume;
+ }
+
+ public String getTags() {
+  return tags;
+ }
+
+ public void setTags(String tags) {
+  this.tags = tags;
  }
 
  public String getLinkedin() {
