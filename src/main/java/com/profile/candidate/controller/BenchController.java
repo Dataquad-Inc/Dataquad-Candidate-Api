@@ -164,7 +164,7 @@ public class BenchController {
     @GetMapping("/bench/getBenchList")
     public ResponseEntity<?> getAllBenchDetails(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "3000") int size,
             @RequestParam(required = false) String search) {
 
         try {
