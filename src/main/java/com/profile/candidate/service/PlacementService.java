@@ -7,9 +7,11 @@ import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.*;
 import com.profile.candidate.model.InterviewDetails;
 import com.profile.candidate.model.PlacementDetails;
+import com.profile.candidate.model.PlacementDetailsUS;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.PlacementRepository;
+import com.profile.candidate.repository.PlacementUsRepository;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -41,6 +43,9 @@ public class PlacementService {
     private  PlacementRepository placementRepository;
 
     @Autowired
+    private  PlacementUsRepository placementUsRepository;
+
+    @Autowired
     private  UserClient userClient;
 
     @Autowired
@@ -69,11 +74,17 @@ public class PlacementService {
     private InterviewEmailService emailService;
 
     private String generateCustomId() {
-        List<Integer> existingNumbers = placementRepository.findAll().stream()
+        List<Integer> existingNumbers = new ArrayList<>();
+        existingNumbers.addAll(placementRepository.findAll().stream()
                 .map(PlacementDetails::getId)
                 .filter(id -> id != null && id.matches("PLMNT\\d{4}"))
                 .map(id -> Integer.parseInt(id.replace("PLMNT", "")))
-                .toList();
+                .toList());
+        existingNumbers.addAll(placementUsRepository.findAll().stream()
+                .map(PlacementDetailsUS::getId)
+                .filter(id -> id != null && id.matches("PLMNT\\d{4}"))
+                .map(id -> Integer.parseInt(id.replace("PLMNT", "")))
+                .toList());
 
         int nextNumber = existingNumbers.stream().max(Integer::compare).orElse(0) + 1;
         return String.format("PLMNT%04d", nextNumber);
@@ -158,6 +169,116 @@ public class PlacementService {
 
 
 
+    @Transactional
+    public PlacementResponseDto savePlacementUs(String userId, PlacementDto placementDto) {
+        PlacementDetailsUS placementDetails = convertToUsEntity(placementDto);
+
+        // Check for existing placement by candidateContactNo and clientName in placements_us
+        PlacementDetailsUS existingPlacement = placementUsRepository
+                .findByCandidateContactNoAndClientName(
+                        placementDto.getCandidateContactNo(),
+                        placementDto.getClientName()
+                );
+
+        if (existingPlacement != null) {
+            throw new CandidateAlreadyExistsException(
+                    "Placement already exists for this candidate and client in placements_us."
+            );
+        }
+
+        placementDetails.setId(generateCustomId());
+        logger.info("Generated US placement ID is: {}", placementDetails.getId());
+        placementDetails.setCreatedBy(userId);
+
+        String interviewId = placementDto.getInterviewId();
+        if (interviewId != null) {
+            logger.info("Interview ID received for US placement: {}", interviewId);
+
+            Optional<InterviewDetails> interviewDetailsOpt = interviewRepository.findById(interviewId);
+            if (interviewDetailsOpt.isPresent()) {
+                InterviewDetails interviewDetails = interviewDetailsOpt.get();
+                String latestStatus = interviewService.latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
+                logger.info("Latest interview status: {}", latestStatus);
+
+                if (!"placed".equalsIgnoreCase(latestStatus)) {
+                    throw new CandidateNotFoundException("Candidate status is not placed in the interview table.");
+                }
+
+                boolean alreadyPlaced = placementUsRepository.existsByInterviewId(interviewId);
+                if (alreadyPlaced) {
+                    throw new DuplicateInterviewPlacementException(
+                            "Interview ID " + interviewId + " is already used in a US placement."
+                    );
+                }
+
+                interviewDetails.setIsPlaced(true);
+                interviewRepository.save(interviewDetails);
+                logger.info("Interview details updated with isPlaced=true for US placement: {}", interviewDetails);
+            } else {
+                logger.warn("No matching interview details found for ID {}. Proceeding without updating interview.", interviewId);
+            }
+        } else {
+            logger.warn("Interview ID is null for US placement — skipping interview linkage.");
+        }
+
+        placementDetails.setUserId(userId);
+        placementDetails.setEmployeeWorkingType("MONTHLY");
+        placementDetails.setStatus("Active");
+
+        PlacementDetailsUS saved = placementUsRepository.save(placementDetails);
+        boolean usIsPlaced = "Active".equalsIgnoreCase(saved.getStatus());
+
+        return new PlacementResponseDto(
+                saved.getId(),
+                saved.getCandidateFullName(),
+                saved.getCandidateContactNo(),
+                usIsPlaced
+        );
+    }
+
+    private PlacementDetailsUS convertToUsEntity(PlacementDto dto) {
+        PlacementDetailsUS entity = new PlacementDetailsUS();
+        entity.setCandidateFullName(dto.getCandidateFullName());
+        entity.setCandidateContactNo(dto.getCandidateContactNo());
+        entity.setCandidateEmailId(dto.getCandidateEmailId());
+        entity.setCandidateId(dto.getCandidateId());
+        entity.setCreatedAt(dto.getCreatedAt());
+        entity.setTechnology(dto.getTechnology());
+        entity.setClientName(dto.getClientName());
+        entity.setVendorName(dto.getVendorName());
+        entity.setStartDate(dto.getStartDate() != null ? LocalDate.parse(dto.getStartDate(), formatter) : null);
+        entity.setEndDate(dto.getEndDate() != null ? LocalDate.parse(dto.getEndDate(), formatter) : null);
+        entity.setRecruiterName(dto.getRecruiterName());
+        entity.setSales(dto.getSales());
+        entity.setPayRate(dto.getPayRate());
+        entity.setBillRate(dto.getBillRate());
+        entity.setEmploymentType(dto.getEmploymentType());
+        entity.setRemarks(dto.getRemarks());
+        entity.setStatus(dto.getStatus());
+        entity.setStatusMessage(dto.getStatusMessage());
+        entity.setInterviewId(dto.getInterviewId());
+        entity.setGrossProfit(dto.getGrossProfit());
+        entity.setUserId(dto.getUserId());
+        return entity;
+    }
+
+    public java.util.List<PlacementDetailsUS> getAllUsPlacements() {
+        return placementUsRepository.findAll();
+    }
+
+    public java.util.List<PlacementDetailsUS> getUsPlacementsByUserId(String userId) {
+        return placementUsRepository.findByUserId(userId);
+    }
+
+    public org.springframework.data.domain.Page<PlacementDetailsUS> searchAndPaginateUsPlacements(
+            String userId, String search, org.springframework.data.domain.Pageable pageable) {
+        if (userId != null && !userId.isBlank()) {
+            return placementUsRepository.searchUsPlacements(userId, search, pageable);
+        } else {
+            return placementUsRepository.searchUsPlacements(search, pageable);
+        }
+    }
+
     public PlacementResponseDto updatePlacement(String id, String userId,PlacementDto dto) {
         PlacementDetails existing = placementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Placement not found with ID: " + id));
@@ -206,11 +327,80 @@ public class PlacementService {
 
     }
 
+    public PlacementResponseDto updatePlacementUs(String id, String userId, PlacementDto dto) {
+        PlacementDetailsUS existing = placementUsRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("US Placement not found with ID: " + id));
+        existing.setUpdatedBy(userId);
+
+        if (dto.getCandidateEmailId() != null && !dto.getCandidateEmailId().equals(existing.getCandidateEmailId())) {
+            existing.setCandidateEmailId(dto.getCandidateEmailId());
+        }
+
+        if (dto.getCandidateContactNo() != null && !dto.getCandidateContactNo().equals(existing.getCandidateContactNo())) {
+            existing.setCandidateContactNo(dto.getCandidateContactNo());
+        }
+
+        Optional.ofNullable(dto.getCandidateFullName()).ifPresent(existing::setCandidateFullName);
+        Optional.ofNullable(dto.getTechnology()).ifPresent(existing::setTechnology);
+        Optional.ofNullable(dto.getClientName()).ifPresent(existing::setClientName);
+        Optional.ofNullable(dto.getVendorName()).ifPresent(existing::setVendorName);
+        Optional.ofNullable(dto.getStartDate()).ifPresent(start ->
+                existing.setStartDate(LocalDate.parse(start, formatter)));
+        Optional.ofNullable(dto.getEndDate()).ifPresent(end ->
+                existing.setEndDate(LocalDate.parse(end, formatter)));
+        Optional.ofNullable(dto.getRecruiterName()).ifPresent(existing::setRecruiterName);
+        Optional.ofNullable(dto.getSales()).ifPresent(existing::setSales);
+        Optional.ofNullable(dto.getEmploymentType()).ifPresent(existing::setEmploymentType);
+        Optional.ofNullable(dto.getRemarks()).ifPresent(existing::setRemarks);
+        Optional.ofNullable(dto.getStatus()).ifPresent(existing::setStatus);
+        Optional.ofNullable(dto.getStatusMessage()).ifPresent(existing::setStatusMessage);
+        Optional.ofNullable(dto.getGrossProfit()).ifPresent(existing::setGrossProfit);
+        Optional.ofNullable(dto.getHoldRate()).ifPresent(existing::setHoldRate);
+        Optional.ofNullable(dto.getReferal()).ifPresent(existing::setReferal);
+        Optional.ofNullable(dto.getProjectIn()).ifPresent(existing::setProjectIn);
+        Optional.ofNullable(dto.getVisa()).ifPresent(existing::setVisa);
+        Optional.ofNullable(dto.getProjectInC2cSubVendorName()).ifPresent(existing::setProjectInC2cSubVendorName);
+        Optional.ofNullable(dto.getCurrency()).ifPresent(existing::setCurrency);
+
+        if (dto.getPayRate() != null) {
+            existing.setPayRate(dto.getPayRate());
+        }
+
+        if (dto.getBillRate() != null) {
+            existing.setBillRate(dto.getBillRate());
+        }
+
+        if (dto.getEmployeeWorkingType() != null) {
+            existing.setEmployeeWorkingType(dto.getEmployeeWorkingType());
+        }
+
+        if (dto.getUserId() != null) {
+            existing.setUserId(dto.getUserId());
+        }
+
+        PlacementDetailsUS updated = placementUsRepository.save(existing);
+        boolean usIsPlaced = "Active".equalsIgnoreCase(updated.getStatus());
+
+        return new PlacementResponseDto(
+                updated.getId(),
+                updated.getCandidateFullName(),
+                updated.getCandidateContactNo(),
+                usIsPlaced
+        );
+    }
+
     public void deletePlacement(String id) {
         if (!placementRepository.existsById(id)) {
             throw new ResourceNotFoundException("Placement not found with ID: " + id);
         }
         placementRepository.deleteById(id);
+    }
+
+    public void deleteUsPlacement(String id) {
+        if (!placementUsRepository.existsById(id)) {
+            throw new ResourceNotFoundException("US Placement not found with ID: " + id);
+        }
+        placementUsRepository.deleteById(id);
     }
 
     public PlacementResponseDto getPlacementById(String id) {
