@@ -3,6 +3,7 @@ package com.profile.candidate.controller;
 import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.ResourceNotFoundException;
 import com.profile.candidate.model.PlacementDetails;
+import com.profile.candidate.model.PlacementDetailsUS;
 import com.profile.candidate.service.PlacementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,62 @@ public class PlacementController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // Save placement into placements_us
+    @PostMapping("/us-placement/create-placement/{userId}")
+    public ResponseEntity<?> saveUsPlacement(
+            @PathVariable String userId,
+            @Valid @RequestBody PlacementDto placementDto) {
+        PlacementResponseDto savedPlacement = placementService.savePlacementUs(userId, placementDto);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "US placement saved successfully");
+        response.put("timestamp", LocalDateTime.now());
+        response.put("data", savedPlacement);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/us-placement/placements-list")
+    public ResponseEntity<?> getAllUsPlacements(
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String sort) {
+        
+        org.springframework.data.domain.Sort.Direction direction = org.springframework.data.domain.Sort.Direction.DESC;
+        String sortField = "createdAt";
+        
+        if (sort != null && !sort.isBlank()) {
+            String[] parts = sort.split(":");
+            sortField = parts[0];
+            if (parts.length > 1 && "asc".equalsIgnoreCase(parts[1])) {
+                direction = org.springframework.data.domain.Sort.Direction.ASC;
+            }
+        }
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, org.springframework.data.domain.Sort.by(direction, sortField)
+        );
+        
+        org.springframework.data.domain.Page<PlacementDetailsUS> placements = 
+                placementService.searchAndPaginateUsPlacements(userId, search, pageable);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "US placements fetched successfully");
+        response.put("timestamp", LocalDateTime.now());
+        response.put("data", placements.getContent());
+        response.put("pagination", Map.of(
+                "currentPage", placements.getNumber(),
+                "pageSize", placements.getSize(),
+                "totalElements", placements.getTotalElements(),
+                "totalPages", placements.getTotalPages(),
+                "isLast", placements.isLast()
+        ));
+        return ResponseEntity.ok(response);
+    }
+
     // Update placement by ID
     @PutMapping("/placement/update-placement/{id}/{userId}")
     public ResponseEntity<?> updatePlacement(@PathVariable String id,
@@ -74,6 +131,30 @@ public class PlacementController {
         }
     }
 
+    // Update US placement by ID
+    @PutMapping("/us-placement/update-placement/{id}/{userId}")
+    public ResponseEntity<?> updateUsPlacement(@PathVariable String id,
+                                               @PathVariable String userId,
+                                               @Valid @RequestBody PlacementDto placementDto) {
+        try {
+            PlacementResponseDto updated = placementService.updatePlacementUs(id, userId, placementDto);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "US placement updated successfully");
+            response.put("timestamp", LocalDateTime.now());
+            response.put("data", updated);
+
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+        }
+    }
+
     // Delete placement by ID
     @DeleteMapping("/placement/delete-placement/{id}")
     public ResponseEntity<?> deletePlacement(@PathVariable String id) {
@@ -82,6 +163,25 @@ public class PlacementController {
             return ResponseEntity.ok(Map.of(
                     "success", true,
                     "message", "Placement with ID " + id + " deleted successfully",
+                    "timestamp", LocalDateTime.now()
+            ));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+        }
+    }
+
+    // Delete US placement by ID
+    @DeleteMapping("/us-placement/delete-placement/{id}")
+    public ResponseEntity<?> deleteUsPlacement(@PathVariable String id) {
+        try {
+            placementService.deleteUsPlacement(id);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "US placement with ID " + id + " deleted successfully",
                     "timestamp", LocalDateTime.now()
             ));
         } catch (ResourceNotFoundException e) {
