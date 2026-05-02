@@ -1,61 +1,82 @@
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\CandidateApplication.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\configurations\WebConfig.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\controller\BenchController.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\controller\CandidateController.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\controller\InterviewController.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\controller\PlacementController.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\controller\SubmissionController.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\BenchDetailsDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\BenchRequestDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\BenchResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\CandidateDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\CandidateGetResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\CandidateResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\DashboardCountsProjection.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\DeleteCandidateResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\DeleteInterviewResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\DeleteSubmissionResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\ErrorResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\GetInterviewResponse.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\GetInterviewResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\InterviewDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\InterviewResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\PlacementDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\PlacementResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\SubmissionDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\SubmissionGetResponseDto.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\SubmissionsGetResponse.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\TeamleadInterviewsDTO.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\dto\TeamleadSubmissionsDTO.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\CandidateAlreadyExistsException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\CandidateNotFoundException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\DateRangeValidationException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\DuplicateInterviewPlacementException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\ErrorResponse.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\GlobalExceptionHandler.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\InterviewAlreadyScheduledException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\InterviewNotScheduledException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\InvalidCandidateDataException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\InvalidClientException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\InvalidFileTypeException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\InvalidRateException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\JobNotFoundException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\NoInterviewsFoundException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\ResourceNotFoundException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\exceptions\SubmissionNotFoundException.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\model\BenchDetails.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\model\CandidateDetails.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\model\InterviewDetails.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\model\PlacementDetails.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\model\Submissions.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\repository\BenchRepository.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\repository\CandidateRepository.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\repository\InterviewRepository.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\repository\PlacementRepository.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\repository\SubmissionRepository.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\service\BenchService.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\service\CandidateService.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\service\InterviewEmailService.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\service\InterviewService.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\service\PlacementService.java
-C:\Users\User\Downloads\Dstaquad-Candidate (3)\Dstaquad-Candidate\src\main\java\com\profile\candidate\service\SubmissionService.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\CandidateApplication.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\client\TimesheetClient.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\client\UserClient.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\configurations\RestTemplateConfig.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\configurations\WebConfig.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\controller\BenchController.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\controller\CandidateController.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\controller\InterviewController.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\controller\PlacementController.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\controller\SubmissionController.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\ApiResponse.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\BenchDetailsDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\BenchJsonRequest.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\BenchRequestDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\BenchResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\CandidateDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\CandidateResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\CoordinatorInterviewDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\CoordinatorInterviewUpdateDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\DashboardCountsProjection.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\DeleteCandidateResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\DeleteInterviewResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\DeleteSubmissionResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\EmployeeLeaveSummaryDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\EncryptionRequestDTO.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\EncryptionVerifyDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\ErrorResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\GetInterviewResponse.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\GetInterviewResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\InterviewDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\InterviewResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\InterviewSlotsDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\PlacementDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\PlacementResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\SubmissionDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\SubmissionGetResponseDto.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\SubmissionsGetResponse.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\TeamleadInterviewsDTO.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\TeamleadSubmissionsDTO.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\UserDetailsDTO.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\UserLoginStatusDTO.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\UserRegisterRequest.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\dto\UserResponseDTO.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\CandidateAlreadyExistsException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\CandidateNotFoundException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\DateRangeValidationException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\DuplicateInterviewPlacementException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\ErrorResponse.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\GlobalExceptionHandler.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\InterviewAlreadyScheduledException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\InterviewNotScheduledException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\InvalidCandidateDataException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\InvalidClientException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\InvalidFileTypeException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\InvalidOTPException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\InvalidRateException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\JobNotFoundException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\NoInterviewsFoundException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\PlacementsNotFoundException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\ResourceNotFoundException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\SubmissionNotFoundException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\exceptions\UserNotFoundException.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\model\BenchDetails.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\model\CandidateDetails.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\model\InterviewDetails.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\model\PlacementDetails.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\model\PlacementDetailsUS.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\model\Submissions.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\repository\BenchRepository.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\repository\CandidateRepository.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\repository\InterviewRepository.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\repository\PlacementRepository.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\repository\PlacementUsRepository.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\repository\SubmissionRepository.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\BenchService.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\CandidateService.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\EmailService.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\InterviewEmailService.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\InterviewService.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\PasswordGenerator.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\PlacementService.java
+D:\mulya\BE\Dataquad-Candidate-Api\src\main\java\com\profile\candidate\service\SubmissionService.java
