@@ -1,5 +1,6 @@
 package com.profile.candidate.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,9 +14,12 @@ import java.util.List;
 
 public class PlacementDto {
     private String id;
+    @JsonAlias({"consultantName"})
     private String candidateFullName;
     private String candidateContactNo;
+    @JsonAlias({"consultantId"})
     private String candidateId;
+    @JsonAlias({"consultantEmailId"})
     private String candidateEmailId;
     private String clientName;
     private String technology;
@@ -23,6 +27,7 @@ public class PlacementDto {
     private String startDate;
     private String endDate;
     private String recruiterName;
+    @JsonAlias({"salesExecutive"})
     private String sales;
     private String employmentType;
     private String remarks;
@@ -38,6 +43,12 @@ public class PlacementDto {
     private String employeeWorkingType;
     private BigDecimal hourlyRate;
     private String userId;
+    private Integer holdRate;
+    private String referal;
+    private String projectIn;
+    private String visa;
+    private String projectInC2cSubVendorName;
+    private String currency;
 
     public String getUserId() {
         return userId;
@@ -243,5 +254,53 @@ public class PlacementDto {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public Integer getHoldRate() {
+        return holdRate;
+    }
+
+    public void setHoldRate(Integer holdRate) {
+        this.holdRate = holdRate;
+    }
+
+    public String getReferal() {
+        return referal;
+    }
+
+    public void setReferal(String referal) {
+        this.referal = referal;
+    }
+
+    public String getProjectIn() {
+        return projectIn;
+    }
+
+    public void setProjectIn(String projectIn) {
+        this.projectIn = projectIn;
+    }
+
+    public String getVisa() {
+        return visa;
+    }
+
+    public void setVisa(String visa) {
+        this.visa = visa;
+    }
+
+    public String getProjectInC2cSubVendorName() {
+        return projectInC2cSubVendorName;
+    }
+
+    public void setProjectInC2cSubVendorName(String projectInC2cSubVendorName) {
+        this.projectInC2cSubVendorName = projectInC2cSubVendorName;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
     }
 }
