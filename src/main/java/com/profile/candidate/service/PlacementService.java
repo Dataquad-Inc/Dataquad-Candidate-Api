@@ -6,10 +6,12 @@ import com.profile.candidate.client.UserClient;
 import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.*;
 import com.profile.candidate.model.InterviewDetails;
+import com.profile.candidate.model.InterviewDetailsUS;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.model.PlacementDetailsUS;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
+import com.profile.candidate.repository.InterviewUsRepository;
 import com.profile.candidate.repository.PlacementRepository;
 import com.profile.candidate.repository.PlacementUsRepository;
 import jakarta.annotation.PostConstruct;
@@ -70,6 +72,8 @@ public class PlacementService {
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     @Autowired
     private InterviewRepository interviewRepository;
+    @Autowired
+    private InterviewUsRepository interviewUsRepository;
     @Autowired
     private InterviewEmailService emailService;
 
@@ -194,9 +198,9 @@ public class PlacementService {
         if (interviewId != null) {
             logger.info("Interview ID received for US placement: {}", interviewId);
 
-            Optional<InterviewDetails> interviewDetailsOpt = interviewRepository.findById(interviewId);
+            Optional<InterviewDetailsUS> interviewDetailsOpt = interviewUsRepository.findById(interviewId);
             if (interviewDetailsOpt.isPresent()) {
-                InterviewDetails interviewDetails = interviewDetailsOpt.get();
+                InterviewDetailsUS interviewDetails = interviewDetailsOpt.get();
                 String latestStatus = interviewService.latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
                 logger.info("Latest interview status: {}", latestStatus);
 
@@ -212,7 +216,7 @@ public class PlacementService {
                 }
 
                 interviewDetails.setIsPlaced(true);
-                interviewRepository.save(interviewDetails);
+                interviewUsRepository.save(interviewDetails);
                 logger.info("Interview details updated with isPlaced=true for US placement: {}", interviewDetails);
             } else {
                 logger.warn("No matching interview details found for ID {}. Proceeding without updating interview.", interviewId);
