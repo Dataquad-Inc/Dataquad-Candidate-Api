@@ -40,7 +40,7 @@ public class InterviewDetailsUS {
     private String interviewStatus;
     
     private String interviewerEmailId;
-    private boolean isPlaced;
+    private Boolean isPlaced;
     private String rtrId;
     private String salesExecutive;
     private String salesExecutiveId;
@@ -205,10 +205,10 @@ public class InterviewDetailsUS {
     }
 
     public boolean isPlaced() {
-        return isPlaced;
+        return isPlaced != null && isPlaced;
     }
 
-    public void setIsPlaced(boolean isPlaced) {
+    public void setIsPlaced(Boolean isPlaced) {
         this.isPlaced = isPlaced;
     }
 
