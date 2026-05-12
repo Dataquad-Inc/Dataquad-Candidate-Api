@@ -49,12 +49,17 @@ public class BenchDetails {
  private String contactNumber;
 
  @JdbcTypeCode(SqlTypes.JSON)
- @Column(name = "skills", columnDefinition = "json")
+ @Column(name = "skills", columnDefinition = "TEXT")
  private List<String> skills;
   // ✅ Expecting an array, NOT a string
 
  @Column(name = "technology")
  private String technology;
+
+ @Column(name = "isRegister")
+ private Boolean isRegister = false;
+ public Boolean getRegister() {return isRegister;}
+ public void setRegister(Boolean register) { this.isRegister = register;}
 
 
  public String getTechnology() {

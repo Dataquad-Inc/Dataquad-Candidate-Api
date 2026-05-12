@@ -1,6 +1,10 @@
 package com.profile.candidate.service;
 
+import com.profile.candidate.client.TimesheetClient;
+import com.profile.candidate.client.UserClient;
+import com.profile.candidate.dto.ApiResponse;
 import com.profile.candidate.dto.BenchDetailsDto;
+import com.profile.candidate.dto.EmployeeLeaveSummaryDto;
 import com.profile.candidate.exceptions.CandidateNotFoundException;
 import com.profile.candidate.exceptions.DateRangeValidationException;
 import com.profile.candidate.model.BenchDetails;
@@ -9,12 +13,18 @@ import com.profile.candidate.repository.BenchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+
+import com.profile.candidate.dto.UserDetailsDTO;
+import org.springframework.http.ResponseEntity;
+import java.time.LocalDate;
+import java.util.Collections;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -34,6 +44,192 @@ public class BenchService {
     @Autowired
     public BenchService(BenchRepository benchRepository) {
         this.benchRepository = benchRepository;
+    }
+
+    @Autowired
+    private UserClient userClient;
+
+    @Autowired
+    private TimesheetClient timesheetClient;
+
+    @Autowired
+    private EmailService emailregisterService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    private String generateNextUserId() {
+
+        String sql = """
+        SELECT CONCAT(
+            'ADRTIN',
+            LPAD(COALESCE(MAX(CAST(SUBSTRING(user_id, 7) AS UNSIGNED)), 0) + 1, 4, '0')
+        ) AS next_user_id
+        FROM user_details
+        WHERE user_id LIKE 'ADRTIN%'
+    """;
+
+        return jdbcTemplate.queryForObject(sql, String.class);
+    }
+
+
+    public UserDetailsDTO createUserFromExistingBench(String benchId) {
+
+        BenchDetails bench = benchRepository.findById(benchId)
+                .orElseThrow(() -> {
+                    logger.error("Bench candidate not found with ID: {}", benchId);
+                    return new RuntimeException("Bench candidate not found with ID: " + benchId);
+                });
+
+        // Prevent duplicate registration
+        if (Boolean.TRUE.equals(bench.getRegister())) {
+            throw new RuntimeException("User already created for this bench candidate");
+        }
+
+        UserDetailsDTO userDto = new UserDetailsDTO();
+
+        // Generate User ID
+        userDto.setUserId(generateNextUserId());
+
+        // Bench Candidate Details
+        userDto.setUserName(bench.getFullName());
+        userDto.setEmail(bench.getEmail());
+
+        // Additional User Fields
+        userDto.setPersonalemail(bench.getEmail());
+        userDto.setPhoneNumber(bench.getContactNumber());
+
+        // Default Values
+        userDto.setDob("1990-01-01");
+        userDto.setGender("male");
+
+        // Joining Date
+        userDto.setJoiningDate(LocalDate.now());
+
+        // Other Details
+        userDto.setDesignation("Candidate");
+        userDto.setStatus("ACTIVE");
+
+        userDto.setRoles(Collections.singleton("EXTERNALEMPLOYEE"));
+
+        userDto.setEntity("IN");
+
+        // Generate Random Password
+        String randomPassword = PasswordGenerator.generateRandomPassword(8);
+
+        userDto.setPassword(randomPassword);
+        userDto.setConfirmPassword(randomPassword);
+
+        try {
+
+            logger.info("Attempting to register bench user: {}", userDto.getUserId());
+
+            ResponseEntity<ApiResponse<UserDetailsDTO>> response = userClient.registerUser(userDto);
+
+            ApiResponse<UserDetailsDTO> apiResponse = response.getBody();
+
+            if (response.getStatusCode().is2xxSuccessful()
+                    && apiResponse != null
+                    && apiResponse.isSuccess()) {
+
+                // Update Bench Register Status
+                bench.setRegister(true);
+
+                benchRepository.save(bench);
+
+                logger.info("Bench updated with register=true for benchId: {}", benchId);
+
+                // Initialize Leave
+                EmployeeLeaveSummaryDto leaveInitDto =
+                        new EmployeeLeaveSummaryDto();
+
+                leaveInitDto.setUserId(userDto.getUserId());
+
+                leaveInitDto.setEmployeeName(userDto.getUserName());
+
+                leaveInitDto.setEmployeeType("BENCH");
+
+                leaveInitDto.setJoiningDate(LocalDate.now());
+
+                leaveInitDto.setUpdatedBy(bench.getFullName());
+
+                logger.info("Calling timesheet microservice to initialize leave for userId: {}",
+                        userDto.getUserId());
+
+                ApiResponse<EmployeeLeaveSummaryDto> leaveResponse = timesheetClient.initializeLeave(leaveInitDto);
+
+                if (leaveResponse == null || !leaveResponse.isSuccess()) {
+
+                    String errorCode =
+                            leaveResponse != null
+                                    && leaveResponse.getError() != null
+                                    ? leaveResponse.getError().getErrorCode()
+                                    : "UNKNOWN_ERROR";
+
+                    String errorMessage =
+                            leaveResponse != null
+                                    && leaveResponse.getError() != null
+                                    ? leaveResponse.getError().getErrorMessage()
+                                    : "Leave initialization failed";
+
+                    logger.error("Leave initialization failed with error code: {}, message: {}",
+                            errorCode, errorMessage);
+
+                    throw new RuntimeException(
+                            "Leave initialization failed with error code: "
+                                    + errorCode
+                                    + ", message: "
+                                    + errorMessage);
+
+                } else {
+
+                    logger.info("Leave initialized successfully for userId: {}",
+                            userDto.getUserId());
+                }
+
+                // Send Credentials Email
+                emailregisterService.sendPasswordEmailHtml(
+                        userDto.getEmail(),
+                        userDto.getUserName(),
+                        randomPassword
+                );
+
+                logger.info("Password email sent to: {}", userDto.getEmail());
+
+                logger.info("Bench user registration succeeded for userId: {}",
+                        userDto.getUserId());
+
+            } else {
+
+                String errorCode =
+                        apiResponse != null
+                                && apiResponse.getError() != null
+                                ? apiResponse.getError().getErrorCode()
+                                : "UNKNOWN_ERROR";
+
+                String errorMessage =
+                        apiResponse != null
+                                && apiResponse.getError() != null
+                                ? apiResponse.getError().getErrorMessage()
+                                : "User registration failed";
+
+                logger.error("User registration failed with error code: {}, message: {}",
+                        errorCode, errorMessage);
+
+                throw new RuntimeException(
+                        "User creation failed with error code: "
+                                + errorCode
+                                + ", message: "
+                                + errorMessage);
+            }
+
+        } catch (Exception e) {
+
+            logger.error("Exception occurred during bench user creation", e);
+            throw e;
+        }
+
+        return userDto;
     }
 
     public Map<String, Object> findAllBenchDetails(int page, int size,String search) {
