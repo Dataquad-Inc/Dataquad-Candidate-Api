@@ -19,10 +19,7 @@ import org.springframework.data.domain.Pageable;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class BenchService {
@@ -189,6 +186,29 @@ public class BenchService {
             throw new RuntimeException("Something went wrong while processing your request. Please try again later.");
         }
     }
+
+    public List<String> getAllTags() {
+        return benchRepository.getAllTags();
+    }
+
+    public List<Map<String, Object>> getTagCounts() {
+
+        List<Object[]> results = benchRepository.getTagCounts();
+
+        List<Map<String, Object>> response = new ArrayList<>();
+
+        for (Object[] row : results) {
+
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("tag name", row[0]);
+            map.put("count", row[1]);
+
+            response.add(map);
+        }
+
+        return response;
+    }
+
     public BenchDetailsDto getBenchById(String benchId) {
         Optional<BenchDetails> optionalBench = benchRepository.findById(benchId);
         if (optionalBench.isPresent()) {

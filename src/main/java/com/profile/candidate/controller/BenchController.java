@@ -255,6 +255,19 @@ public class BenchController {
         }
     }
 
+    @GetMapping("/tags")
+    public ResponseEntity<List<String>> getAllTags() {
+        List<String> tags = benchService.getAllTags();
+        return ResponseEntity.ok(tags);
+    }
+
+
+    @GetMapping("/tag-count")
+    public ResponseEntity<List<Map<String, Object>>> getTagCounts() {
+
+        return ResponseEntity.ok(benchService.getTagCounts());
+    }
+
     @PutMapping("/bench/updatebench/{id}")
     public ResponseEntity<Object> updateBenchDetails(
             @PathVariable String id,
