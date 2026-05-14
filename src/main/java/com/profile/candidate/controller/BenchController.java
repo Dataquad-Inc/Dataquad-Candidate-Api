@@ -60,6 +60,38 @@ public class BenchController {
         this.benchService = benchService;
         this.service = service;
     }
+
+    @PostMapping("/bench-create-user/{benchId}")
+    public ResponseEntity<ApiResponse<UserResponseDTO>> createUserFromBench(
+            @PathVariable String benchId) {
+
+        try {
+            UserDetailsDTO createdUser = benchService.createUserFromExistingBench(benchId);
+
+            UserResponseDTO responseDto = new UserResponseDTO();
+            responseDto.setUserId(createdUser.getUserId());
+            responseDto.setUserName(createdUser.getUserName());
+            responseDto.setPassword(createdUser.getPassword());
+            responseDto.setConfirmPassword(createdUser.getConfirmPassword());
+            responseDto.setEmail(createdUser.getEmail());
+            responseDto.setRoles(createdUser.getRoles());
+            responseDto.setStatus(createdUser.getStatus());
+            responseDto.setEntity(createdUser.getEntity());
+
+            ApiResponse<UserResponseDTO> successResponse =
+                    ApiResponse.success("User created from bench successfully.", responseDto);
+
+            return ResponseEntity.ok(successResponse);
+
+        } catch (Exception e) {
+
+            ApiResponse<UserResponseDTO> errorResponse =
+                    ApiResponse.error("User creation failed", "USER_CREATION_ERROR", e.getMessage());
+
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
     @PostMapping(value = "/bench/save", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BenchResponseDto> createBenchDetails(
             @RequestParam(value = "resumeFiles", required = false) MultipartFile resumeFile,
