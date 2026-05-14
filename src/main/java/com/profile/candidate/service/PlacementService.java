@@ -94,6 +94,21 @@ public class PlacementService {
         return String.format("PLMNT%04d", nextNumber);
     }
 
+    private synchronized String generateUsCustomId() {
+        Set<Integer> existingNumbers = placementUsRepository.findAll().stream()
+                .map(PlacementDetailsUS::getId)
+                .filter(id -> id != null && id.matches("PLMNT\\d{4}"))
+                .map(id -> Integer.parseInt(id.replace("PLMNT", "")))
+                .collect(Collectors.toSet());
+
+        int nextNumber = 1;
+        while (existingNumbers.contains(nextNumber)) {
+            nextNumber++;
+        }
+
+        return String.format("PLMNT%04d", nextNumber);
+    }
+
     @Transactional
     public PlacementResponseDto savePlacement(String userId, PlacementDto placementDto) {
         PlacementDetails placementDetails = convertToEntity(placementDto);
@@ -190,7 +205,7 @@ public class PlacementService {
             );
         }
 
-        placementDetails.setId(generateCustomId());
+        placementDetails.setId(generateUsCustomId());
         logger.info("Generated US placement ID is: {}", placementDetails.getId());
         placementDetails.setCreatedBy(userId);
 
