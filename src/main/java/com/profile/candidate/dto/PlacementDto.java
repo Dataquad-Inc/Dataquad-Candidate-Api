@@ -43,7 +43,7 @@ public class PlacementDto {
     private String employeeWorkingType;
     private BigDecimal hourlyRate;
     private String userId;
-    private Integer holdRate;
+    private String holdRate;
     private String referal;
     private String projectIn;
     private String visa;
@@ -256,11 +256,11 @@ public class PlacementDto {
         this.id = id;
     }
 
-    public Integer getHoldRate() {
+    public String getHoldRate() {
         return holdRate;
     }
 
-    public void setHoldRate(Integer holdRate) {
+    public void setHoldRate(String holdRate) {
         this.holdRate = holdRate;
     }
 
