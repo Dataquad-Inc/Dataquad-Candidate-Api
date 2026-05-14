@@ -47,6 +47,25 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
     @Transactional
     void deleteByIdIgnoreCase(@Param("id") String id);
 
+    @Query("""
+            SELECT DISTINCT b.tags
+            FROM BenchDetails b
+            WHERE b.tags IS NOT NULL
+            AND b.tags <> ''
+            ORDER BY b.tags ASC
+            """)
+    List<String> getAllTags();
+
+    @Query("""
+            SELECT b.tags, COUNT(b)
+            FROM BenchDetails b
+            WHERE b.tags IS NOT NULL
+            AND b.tags <> ''
+            GROUP BY b.tags
+            ORDER BY COUNT(b) DESC
+            """)
+    List<Object[]> getTagCounts();
+
     @Query("SELECT b FROM BenchDetails b WHERE b.createdDate BETWEEN :startDate AND :endDate")
     List<BenchDetails> findByCreatedDateBetween(@Param("startDate") LocalDate startDate,
                                                 @Param("endDate") LocalDate endDate);
