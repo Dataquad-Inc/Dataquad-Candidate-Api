@@ -405,6 +405,22 @@ public class BenchService {
         return response;
     }
 
+    public Map<String, Object> getBenchProfilesByTag(String tagName) {
+
+        List<BenchDetailsDto> candidates =
+                benchRepository.findBenchProfilesByTag(tagName);
+
+        System.out.println("Total candidates found: " + candidates.size());
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("tagName", tagName);
+        response.put("count", candidates.size());
+        response.put("candidates", candidates);
+
+        return response;
+    }
+
     public BenchDetailsDto getBenchById(String benchId) {
         Optional<BenchDetails> optionalBench = benchRepository.findById(benchId);
         if (optionalBench.isPresent()) {

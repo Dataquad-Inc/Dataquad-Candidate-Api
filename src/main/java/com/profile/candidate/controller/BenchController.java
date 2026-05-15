@@ -299,6 +299,21 @@ public class BenchController {
 
         return ResponseEntity.ok(benchService.getTagCounts());
     }
+    @GetMapping("/benchprofiles/by-tag")
+    public ResponseEntity<?> getBenchProfilesByTag(
+            @RequestParam String tagName) {
+
+        try {
+
+            return ResponseEntity.ok(
+                    benchService.getBenchProfilesByTag(tagName));
+
+        } catch (Exception e) {
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching profiles: " + e.getMessage());
+        }
+    }
 
     @PutMapping("/bench/updatebench/{id}")
     public ResponseEntity<Object> updateBenchDetails(
