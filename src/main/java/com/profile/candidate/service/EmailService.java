@@ -62,7 +62,7 @@ public class EmailService {
                 + "</table>"
 
                 + "<a href='" + loginUrl + "' class='action-btn' target='_blank'>Login to MyMulya</a>"
-                + "<div class='reminder'>Login to MyMulya with your credentials. Please fill your timesheets.</div>"
+                + "<div class='reminder'>Login to MyMulya with your credentials.</div>"
                 + "<p>Regards,<br/>Mulya Team</p>"
                 + "<div class='footer'>This is an automated message, please do not reply.</div>"
                 + "</div></body></html>";
