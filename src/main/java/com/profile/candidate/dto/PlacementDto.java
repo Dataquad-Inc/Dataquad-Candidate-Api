@@ -44,6 +44,7 @@ public class PlacementDto {
     private BigDecimal hourlyRate;
     private String userId;
     private String holdRate;
+    @JsonAlias({"referral"})
     private String referal;
     private String projectIn;
     private String visa;

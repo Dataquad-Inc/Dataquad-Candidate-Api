@@ -278,6 +278,11 @@ public class PlacementService {
         entity.setInterviewId(dto.getInterviewId());
         entity.setGrossProfit(dto.getGrossProfit());
         entity.setUserId(dto.getUserId());
+        entity.setVisa(dto.getVisa());
+        entity.setProjectInC2cSubVendorName(dto.getProjectInC2cSubVendorName());
+        entity.setProjectIn(dto.getProjectIn());
+        entity.setReferal(dto.getReferal());
+        entity.setHoldRate(dto.getHoldRate());
         return entity;
     }
 
