@@ -109,9 +109,10 @@ public class BenchController {
 
     {
         try {
+            System.out.println("Received request to save bench details");
             ObjectMapper objectMapper = new ObjectMapper();
             List<String> skillsList = objectMapper.readValue(skillsJson, new TypeReference<List<String>>() {});
-
+            System.out.println("Parsed Skills: " + skillsList);
             BenchDetails benchDetails = new BenchDetails();
             benchDetails.setFullName(fullName);
             benchDetails.setEmail(email);
