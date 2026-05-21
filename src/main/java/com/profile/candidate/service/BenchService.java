@@ -267,6 +267,7 @@ public class BenchService {
     @Transactional
     public BenchDetails saveBenchDetails(BenchDetails benchDetails, MultipartFile resumeFile) throws IOException {
         // ✅ Check for duplicate email
+        System.out.println("calling the BenchSave service method ");
         if (benchRepository.existsByEmail(benchDetails.getEmail())) {
             throw new IllegalArgumentException("Duplicate entry: Email already exists -> " + benchDetails.getEmail());
         }
