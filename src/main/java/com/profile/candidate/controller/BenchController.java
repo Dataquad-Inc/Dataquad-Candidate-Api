@@ -136,18 +136,16 @@ public class BenchController {
                         new BenchResponseDto("Error", "Duplicate entry: Email already exists.", null, null)
                 );
             }
-
+            System.out.println("Calling service method");
             // Save bench details
             BenchDetails savedBenchDetails = benchService.saveBenchDetails(benchDetails, resumeFile);
-
+            System.out.println("Bench details saved:"+savedBenchDetails);
             BenchResponseDto responseDto = new BenchResponseDto(
                     "Success",
                     "Bench details saved successfully",
                     List.of(new BenchResponseDto.Payload(savedBenchDetails.getId(), savedBenchDetails.getFullName())),
                     null
             );
-            System.out.println("Bench details saved:"+savedBenchDetails);
-
             return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
 
         } catch (IOException e) {
