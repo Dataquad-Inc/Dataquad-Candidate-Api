@@ -146,6 +146,7 @@ public class BenchController {
                     List.of(new BenchResponseDto.Payload(savedBenchDetails.getId(), savedBenchDetails.getFullName())),
                     null
             );
+            System.out.println("Bench details saved:"+savedBenchDetails);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
 
