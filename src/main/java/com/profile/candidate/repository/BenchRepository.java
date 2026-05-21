@@ -63,8 +63,7 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
             WHERE b.tags IS NOT NULL
             AND b.tags <> ''
             GROUP BY b.tags
-            ORDER BY COUNT(b) DESC
-            """)
+            ORDER BY LOWER(TRIM(b.tags)) ASC""")
     List<Object[]> getTagCounts();
 
     @Query("""
