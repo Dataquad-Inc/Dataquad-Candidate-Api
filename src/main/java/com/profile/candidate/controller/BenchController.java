@@ -109,9 +109,10 @@ public class BenchController {
 
     {
         try {
+            System.out.println("Received request to save bench details");
             ObjectMapper objectMapper = new ObjectMapper();
             List<String> skillsList = objectMapper.readValue(skillsJson, new TypeReference<List<String>>() {});
-
+            System.out.println("Parsed Skills: " + skillsList);
             BenchDetails benchDetails = new BenchDetails();
             benchDetails.setFullName(fullName);
             benchDetails.setEmail(email);
@@ -135,18 +136,16 @@ public class BenchController {
                         new BenchResponseDto("Error", "Duplicate entry: Email already exists.", null, null)
                 );
             }
-
+            System.out.println("Calling service method");
             // Save bench details
             BenchDetails savedBenchDetails = benchService.saveBenchDetails(benchDetails, resumeFile);
-
+            System.out.println("Bench details saved:"+savedBenchDetails);
             BenchResponseDto responseDto = new BenchResponseDto(
                     "Success",
                     "Bench details saved successfully",
                     List.of(new BenchResponseDto.Payload(savedBenchDetails.getId(), savedBenchDetails.getFullName())),
                     null
             );
-            System.out.println("Bench Details saved  "+ savedBenchDetails);
-
             return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
 
         } catch (IOException e) {
@@ -299,6 +298,21 @@ public class BenchController {
     public ResponseEntity<List<Map<String, Object>>> getTagCounts() {
 
         return ResponseEntity.ok(benchService.getTagCounts());
+    }
+    @GetMapping("/benchprofiles/by-tag")
+    public ResponseEntity<?> getBenchProfilesByTag(
+            @RequestParam String tagName) {
+
+        try {
+
+            return ResponseEntity.ok(
+                    benchService.getBenchProfilesByTag(tagName));
+
+        } catch (Exception e) {
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching profiles: " + e.getMessage());
+        }
     }
 
     @PutMapping("/bench/updatebench/{id}")

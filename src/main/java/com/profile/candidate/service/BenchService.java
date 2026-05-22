@@ -267,6 +267,7 @@ public class BenchService {
     @Transactional
     public BenchDetails saveBenchDetails(BenchDetails benchDetails, MultipartFile resumeFile) throws IOException {
         // ✅ Check for duplicate email
+        System.out.println("calling the BenchSave service method ");
         if (benchRepository.existsByEmail(benchDetails.getEmail())) {
             throw new IllegalArgumentException("Duplicate entry: Email already exists -> " + benchDetails.getEmail());
         }
@@ -401,6 +402,22 @@ public class BenchService {
 
             response.add(map);
         }
+
+        return response;
+    }
+
+    public Map<String, Object> getBenchProfilesByTag(String tagName) {
+
+        List<BenchDetailsDto> candidates =
+                benchRepository.findBenchProfilesByTag(tagName);
+
+        System.out.println("Total candidates found: " + candidates.size());
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("tagName", tagName);
+        response.put("count", candidates.size());
+        response.put("candidates", candidates);
 
         return response;
     }

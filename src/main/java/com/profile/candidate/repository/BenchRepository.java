@@ -1,4 +1,5 @@
 package com.profile.candidate.repository;
+import com.profile.candidate.dto.BenchDetailsDto;
 import com.profile.candidate.model.BenchDetails;
 import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.Submissions;
@@ -63,9 +64,30 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
             WHERE b.tags IS NOT NULL
             AND b.tags <> ''
             GROUP BY b.tags
-            ORDER BY COUNT(b) DESC
-            """)
+            ORDER BY LOWER(TRIM(b.tags)) ASC""")
     List<Object[]> getTagCounts();
+
+    @Query("""
+       SELECT new com.profile.candidate.dto.BenchDetailsDto(
+           b.id,
+           b.fullName,
+           b.email,
+           b.relevantExperience,
+           b.totalExperience,
+           b.contactNumber,
+           b.skills,
+           b.linkedin,
+           b.referredBy,
+           b.createdDate,
+           b.technology,
+           b.remarks,
+           b.tags
+       )
+       FROM BenchDetails b
+       WHERE LOWER(b.tags) LIKE LOWER(CONCAT('%', :tagName, '%'))
+       """)
+    List<BenchDetailsDto> findBenchProfilesByTag(
+            @Param("tagName") String tagName);
 
     @Query("SELECT b FROM BenchDetails b WHERE b.createdDate BETWEEN :startDate AND :endDate")
     List<BenchDetails> findByCreatedDateBetween(@Param("startDate") LocalDate startDate,
