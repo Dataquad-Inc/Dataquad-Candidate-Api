@@ -1,6 +1,7 @@
 package com.profile.candidate.repository;
 import com.profile.candidate.dto.BenchDetailsDto;
 import com.profile.candidate.model.BenchDetails;
+import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.Submissions;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -92,4 +93,5 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
     List<BenchDetails> findByCreatedDateBetween(@Param("startDate") LocalDate startDate,
                                                 @Param("endDate") LocalDate endDate);
 
+    List<BenchDetails> findByIdIn(List<String> benchIds);
 }
