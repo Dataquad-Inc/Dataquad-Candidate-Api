@@ -145,6 +145,7 @@ public class BenchController {
                     List.of(new BenchResponseDto.Payload(savedBenchDetails.getId(), savedBenchDetails.getFullName())),
                     null
             );
+            System.out.println("Bench Details saved  "+ savedBenchDetails);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
 
@@ -509,10 +510,10 @@ public class BenchController {
                 bench.setTotalExperience(BigDecimal.valueOf(submission.getTotalExperience()));
                 bench.setCreatedDate(LocalDate.now());
 
-                // ✅ Set referredBy from recruiterName
+                //  Set referredBy from recruiterName
                 bench.setReferredBy(submission.getRecruiterName());
 
-                // ✅ Set resume if available
+                //  Set resume if available
                 try {
                     byte[] resumeBytes = service.getResumeByCandidateAndJob(submission.getCandidateId(), submission.getJobId());
                     bench.setResume(resumeBytes);
@@ -535,8 +536,8 @@ public class BenchController {
                 savedCandidates.add(new BenchResponseDto.Payload(saved.getId(), saved.getFullName()));
             }
 
-            logger.info("✅ Total moved to bench: {}", savedCandidates.size());
-            logger.info("⛔ Skipped due to duplicate emails: {}", duplicateCount);
+            logger.info("Total moved to bench: {}", savedCandidates.size());
+            logger.info("Skipped due to duplicate emails: {}", duplicateCount);
 
             if (savedCandidates.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT).body(

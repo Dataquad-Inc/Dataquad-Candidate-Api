@@ -2,9 +2,11 @@ package com.profile.candidate.service;
 
 import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.*;
+import com.profile.candidate.model.BenchDetails;
 import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.InterviewDetails;
 import com.profile.candidate.model.Submissions;
+import com.profile.candidate.repository.BenchRepository;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.SubmissionRepository;
@@ -42,33 +44,38 @@ public class SubmissionService {
     InterviewEmailService emailService;
     @Autowired
     InterviewRepository interviewRepository;
+    @Autowired
+    BenchRepository benchRepository;
+    @Autowired
+    CandidateService candidateService;
+
 
     private static final Logger logger = LoggerFactory.getLogger(SubmissionService.class);
 
     public SubmissionsGetResponse getAllSubmissions(int page, int size, String globalSearch) {
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
-        
+
         Pageable pageable = PageRequest.of(page, size);
-        
+
         // Fetch paginated submissions with filters (interview exclusion now in DB query)
         Page<Submissions> submissionPage = submissionRepository.findSubmissionsWithFiltersAndPagination(
                 startOfMonth, endOfMonth, globalSearch, pageable);
-        
+
         // Convert to response DTO (no need for additional filtering)
         List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
                 .map(this::convertToSubmissionsGetResponse)
                 .collect(Collectors.toList());
-        
+
         logger.info("Paginated Submissions (Page {}, Size {}): Total={}, Returned={}",
                 page, size, submissionPage.getTotalElements(), data.size());
-        
+
         SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
         response.setTotalElements(submissionPage.getTotalElements());
         response.setTotalPages(submissionPage.getTotalPages());
         response.setCurrentPage(page);
         response.setPageSize(size);
-        
+
         return response;
     }
 
@@ -169,22 +176,22 @@ public class SubmissionService {
         Submissions submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> {
                     logger.error("Submission with ID {} not found", submissionId);
-                    return new SubmissionNotFoundException("Submission not found with id: " + submissionId+" to Delete Submission");
+                    return new SubmissionNotFoundException("Submission not found with id: " + submissionId + " to Delete Submission");
                 });
         logger.info("Submission found: {}, Proceeding with deletion", submission.getSubmissionId());
         // Store the candidate details before deletion
-        String recruiterEmail =submission.getCandidate().getUserEmail();
+        String recruiterEmail = submission.getCandidate().getUserEmail();
         String recruiterName = candidateRepository.findUserNameByEmail(recruiterEmail);
         String teamLeadEmail = candidateRepository.findTeamLeadEmailByJobId(submission.getJobId());
-        String teamLeadName=candidateRepository.findUserNameByEmail(teamLeadEmail);
+        String teamLeadName = candidateRepository.findUserNameByEmail(teamLeadEmail);
         String submissionIdBeforeDelete = submission.getSubmissionId();
         String jobIdBeforeDelete = submission.getJobId();
         // Delete the candidate from the repository
         submissionRepository.delete(submission);
         logger.info("Candidate with ID {} deleted successfully", submissionId);
 
-        InterviewDetails interview=interviewRepository.findInterviewsByCandidateIdAndJobId(submission.getCandidate().getCandidateId(),submission.getJobId());
-        if (interview!=null){
+        InterviewDetails interview = interviewRepository.findInterviewsByCandidateIdAndJobId(submission.getCandidate().getCandidateId(), submission.getJobId());
+        if (interview != null) {
             interviewRepository.delete(interview);
             logger.info("Interview with ID {} deleted successfully", interview.getInterviewId());
         }
@@ -197,6 +204,7 @@ public class SubmissionService {
                 data,
                 null);
     }
+
     public CandidateResponseDto editSubmission(String submissionId, CandidateDetails updatedCandidateDetails, Submissions updatedSubmissionsDetails, MultipartFile resumeFile) {
 
         logger.info("Updating status: {}", updatedSubmissionsDetails.getStatus());
@@ -365,7 +373,7 @@ public class SubmissionService {
         LocalDate currentDate = LocalDate.now();
         LocalDate startOfMonth = currentDate.withDayOfMonth(1);
         LocalDate endOfMonth = currentDate.withDayOfMonth(currentDate.lengthOfMonth());
-        
+
         return getSubmissionsForTeamlead(userId, startOfMonth, endOfMonth, page, size, globalSearch);
     }
 
@@ -381,10 +389,10 @@ public class SubmissionService {
 
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
-        
+
         Pageable pageable = PageRequest.of(page, size);
 
-        logger.info("Fetching paginated submissions for teamlead (userId: {}) from {} to {} (page: {}, size: {})", 
+        logger.info("Fetching paginated submissions for teamlead (userId: {}) from {} to {} (page: {}, size: {})",
                    userId, startDateTime, endDateTime, page, size);
 
         // Fetch paginated data using Pageable
@@ -394,7 +402,7 @@ public class SubmissionService {
                 userId, startDateTime, endDateTime,globalSearch, pageable);
 
         logger.info("Found {} self submissions and {} team submissions for teamlead {} (totals: self={}, team={})",
-                selfSubsPage.getContent().size(), teamSubsPage.getContent().size(), userId, 
+                selfSubsPage.getContent().size(), teamSubsPage.getContent().size(), userId,
                 selfSubsPage.getTotalElements(), teamSubsPage.getTotalElements());
 
         // Filter out interviewed candidates
@@ -403,7 +411,7 @@ public class SubmissionService {
                 .filter(Objects::nonNull)
                 .map(id -> id.trim().toLowerCase())
                 .collect(Collectors.toSet());
-        
+
         logger.info("Interviewed candidates count: {}", interviewedSet.size());
 
         // Filter submissions
@@ -637,21 +645,21 @@ public class SubmissionService {
         if (endDate.isBefore(startDate)) {
             throw new DateRangeValidationException("End date cannot be before start date.");
         }
-        
+
         Pageable pageable = PageRequest.of(page, size);
         Page<Submissions> submissionPage = submissionRepository.findSubmissionsWithFiltersAndPagination(
                 startDate, endDate, globalSearch, pageable);
-        
+
         List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
                 .map(this::convertToSubmissionsGetResponse)
                 .collect(Collectors.toList());
-        
+
         SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Submissions Found", data, null);
         response.setTotalElements(submissionPage.getTotalElements());
         response.setTotalPages(submissionPage.getTotalPages());
         response.setCurrentPage(page);
         response.setPageSize(size);
-        
+
         return response;
     }
 
@@ -821,7 +829,7 @@ public class SubmissionService {
         LocalDate today = LocalDate.now();
         LocalDate startOfMonth = today.withDayOfMonth(1);
         LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
-        
+
         int offset = page * size;
         List<Submissions> submissions;
         long totalCount;
@@ -867,8 +875,192 @@ public class SubmissionService {
         response.setTotalPages(totalPages);
         response.setCurrentPage(page);
         response.setPageSize(size);
-        
+
         return response;
+    }
+    @Transactional
+    public BenchSubmissionResponse submitBenchCandidates(
+            BenchSubmissionRequest request) {
+
+        String jobId = request.getJobId();
+
+        // Validate Job ID
+        String technology =
+                submissionRepository.findJobTitleByJobId(jobId);
+
+        if (technology == null) {
+            throw new RuntimeException(
+                    "Invalid Job ID: " + jobId);
+        }
+
+        // Get selected bench candidates
+        List<BenchDetails> benchList =
+                benchRepository.findByIdIn(
+                        request.getBenchIds());
+
+        if (benchList.isEmpty()) {
+            throw new RuntimeException(
+                    "No bench candidates found");
+        }
+
+        List<String> submittedIds = new ArrayList<>();
+        List<String> skippedIds = new ArrayList<>();
+        List<Submissions> submissions = new ArrayList<>();
+
+        for (BenchDetails bench : benchList) {
+
+            String benchId = bench.getId();
+
+            CandidateDetails candidate;
+
+            // CASE 1:
+            // Candidate already exists
+            // (submission -> bench -> submission)
+            Optional<CandidateDetails> existingCandidate =
+                    candidateRepository
+                            .findByCandidateEmailId(
+                                    bench.getEmail());
+
+            if (existingCandidate.isPresent()) {
+
+                candidate = existingCandidate.get();
+
+            } else {
+
+                // CASE 2:
+                // New bench record
+                // Generate NEW Candidate ID
+
+                candidate = new CandidateDetails();
+
+                // YOUR EXISTING LOGIC
+                candidate.setCandidateId(generateCustomId());
+
+                candidate.setFullName(
+                        bench.getFullName());
+
+                candidate.setCandidateEmailId(
+                        bench.getEmail());
+
+                candidate.setContactNumber(
+                        bench.getContactNumber());
+
+                candidate.setCurrentOrganization(
+                        "Bench");
+
+                candidate.setQualification(
+                        "N/A");
+
+                candidate.setTotalExperience(
+                        bench.getTotalExperience() != null
+                                ? bench.getTotalExperience()
+                                .floatValue()
+                                : 0);
+
+                candidate.setRelevantExperience(
+                        bench.getRelevantExperience() != null
+                                ? bench.getRelevantExperience()
+                                .floatValue()
+                                : 0);
+
+                candidate.setCurrentCTC("-");
+                candidate.setExpectedCTC("-");
+                candidate.setNoticePeriod("-");
+                candidate.setCurrentLocation("-");
+
+                candidate.setTimestamp(
+                        LocalDateTime.now());
+
+                candidate.setUserEmail(
+                        bench.getEmail());
+
+                candidate.setUserId("BENCH");
+
+                candidate =
+                        candidateRepository.save(candidate);
+            }
+
+            // Duplicate check using CANDIDATE ID
+            Submissions existingSubmission =
+                    submissionRepository
+                            .findByCandidate_CandidateEmailIdAndJobId(
+                                    candidate.getCandidateEmailId(),
+                                    jobId);
+
+            if (existingSubmission != null) {
+
+                skippedIds.add(benchId);
+                continue;
+            }
+
+            // Create Submission
+            Submissions submission =
+                    new Submissions();
+
+            // Same pattern as your submitCandidate()
+            String submissionId =
+                    candidate.getCandidateId()
+                            + "_"
+                            + jobId;
+
+            submission.setSubmissionId(
+                    submissionId);
+
+            submission.setCandidate(candidate);
+
+            submission.setJobId(jobId);
+
+            submission.setUserId(
+                    candidate.getUserId());
+
+            submission.setUserEmail(
+                    candidate.getUserEmail());
+
+            submission.setProfileReceivedDate(
+                    LocalDate.now());
+
+            submission.setSubmittedAt(
+                    LocalDateTime.now());
+
+            submission.setRecruiterName(
+                    bench.getReferredBy());
+
+            submission.setStatus(
+                    "PROCESSED FOR INTERVIEW");
+
+            submission.setSkills(
+                    technology);
+
+            submission.setPreferredLocation(
+                    "N/A");
+
+            submission.setResume(
+                    bench.getResume());
+
+            submissions.add(submission);
+
+            submittedIds.add(benchId);
+        }
+
+        submissionRepository.saveAll(submissions);
+
+        // Update Requirement Status
+        submissionRepository
+                .updateRequirementStatus(jobId);
+
+        return new BenchSubmissionResponse(
+                submittedIds.size()
+                        + " candidates submitted successfully",
+                jobId,
+                submittedIds,
+                skippedIds
+        );
+    }
+
+    private String generateCustomId() {
+        Integer maxNumber = candidateRepository.findMaxCandidateNumber();
+        int nextNumber = (maxNumber != null) ? maxNumber + 1 : 1;
+        return String.format("CAND%05d", nextNumber);
     }
 }
 

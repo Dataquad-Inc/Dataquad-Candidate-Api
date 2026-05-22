@@ -283,7 +283,6 @@ public class SubmissionController {
         }
     }
 
-
     @GetMapping("/closedjobs/{jobId}")
     public List<Map<String, Object>> getCandidatesByJob(@PathVariable String jobId) {
         List<Submissions> submissions = submissionRepository.findByJobId(jobId);
@@ -357,5 +356,13 @@ public class SubmissionController {
         logger.info("Skipped {} candidates due to INTERNAL + REJECTED", skippedCount);
 
         return result;
+    }
+
+    @PostMapping("/submit-bench")
+    public ResponseEntity<BenchSubmissionResponse> submitBenchCandidates(@RequestBody BenchSubmissionRequest request) {
+
+        BenchSubmissionResponse response = submissionService.submitBenchCandidates(request);
+
+        return ResponseEntity.ok(response);
     }
 }

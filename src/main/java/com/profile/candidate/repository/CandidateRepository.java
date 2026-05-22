@@ -39,6 +39,10 @@ public interface CandidateRepository extends JpaRepository<CandidateDetails, Str
     @Query(value = "SELECT MAX(CAST(SUBSTRING(candidate_id, 5) AS UNSIGNED)) FROM candidates", nativeQuery = true)
     Integer findMaxCandidateNumber();
 
+    List<CandidateDetails> findByCandidateIdIn(
+            List<String> candidateIds);
+
+
     @Query(value = "SELECT u.user_name FROM user_details u WHERE u.user_id= :userId",nativeQuery = true)
     String findUserNameByUserId(@Param("userId") String userId);
 
