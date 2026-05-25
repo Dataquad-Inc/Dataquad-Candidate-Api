@@ -264,7 +264,7 @@ public class BenchService {
 
 
 
-    @Transactional
+   /* @Transactional
     public BenchDetails saveBenchDetails(BenchDetails benchDetails, MultipartFile resumeFile) throws IOException {
         // ✅ Check for duplicate email
         System.out.println("calling the BenchSave service method ");
@@ -298,7 +298,108 @@ public class BenchService {
         }
         return benchRepository.save(benchDetails);
     }
+ **/
+   @Transactional
+   public BenchDetails saveBenchDetails(
+           BenchDetails benchDetails,
+           MultipartFile resumeFile
+   ) throws IOException {
 
+       System.out.println("Calling Bench save service method");
+
+       // ✅ Single DB call for duplicate check
+       boolean exists = benchRepository
+               .existsByEmailOrContactNumber(
+                       benchDetails.getEmail(),
+                       benchDetails.getContactNumber()
+               );
+
+       if (exists) {
+
+           // More precise error message
+           if (benchRepository.existsByEmail(
+                   benchDetails.getEmail())) {
+
+               throw new IllegalArgumentException(
+                       "Duplicate entry: Email already exists -> "
+                               + benchDetails.getEmail()
+               );
+           }
+
+           if (benchRepository
+                   .existsByContactNumber(
+                           benchDetails.getContactNumber())) {
+
+               throw new IllegalArgumentException(
+                       "Duplicate entry: Contact number already exists -> "
+                               + benchDetails.getContactNumber()
+               );
+           }
+       }
+
+       // ✅ Auto-generate ID (optimized)
+       if (benchDetails.getId() == null
+               || benchDetails.getId().isEmpty()) {
+
+           Integer maxNumber =
+                   benchRepository.findMaxBenchNumber();
+
+           int nextNumber =
+                   (maxNumber == null)
+                           ? 1
+                           : maxNumber + 1;
+
+           String generatedId =
+                   String.format(
+                           "BENCH%03d",
+                           nextNumber
+                   );
+
+           benchDetails.setId(
+                   generatedId
+           );
+       }
+
+       // ✅ Set created date
+       benchDetails.setCreatedDate(
+               LocalDate.now()
+       );
+
+       // ✅ Store resume only if provided
+       if (resumeFile != null
+               && !resumeFile.isEmpty()) {
+
+           // Optional file size validation (5MB)
+           long maxFileSize =
+                   5 * 1024 * 1024;
+
+           if (resumeFile.getSize()
+                   > maxFileSize) {
+
+               throw new IllegalArgumentException(
+                       "Resume file size exceeds 5MB limit"
+               );
+           }
+
+           benchDetails.setResume(
+                   resumeFile.getBytes()
+           );
+       }
+
+       // ✅ Set technology only if present
+       if (benchDetails.getTechnology()
+               != null) {
+
+           benchDetails.setTechnology(
+                   benchDetails.getTechnology()
+           );
+       }
+
+       // ✅ Save
+       return benchRepository.save(
+               benchDetails
+       );
+   }
 
     @Transactional
     public BenchDetails updateBenchDetails(String id, BenchDetails benchDetails) {
