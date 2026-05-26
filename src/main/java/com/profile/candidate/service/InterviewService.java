@@ -22,6 +22,10 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -637,10 +641,10 @@ public class InterviewService {
 
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
-
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("timestamp").descending());
         // Use your custom query to fetch scheduled interviews for the current month
-        List<InterviewDetails> interviewDetails = interviewRepository
-                .findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth);
+        Page<InterviewDetails> interviewDetails = interviewRepository
+                .findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth, pageable);
 
         List<GetInterviewResponse.InterviewData> dataList = interviewDetails.stream()
                 .map(i -> {
@@ -943,7 +947,7 @@ public class InterviewService {
         );
         return new InterviewResponseDto(true, "Interview scheduled successfully and email notifications sent.", data, null);
     }
-    public GetInterviewResponse getScheduledInterviewsByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate,Boolean coordinator,String interviewLevelFilter) {
+    public GetInterviewResponse getScheduledInterviewsByUserIdAndDateRange(String userId, LocalDate startDate, LocalDate endDate,Boolean coordinator,String interviewLevelFilter, Pageable pageable) {
         logger.info("Fetching interviews for userId: {} between {} and {}", userId, startDate, endDate);
 
         if (endDate.isBefore(startDate)) {
@@ -958,15 +962,15 @@ public class InterviewService {
         String role = interviewRepository.findRoleByUserId(userId);
         logger.info("Fetched role '{}' for userId '{}'", role, userId);
         if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
-            logger.info("Fetched {} interviews for EMPLOYEE userId: {}", interviewDetails.size(), userId);
-            payloadList.addAll(buildInterviewDataList(interviewDetails));
+            Page<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime,pageable);
+            //logger.info("Fetched {} interviews for EMPLOYEE userId: {}", interviewDetails.size(), userId);
+            payloadList.addAll(buildInterviewDataList(interviewDetails.getContent()));
         }
         else if(coordinator) {
-            List<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime);
+            Page<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime,pageable);
             if (!coordinatorInterviews.isEmpty()) {
-                logger.info("Fetched {} interviews (as COORDINATOR) for userId: {}", coordinatorInterviews.size(), userId);
-                payloadList.addAll(buildInterviewDataList(coordinatorInterviews));
+                //logger.info("Fetched {} interviews (as COORDINATOR) for userId: {}", coordinatorInterviews.size(), userId);
+                payloadList.addAll(buildInterviewDataList(coordinatorInterviews.getContent()));
             }
         }
 
@@ -1039,9 +1043,10 @@ public class InterviewService {
             }
 
             if ("SUPERADMIN".equalsIgnoreCase(role)) {
-                List<InterviewDetails> superAdminInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate);
-                logger.info("Fetched {} interviews for SUPERADMIN", superAdminInterviews.size());
-                payloadList.addAll(buildInterviewDataList(superAdminInterviews));
+
+                Page<InterviewDetails> superAdminInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate, pageable);
+                //logger.info("Fetched {} interviews for SUPERADMIN", superAdminInterviews.size());
+                payloadList.addAll(buildInterviewDataList(superAdminInterviews.getContent()));
             }
         }
 
@@ -1292,16 +1297,17 @@ public class InterviewService {
 
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("timestamp").descending());
 
         logger.info("Fetching scheduled interviews between {} and {}", startDateTime, endDateTime);
-        List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate);
+        Page<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate, pageable);
 
         if (interviewDetails.isEmpty()) {
             logger.warn("No interviews found between {} and {}", startDate, endDate);
             throw new CandidateNotFoundException("No interviews found between " + startDate + " and " + endDate);
         }
 
-        logger.info("Fetched {} interviews between {} and {}", interviewDetails.size(), startDate, endDate);
+        //logger.info("Fetched {} interviews between {} and {}", interviewDetails.size(), startDate, endDate);
 
         List<GetInterviewResponse.InterviewData> payloadList = interviewDetails.stream()
                 .map(i -> {
@@ -1349,13 +1355,16 @@ public class InterviewService {
         return new GetInterviewResponse(true, "Interviews found", payloadList, null);
     }
 
-    public List<GetInterviewResponseDto> getAllScheduledInterviewsByUserId(String userId, String interviewLevelFilter,
-                                                                           boolean coordinator) throws JsonProcessingException {
+    public Map<String , Object> getAllScheduledInterviewsByUserId(String userId, String interviewLevelFilter,
+                                                                           boolean coordinator, int page , int size) throws JsonProcessingException {
         LocalDate today = LocalDate.now();
         LocalDate startOfMonth = today.withDayOfMonth(1);
         LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
         LocalDateTime startDateTime = startOfMonth.atStartOfDay();
         LocalDateTime endDateTime = endOfMonth.atTime(LocalTime.MAX);
+
+        Pageable pageable = PageRequest.of(page,size, Sort.by("timestamp").descending());
+        int totalElements =0;
 
         logger.info("Fetching interviews for userId: {} between {} and {}", userId, startOfMonth, endOfMonth);
 
@@ -1366,18 +1375,20 @@ public class InterviewService {
         ObjectMapper objectMapper = new ObjectMapper();
 
         if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            List<InterviewDetails> employeeInterviews = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
-            logger.info("Fetched {} interviews for EMPLOYEE userId: {}", employeeInterviews.size(), userId);
-            for (InterviewDetails interview : employeeInterviews) {
+            Page<InterviewDetails> employeeInterviews = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime,pageable);
+            //logger.info("Fetched {} interviews for EMPLOYEE userId: {}", employeeInterviews.size(), userId);
+            totalElements =(int) employeeInterviews.getTotalElements();
+            for (InterviewDetails interview : employeeInterviews.getContent()) {
                 //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                     response.add(toDto(interview));
                 //}
             }
 
         } else if (coordinator) {
-            List<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime);
-            logger.info("Fetched {} interviews for COORDINATOR userId: {}", coordinatorInterviews.size(), userId);
-            for (InterviewDetails interview : coordinatorInterviews) {
+            Page<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime,pageable);
+            //logger.info("Fetched {} interviews for COORDINATOR userId: {}", coordinatorInterviews.size(), userId);
+            totalElements =(int) coordinatorInterviews.getTotalElements();
+            for (InterviewDetails interview : coordinatorInterviews.getContent()) {
                 //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                     response.add(toDto(interview));
                 //}
@@ -1450,9 +1461,9 @@ public class InterviewService {
                 }
 
                 case "SUPERADMIN" -> {
-                    List<InterviewDetails> allInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth);
-                    logger.info("Fetched {} interviews for SUPERADMIN", allInterviews.size());
-                    for (InterviewDetails interview : allInterviews) {
+                    Page<InterviewDetails> allInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth, pageable);
+                    //logger.info("Fetched {} interviews for SUPERADMIN", allInterviews.size());
+                    for (InterviewDetails interview : allInterviews.getContent()) {
                         //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                             response.add(toDto(interview));
                        // }
@@ -1476,7 +1487,19 @@ public class InterviewService {
         }
 
         logger.info("Total interviews returned in response for userId {} with role {}: {}", userId, role, response.size());
-        return response;
+
+        if (totalElements == 0) {
+            totalElements = response.size();
+        }
+
+        // Prepare response
+        Map<String, Object> result = new HashMap<>();
+        result.put("content", response);
+        result.put("currentPage", page);
+        result.put("pageSize", size);
+        result.put("totalElements", totalElements);
+        result.put("totalPages", (int) Math.ceil((double) totalElements / size));
+        return result;
     }
 
 
