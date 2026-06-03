@@ -957,17 +957,17 @@ public class InterviewService {
 
         String role = interviewRepository.findRoleByUserId(userId);
         logger.info("Fetched role '{}' for userId '{}'", role, userId);
-        if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
-            logger.info("Fetched {} interviews for EMPLOYEE userId: {}", interviewDetails.size(), userId);
-            payloadList.addAll(buildInterviewDataList(interviewDetails));
-        }
-        else if(coordinator) {
+        if (coordinator) {
             List<InterviewDetails> coordinatorInterviews = getCoordinatorScopedInterviews(userId, startDateTime, endDateTime);
             if (!coordinatorInterviews.isEmpty()) {
                 logger.info("Fetched {} coordinator-scoped interviews for userId: {}", coordinatorInterviews.size(), userId);
                 payloadList.addAll(buildInterviewDataList(coordinatorInterviews));
             }
+        }
+        else if ("EMPLOYEE".equalsIgnoreCase(role)) {
+            List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
+            logger.info("Fetched {} interviews for EMPLOYEE userId: {}", interviewDetails.size(), userId);
+            payloadList.addAll(buildInterviewDataList(interviewDetails));
         }
 
         else {
@@ -1365,19 +1365,19 @@ public class InterviewService {
         List<GetInterviewResponseDto> response = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            List<InterviewDetails> employeeInterviews = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
-            logger.info("Fetched {} interviews for EMPLOYEE userId: {}", employeeInterviews.size(), userId);
-            for (InterviewDetails interview : employeeInterviews) {
+        if (coordinator) {
+            List<InterviewDetails> coordinatorInterviews = getCoordinatorScopedInterviews(userId, startDateTime, endDateTime);
+            logger.info("Fetched {} coordinator-scoped interviews for userId: {}", coordinatorInterviews.size(), userId);
+            for (InterviewDetails interview : coordinatorInterviews) {
                 //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                     response.add(toDto(interview));
                 //}
             }
 
-        } else if (coordinator) {
-            List<InterviewDetails> coordinatorInterviews = getCoordinatorScopedInterviews(userId, startDateTime, endDateTime);
-            logger.info("Fetched {} coordinator-scoped interviews for userId: {}", coordinatorInterviews.size(), userId);
-            for (InterviewDetails interview : coordinatorInterviews) {
+        } else if ("EMPLOYEE".equalsIgnoreCase(role)) {
+            List<InterviewDetails> employeeInterviews = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDateTime, endDateTime);
+            logger.info("Fetched {} interviews for EMPLOYEE userId: {}", employeeInterviews.size(), userId);
+            for (InterviewDetails interview : employeeInterviews) {
                 //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                     response.add(toDto(interview));
                 //}
