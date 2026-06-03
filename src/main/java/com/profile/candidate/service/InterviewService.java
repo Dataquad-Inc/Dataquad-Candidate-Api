@@ -963,9 +963,9 @@ public class InterviewService {
             payloadList.addAll(buildInterviewDataList(interviewDetails));
         }
         else if(coordinator) {
-            List<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime);
+            List<InterviewDetails> coordinatorInterviews = getCoordinatorScopedInterviews(userId, startDateTime, endDateTime);
             if (!coordinatorInterviews.isEmpty()) {
-                logger.info("Fetched {} interviews (as COORDINATOR) for userId: {}", coordinatorInterviews.size(), userId);
+                logger.info("Fetched {} coordinator-scoped interviews for userId: {}", coordinatorInterviews.size(), userId);
                 payloadList.addAll(buildInterviewDataList(coordinatorInterviews));
             }
         }
@@ -1375,8 +1375,8 @@ public class InterviewService {
             }
 
         } else if (coordinator) {
-            List<InterviewDetails> coordinatorInterviews = interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(userId, startDateTime, endDateTime);
-            logger.info("Fetched {} interviews for COORDINATOR userId: {}", coordinatorInterviews.size(), userId);
+            List<InterviewDetails> coordinatorInterviews = getCoordinatorScopedInterviews(userId, startDateTime, endDateTime);
+            logger.info("Fetched {} coordinator-scoped interviews for userId: {}", coordinatorInterviews.size(), userId);
             for (InterviewDetails interview : coordinatorInterviews) {
                 //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
                     response.add(toDto(interview));
@@ -1477,6 +1477,62 @@ public class InterviewService {
 
         logger.info("Total interviews returned in response for userId {} with role {}: {}", userId, role, response.size());
         return response;
+    }
+
+    private List<InterviewDetails> getCoordinatorScopedInterviews(String coordinatorId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        Map<String, InterviewDetails> interviewsById = new LinkedHashMap<>();
+
+        interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(coordinatorId, startDateTime, endDateTime)
+                .forEach(interview -> interviewsById.put(interview.getInterviewId(), interview));
+
+        Set<String> userIds = getCoordinatorAssociatedUserIds(coordinatorId);
+        if (!userIds.isEmpty()) {
+            interviewRepository.findScheduledInterviewsByUserIdsAndDateRange(new ArrayList<>(userIds), startDateTime, endDateTime)
+                    .forEach(interview -> interviewsById.putIfAbsent(interview.getInterviewId(), interview));
+        }
+
+        logger.info(
+                "Coordinator {} scoped interview fetch includes {} associated users and {} interviews",
+                coordinatorId,
+                userIds.size(),
+                interviewsById.size()
+        );
+        return new ArrayList<>(interviewsById.values());
+    }
+
+    private Set<String> getCoordinatorAssociatedUserIds(String coordinatorId) {
+        Set<String> userIds = new LinkedHashSet<>();
+
+        List<String> directUserIds = interviewRepository.findUserIdsAssignedToTeamLead(coordinatorId);
+        userIds.addAll(directUserIds);
+
+        if (!directUserIds.isEmpty()) {
+            userIds.addAll(interviewRepository.findUserIdsAssignedToAnyTeamLead(directUserIds));
+        }
+
+        userIds.remove(coordinatorId);
+        return userIds;
+    }
+
+    private List<InterviewDetails> getAllCoordinatorScopedInterviews(String coordinatorId) {
+        Map<String, InterviewDetails> interviewsById = new LinkedHashMap<>();
+
+        interviewRepository.findByAssignedTo(coordinatorId)
+                .forEach(interview -> interviewsById.put(interview.getInterviewId(), interview));
+
+        Set<String> userIds = getCoordinatorAssociatedUserIds(coordinatorId);
+        if (!userIds.isEmpty()) {
+            interviewRepository.findByUserIdIn(new ArrayList<>(userIds))
+                    .forEach(interview -> interviewsById.putIfAbsent(interview.getInterviewId(), interview));
+        }
+
+        logger.info(
+                "Coordinator {} full scoped interview fetch includes {} associated users and {} interviews",
+                coordinatorId,
+                userIds.size(),
+                interviewsById.size()
+        );
+        return new ArrayList<>(interviewsById.values());
     }
 
 
@@ -1859,7 +1915,7 @@ public class InterviewService {
 
     public List<CoordinatorInterviewDto> getCoordinatorInterviews(String userId){
 
-        List<InterviewDetails> interviews=interviewRepository.findByAssignedTo(userId);
+        List<InterviewDetails> interviews = getAllCoordinatorScopedInterviews(userId);
 
         List<CoordinatorInterviewDto> response=interviews.stream()
                 .map(interview -> {
@@ -1884,7 +1940,9 @@ public class InterviewService {
         dto.setContactNumber(interviewDetails.getContactNumber());
         dto.setClientName(interviewDetails.getClientName());
         dto.setDuration(interviewDetails.getDuration());
-        dto.setInterviewDateTime(interviewDetails.getInterviewDateTime().toLocalDateTime());
+        if (interviewDetails.getInterviewDateTime() != null) {
+            dto.setInterviewDateTime(interviewDetails.getInterviewDateTime().toLocalDateTime());
+        }
         dto.setJobId(interviewDetails.getJobId());
         dto.setComments(interviewDetails.getComments());
         dto.setInternalFeedback(interviewDetails.getInternalFeedback());

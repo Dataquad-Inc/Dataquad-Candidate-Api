@@ -330,7 +330,7 @@ public class InterviewController {
     }
 
     @GetMapping("/coordinatorInterviews/{userId}")
-    public ResponseEntity<List<CoordinatorInterviewDto>> getCoordinatorInterviews(String userId){
+    public ResponseEntity<List<CoordinatorInterviewDto>> getCoordinatorInterviews(@PathVariable String userId){
 
           return new ResponseEntity<>(interviewService.getCoordinatorInterviews(userId),HttpStatus.OK);
     }

@@ -67,6 +67,35 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
 
+    @Query("SELECT i FROM InterviewDetails i WHERE i.userId IN :userIds AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
+    List<InterviewDetails> findScheduledInterviewsByUserIdsAndDateRange(
+            @Param("userIds") List<String> userIds,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime);
+
+    @Query(value = """
+            SELECT DISTINCT u.user_id
+            FROM user_details u
+            WHERE u.team_assignments IS NOT NULL
+              AND JSON_SEARCH(u.team_assignments, 'one', :teamLeadId, NULL, '$[*].teamLeadId') IS NOT NULL
+            """, nativeQuery = true)
+    List<String> findUserIdsAssignedToTeamLead(@Param("teamLeadId") String teamLeadId);
+
+    @Query(value = """
+            SELECT DISTINCT u.user_id
+            FROM user_details u
+            WHERE u.team_assignments IS NOT NULL
+              AND EXISTS (
+                  SELECT 1
+                  FROM JSON_TABLE(
+                      u.team_assignments,
+                      '$[*]' COLUMNS (teamLeadId VARCHAR(255) PATH '$.teamLeadId')
+                  ) jt
+                  WHERE jt.teamLeadId IN (:teamLeadIds)
+              )
+            """, nativeQuery = true)
+    List<String> findUserIdsAssignedToAnyTeamLead(@Param("teamLeadIds") List<String> teamLeadIds);
+
 
     @Query("SELECT i FROM InterviewDetails i " +
             "WHERE i.interviewDateTime IS NOT NULL " +
@@ -184,6 +213,7 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     Optional<InterviewDetails> findByContactNumberAndCandidateEmailIdAndJobId(String candidateContactNo, String candidateEmailId,String jobId);
 
     List<InterviewDetails> findByAssignedTo(String userId);
+    List<InterviewDetails> findByUserIdIn(List<String> userIds);
 
     InterviewDetails findByInterviewIdAndAssignedTo(String interviewId,String coordinatorId);
     List<InterviewDetails> findByCandidateIdOrderByTimestampDesc(String candidateId);
