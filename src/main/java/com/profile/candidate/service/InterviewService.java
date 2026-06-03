@@ -1503,6 +1503,11 @@ public class InterviewService {
     private Set<String> getCoordinatorAssociatedUserIds(String coordinatorId) {
         Set<String> userIds = new LinkedHashSet<>();
 
+        List<String> coordinatorTeamLeadIds = interviewRepository.findAssignedTeamLeadIdsForUser(coordinatorId);
+        if (!coordinatorTeamLeadIds.isEmpty()) {
+            userIds.addAll(interviewRepository.findUserIdsAssignedToAnyTeamLead(coordinatorTeamLeadIds));
+        }
+
         List<String> directUserIds = interviewRepository.findUserIdsAssignedToTeamLead(coordinatorId);
         userIds.addAll(directUserIds);
 

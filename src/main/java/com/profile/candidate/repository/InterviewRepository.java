@@ -82,6 +82,19 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     List<String> findUserIdsAssignedToTeamLead(@Param("teamLeadId") String teamLeadId);
 
     @Query(value = """
+            SELECT DISTINCT jt.teamLeadId
+            FROM user_details u
+            JOIN JSON_TABLE(
+                u.team_assignments,
+                '$[*]' COLUMNS (teamLeadId VARCHAR(255) PATH '$.teamLeadId')
+            ) jt
+            WHERE u.user_id = :userId
+              AND u.team_assignments IS NOT NULL
+              AND jt.teamLeadId IS NOT NULL
+            """, nativeQuery = true)
+    List<String> findAssignedTeamLeadIdsForUser(@Param("userId") String userId);
+
+    @Query(value = """
             SELECT DISTINCT u.user_id
             FROM user_details u
             WHERE u.team_assignments IS NOT NULL
