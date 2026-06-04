@@ -22,7 +22,12 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
             "LIMIT 1", nativeQuery = true)
     String findClientIdByClientName(@Param("clientName") String clientName);
 
-    @Query("SELECT i FROM InterviewDetails i WHERE i.assignedTo = :userId AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
+    @Query(value = """
+            SELECT *
+            FROM interview_details i
+            WHERE i.assigned_to = :userId
+              AND i.interview_date_time BETWEEN :startDateTime AND :endDateTime
+            """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByAssignedToAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
@@ -67,7 +72,12 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime);
 
-    @Query("SELECT i FROM InterviewDetails i WHERE i.userId IN :userIds AND i.timestamp BETWEEN :startDateTime AND :endDateTime")
+    @Query(value = """
+            SELECT *
+            FROM interview_details i
+            WHERE i.user_id IN (:userIds)
+              AND i.interview_date_time BETWEEN :startDateTime AND :endDateTime
+            """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByUserIdsAndDateRange(
             @Param("userIds") List<String> userIds,
             @Param("startDateTime") LocalDateTime startDateTime,
