@@ -1,10 +1,9 @@
 package com.profile.candidate.service;
 
+import com.profile.candidate.client.RequirementClient;
 import com.profile.candidate.client.TimesheetClient;
 import com.profile.candidate.client.UserClient;
-import com.profile.candidate.dto.ApiResponse;
-import com.profile.candidate.dto.BenchDetailsDto;
-import com.profile.candidate.dto.EmployeeLeaveSummaryDto;
+import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.CandidateNotFoundException;
 import com.profile.candidate.exceptions.DateRangeValidationException;
 import com.profile.candidate.model.BenchDetails;
@@ -21,7 +20,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import com.profile.candidate.dto.UserDetailsDTO;
 import org.springframework.http.ResponseEntity;
 import java.time.LocalDate;
 import java.util.Collections;
@@ -54,6 +52,9 @@ public class BenchService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private RequirementClient requirementClient;
 
     private String generateNextUserId() {
 
@@ -550,4 +551,89 @@ public class BenchService {
         }
     }
 
+    @Transactional
+    public String sendJdToBenchCandidates(String requirementId, List<String> benchIds) {
+        try {
+            System.out.println("Requirement ID = " + requirementId);
+            System.out.println("Bench IDs = " + benchIds);
+
+            // ==========================
+            // FETCH REQUIREMENT
+            // ==========================
+            ResponseEntity<RequirementResponseDto> response = requirementClient.getRequirementById(requirementId);
+
+            System.out.println("Feign Response Status = " + response.getStatusCode());
+            System.out.println("Feign Response Body = " + response.getBody());
+
+            RequirementResponseDto responseDto = response.getBody();
+
+            if (responseDto == null || responseDto.getRequirement() == null) {
+                throw new RuntimeException("Requirement not found");
+            }
+            RequirementResponseDto.Requirement requirement = responseDto.getRequirement();
+            String jobTitle = requirement.getJobTitle();
+            String jobDescription = requirement.getJobDescription();
+            System.out.println("Job Title from DTO = " + jobTitle);
+            System.out.println("Job Description from DTO = " + jobDescription);
+            // fallback to avoid null mail subject/body
+            if (jobTitle == null || jobTitle.trim().isEmpty()) {
+
+                jobTitle = "Job Opportunity";
+            }
+
+            if (jobDescription == null || jobDescription.trim().isEmpty()) {
+
+                jobDescription = "Job description not available.";
+            }
+
+            System.out.println("Final Job Title = " + jobTitle);
+            System.out.println("Final Job Description = " + jobDescription);
+
+            // ==========================
+            // FETCH BENCH CANDIDATES
+            // ==========================
+            List<BenchDetails> candidates = benchRepository.findByIdIn(benchIds);
+
+            System.out.println("Candidates found = " + candidates.size());
+
+            if (candidates.isEmpty()) {
+                throw new RuntimeException("No bench candidates found");
+            }
+
+            int successCount = 0;
+
+            // ==========================
+            // SEND MAILS
+            // ==========================
+            for (BenchDetails bench : candidates) {
+
+                try {
+                    System.out.println("Sending mail to: " + bench.getEmail());
+
+                    emailregisterService.sendBenchJdMail(
+                                    bench.getEmail(),
+                                    bench.getFullName(),
+                                    jobTitle,
+                                    jobDescription
+                            );
+
+                    successCount++;
+
+                    System.out.println("Mail sent successfully to: " + bench.getEmail());
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.out.println("Mail failed for: " + bench.getEmail() + " Error: " + e.getMessage()
+                    );
+                }
+            }
+
+            return successCount + " JD mails sent successfully";
+
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            throw new RuntimeException("Failed to send JD mails: " + e.getMessage());
+        }
+    }
 }
