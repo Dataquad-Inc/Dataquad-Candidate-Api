@@ -106,6 +106,4 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
             String email,
             String contactNumber
     );
-
-
 }

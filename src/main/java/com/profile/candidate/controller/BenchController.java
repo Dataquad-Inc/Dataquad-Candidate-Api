@@ -570,48 +570,6 @@ public class BenchController {
             );
         }
     }
-    @PostMapping("/bench/send-jd")
-    public ResponseEntity<?> sendJdToBench(
-            @RequestBody
-            SendJdRequest request
-    ) {
 
-        try {
-
-            String response =
-                    benchService
-                            .sendJdToBenchCandidates(
-                                    request.getRequirementId(),
-                                    request.getBenchIds()
-                            );
-
-            return ResponseEntity.ok(
-                    Map.of(
-                            "status",
-                            "Success",
-
-                            "message",
-                            response
-                    )
-            );
-
-        } catch (Exception e) {
-
-            return ResponseEntity
-                    .status(
-                            HttpStatus
-                                    .INTERNAL_SERVER_ERROR
-                    )
-                    .body(
-                            Map.of(
-                                    "status",
-                                    "Error",
-
-                                    "message",
-                                    e.getMessage()
-                            )
-                    );
-        }
-    }
 
 }
