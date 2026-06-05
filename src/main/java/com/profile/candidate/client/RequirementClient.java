@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @FeignClient(
         name = "requirement-service",
-        url = "http://localhost:8111",
+        url = "http://dataquad-requirments-prod:8111",
         path = "/requirements"
 )
 public interface RequirementClient {
