@@ -1,7 +1,10 @@
 package com.profile.candidate.service;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -12,13 +15,23 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Value("${spring.mail.host}")
+    private String host;
+
+    @Value("${spring.mail.username}")
+    private String username;
+
+    @Value("${spring.mail.port}")
+    private String port;
+
+
     public void sendPasswordEmailHtml(String to, String userName, String password) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             String subject = "Your Login Credentials for MyMulya";
-            String htmlBody = buildHtmlPasswordEmailBody(userName, password,to);
+            String htmlBody = buildHtmlPasswordEmailBody(userName, password, to);
             helper.setFrom("notifications@adroitinnovative.com"); // 👈 force sender
             helper.setTo(to);
             helper.setSubject(subject);
@@ -66,5 +79,99 @@ public class EmailService {
                 + "<p>Regards,<br/>Mulya Team</p>"
                 + "<div class='footer'>This is an automated message, please do not reply.</div>"
                 + "</div></body></html>";
+    }
+    public void sendBenchJdMail(
+            String toEmail,
+            String candidateName,
+            String jobTitle,
+            String jobDescription
+    ) {
+
+        try {
+
+            // DEBUG PRINTS
+            System.out.println("========== MAIL CONFIG ==========");
+            System.out.println("Host = " + host);
+            System.out.println("Username = " + username);
+            System.out.println("Port = " + port);
+            System.out.println("=================================");
+
+            MimeMessage message =
+                    mailSender.createMimeMessage();
+
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(
+                            message,
+                            true,
+                            "UTF-8"
+                    );
+
+            // Use configured username
+            helper.setFrom(username);
+
+            helper.setTo(toEmail);
+
+            helper.setSubject(
+                    "New Job Opportunity - "
+                            + jobTitle
+            );
+
+            String htmlBody =
+                    "<html><body>"
+                            + "<h3>Hi "
+                            + candidateName
+                            + ",</h3>"
+
+                            + "<p>We have a job opportunity matching your profile.</p>"
+
+                            + "<p><strong>Position:</strong> "
+                            + jobTitle
+                            + "</p>"
+
+                            + "<p><strong>Job Description:</strong></p>"
+
+                            + "<pre style='font-family: Arial;'>"
+                            + jobDescription
+                            + "</pre>"
+
+                            + "<br/>"
+
+                            + "<p>If interested, please reply to this email.</p>"
+
+                            + "<br/>"
+
+                            + "<p>Regards,<br/>"
+                            + "Mulya Recruitment Team</p>"
+
+                            + "</body></html>";
+
+            helper.setText(htmlBody, true);
+
+            System.out.println(
+                    "Attempting to send mail to: "
+                            + toEmail
+            );
+
+            mailSender.send(message);
+
+            System.out.println(
+                    "Mail sent successfully to: "
+                            + toEmail
+            );
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "Mail failed for: "
+                            + toEmail
+            );
+
+            e.printStackTrace();
+
+            throw new RuntimeException(
+                    "Failed to send email: "
+                            + e.getMessage()
+            );
+        }
     }
 }
