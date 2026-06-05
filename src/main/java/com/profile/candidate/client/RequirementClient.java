@@ -7,8 +7,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 @FeignClient(
-        name = "requirements-service",
-        url = "${requirements.service.url}"
+        name = "requirement-service",
+        url = "http://dataquad-requirments-prod:8111",
+        path = "/requirements"
 )
 public interface RequirementClient {
 
