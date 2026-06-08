@@ -57,8 +57,18 @@ public class SubmissionController {
     public ResponseEntity<SubmissionsGetResponse> getAllSubmissions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false)  String globalSearch){
+            @RequestParam(required = false) String globalSearch,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String coordinatorId,
+            @RequestParam(defaultValue = "false") boolean coordinator){
 
+        if (coordinator) {
+            String requestedCoordinatorId = (userId != null && !userId.isBlank()) ? userId : coordinatorId;
+            return new ResponseEntity<>(submissionService.getCoordinatorSubmissions(
+                    requestedCoordinatorId, startDate, endDate, page, size, globalSearch), HttpStatus.OK);
+        }
         return new ResponseEntity<>(submissionService.getAllSubmissions(page, size,globalSearch), HttpStatus.OK);
     }
     @GetMapping("/submissions/filterByDate")
