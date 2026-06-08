@@ -511,4 +511,85 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             @Param("endDate") LocalDateTime endDate,
             @Param("globalSearch") String globalSearch,
             Pageable pageable);
+
+    @Query(value = """
+            SELECT DISTINCT u.user_id
+            FROM user_details u
+            WHERE u.team_assignments IS NOT NULL
+              AND JSON_VALID(u.team_assignments)
+              AND JSON_SEARCH(u.team_assignments, 'one', :teamLeadId, NULL, '$[*].teamLeadId') IS NOT NULL
+            """, nativeQuery = true)
+    List<String> findUserIdsAssignedToTeamLead(@Param("teamLeadId") String teamLeadId);
+
+    @Query(value = """
+            SELECT DISTINCT jt.teamLeadId
+            FROM user_details u
+            JOIN JSON_TABLE(
+                u.team_assignments,
+                '$[*]' COLUMNS (
+                    teamLeadId VARCHAR(255) PATH '$.teamLeadId'
+                )
+            ) jt
+            WHERE u.user_id = :userId
+              AND u.team_assignments IS NOT NULL
+              AND JSON_VALID(u.team_assignments)
+              AND jt.teamLeadId IS NOT NULL
+            """, nativeQuery = true)
+    List<String> findAssignedTeamLeadIdsForUser(@Param("userId") String userId);
+
+    @Query(value = """
+            SELECT
+                s.submission_id,
+                s.candidate_id,
+                s.job_id,
+                s.resume_file_path,
+                NULL as resume,
+                s.preferred_location,
+                s.skills,
+                s.client_name,
+                s.communication_skills,
+                s.required_technologies_rating,
+                s.overall_feedback,
+                s.profile_received_date,
+                s.submitted_at,
+                s.recruiter_name,
+                s.user_email,
+                s.user_id,
+                s.status
+            FROM candidate_submissions s
+            JOIN candidates c ON s.candidate_id = c.candidate_id
+            JOIN requirements_model r ON s.job_id = r.job_id
+            WHERE s.user_id IN (:userIds)
+              AND s.profile_received_date BETWEEN :startDate AND :endDate
+              AND (:globalSearch IS NULL OR :globalSearch = '' OR
+                  s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+                  c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+                  r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+                  s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+                  s.job_id LIKE CONCAT('%', :globalSearch, '%')
+              )
+            ORDER BY s.profile_received_date DESC
+            """,
+            countQuery = """
+            SELECT COUNT(*)
+            FROM candidate_submissions s
+            JOIN candidates c ON s.candidate_id = c.candidate_id
+            JOIN requirements_model r ON s.job_id = r.job_id
+            WHERE s.user_id IN (:userIds)
+              AND s.profile_received_date BETWEEN :startDate AND :endDate
+              AND (:globalSearch IS NULL OR :globalSearch = '' OR
+                  s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
+                  c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
+                  r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
+                  s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
+                  s.job_id LIKE CONCAT('%', :globalSearch, '%')
+              )
+            """,
+            nativeQuery = true)
+    Page<Submissions> findCoordinatorSubmissionsWithFiltersAndPagination(
+            @Param("userIds") List<String> userIds,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("globalSearch") String globalSearch,
+            Pageable pageable);
 }

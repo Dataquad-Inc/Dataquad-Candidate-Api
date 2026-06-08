@@ -79,6 +79,66 @@ public class SubmissionService {
         return response;
     }
 
+    public SubmissionsGetResponse getCoordinatorSubmissions(String coordinatorId, int page, int size, String globalSearch) {
+        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
+        return getCoordinatorSubmissions(coordinatorId, startOfMonth, endOfMonth, page, size, globalSearch);
+    }
+
+    public SubmissionsGetResponse getCoordinatorSubmissions(String coordinatorId, LocalDate startDate, LocalDate endDate,
+                                                            int page, int size, String globalSearch) {
+        if (coordinatorId == null || coordinatorId.isBlank()) {
+            throw new ResourceNotFoundException("userId is required when coordinator=true.");
+        }
+        if (startDate == null) {
+            startDate = LocalDate.now().withDayOfMonth(1);
+        }
+        if (endDate == null) {
+            endDate = startDate.plusMonths(1).minusDays(1);
+        }
+        if (endDate.isBefore(startDate)) {
+            throw new DateRangeValidationException("End date cannot be before start date.");
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        Set<String> userIds = getCoordinatorAssociatedUserIds(coordinatorId.trim());
+        if (userIds.isEmpty()) {
+            logger.info("No coordinator-associated users found for coordinatorId: {}", coordinatorId);
+            SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", Collections.emptyList(), null);
+            response.setTotalElements(0);
+            response.setTotalPages(0);
+            response.setCurrentPage(page);
+            response.setPageSize(size);
+            return response;
+        }
+
+        Page<Submissions> submissionPage = submissionRepository.findCoordinatorSubmissionsWithFiltersAndPagination(
+                new ArrayList<>(userIds), startDate, endDate, globalSearch, pageable);
+
+        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
+        Set<String> interviewedSet = interviewedCandidateIds.stream()
+                .filter(Objects::nonNull)
+                .map(id -> id.trim().toLowerCase())
+                .collect(Collectors.toSet());
+
+        List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
+                .filter(sub -> sub.getCandidate() != null
+                        && !interviewedSet.contains(sub.getCandidate().getCandidateId().trim().toLowerCase()))
+                .map(this::convertToSubmissionsGetResponse)
+                .collect(Collectors.toList());
+
+        logger.info("Coordinator submissions for coordinatorId {} scopedUsers={} page={} size={} total={} returned={}",
+                coordinatorId, userIds.size(), page, size, submissionPage.getTotalElements(), data.size());
+
+        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
+        response.setTotalElements(submissionPage.getTotalElements());
+        response.setTotalPages(submissionPage.getTotalPages());
+        response.setCurrentPage(page);
+        response.setPageSize(size);
+        return response;
+    }
+
     public SubmissionsGetResponse getSubmissions(String candidateId) {
         Optional<CandidateDetails> candidateDetails = candidateRepository.findById(candidateId);
         if (candidateDetails.isEmpty()) {
@@ -641,6 +701,27 @@ public class SubmissionService {
 
         return dto;
     }
+
+    private Set<String> getCoordinatorAssociatedUserIds(String coordinatorId) {
+        Set<String> userIds = new LinkedHashSet<>();
+
+        List<String> coordinatorTeamLeadIds = submissionRepository.findAssignedTeamLeadIdsForUser(coordinatorId);
+        userIds.addAll(coordinatorTeamLeadIds);
+        for (String teamLeadId : coordinatorTeamLeadIds) {
+            userIds.addAll(submissionRepository.findUserIdsAssignedToTeamLead(teamLeadId));
+        }
+
+        List<String> directUserIds = submissionRepository.findUserIdsAssignedToTeamLead(coordinatorId);
+        userIds.addAll(directUserIds);
+
+        for (String directUserId : directUserIds) {
+            userIds.addAll(submissionRepository.findUserIdsAssignedToTeamLead(directUserId));
+        }
+
+        userIds.remove(coordinatorId);
+        return userIds;
+    }
+
     public SubmissionsGetResponse getAllSubmissionsByDateRange(LocalDate startDate, LocalDate endDate, int page, int size, String globalSearch) {
         if (endDate.isBefore(startDate)) {
             throw new DateRangeValidationException("End date cannot be before start date.");
