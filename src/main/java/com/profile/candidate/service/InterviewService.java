@@ -1503,17 +1503,14 @@ public class InterviewService {
     private Set<String> getCoordinatorAssociatedUserIds(String coordinatorId) {
         Set<String> userIds = new LinkedHashSet<>();
 
-        List<String> coordinatorTeamLeadIds = interviewRepository.findAssignedTeamLeadIdsForUser(coordinatorId);
+        List<String> coordinatorTeamLeadIds = interviewRepository.findCoordinatorTeamLeadIds(coordinatorId);
+        userIds.addAll(coordinatorTeamLeadIds);
         for (String teamLeadId : coordinatorTeamLeadIds) {
             userIds.addAll(interviewRepository.findUserIdsAssignedToTeamLead(teamLeadId));
         }
 
         List<String> directUserIds = interviewRepository.findUserIdsAssignedToTeamLead(coordinatorId);
         userIds.addAll(directUserIds);
-
-        for (String directUserId : directUserIds) {
-            userIds.addAll(interviewRepository.findUserIdsAssignedToTeamLead(directUserId));
-        }
 
         userIds.remove(coordinatorId);
         return userIds;

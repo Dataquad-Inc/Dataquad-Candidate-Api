@@ -705,7 +705,7 @@ public class SubmissionService {
     private Set<String> getCoordinatorAssociatedUserIds(String coordinatorId) {
         Set<String> userIds = new LinkedHashSet<>();
 
-        List<String> coordinatorTeamLeadIds = submissionRepository.findAssignedTeamLeadIdsForUser(coordinatorId);
+        List<String> coordinatorTeamLeadIds = submissionRepository.findCoordinatorTeamLeadIds(coordinatorId);
         userIds.addAll(coordinatorTeamLeadIds);
         for (String teamLeadId : coordinatorTeamLeadIds) {
             userIds.addAll(submissionRepository.findUserIdsAssignedToTeamLead(teamLeadId));
@@ -713,10 +713,6 @@ public class SubmissionService {
 
         List<String> directUserIds = submissionRepository.findUserIdsAssignedToTeamLead(coordinatorId);
         userIds.addAll(directUserIds);
-
-        for (String directUserId : directUserIds) {
-            userIds.addAll(submissionRepository.findUserIdsAssignedToTeamLead(directUserId));
-        }
 
         userIds.remove(coordinatorId);
         return userIds;
