@@ -130,4 +130,40 @@ public class EmailService {
             throw new RuntimeException("Failed to send email: " + e.getMessage());
         }
     }
+
+    public void sendManualJdMail(
+            String toEmail,
+            String candidateName,
+            String subject,
+            String body
+    ) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message,
+                            true,
+                            "UTF-8");
+
+            helper.setFrom(username);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            String htmlBody = "<html><body>"
+                            + "<h3>Hi "
+                            + candidateName
+                            + ",</h3>"
+                            + "<p>"
+                            + body.replace("\n", "<br>")
+                            + "</p>"
+                            + "<br/>"
+                            + "<p>Regards,<br/>"
+                            + "Mulya Recruitment Team</p>"
+                            + "</body></html>";
+
+            helper.setText(htmlBody, true);
+            mailSender.send(message);
+            System.out.println("Mail sent successfully to: " + toEmail);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send email: " + e.getMessage());
+        }
+    }
 }

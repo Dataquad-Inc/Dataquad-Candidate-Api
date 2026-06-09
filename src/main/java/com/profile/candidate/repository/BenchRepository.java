@@ -95,6 +95,7 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
 
     List<BenchDetails> findByIdIn(List<String> benchIds);
 
+
     @Query(value = """
             SELECT MAX(CAST(SUBSTRING(id, 6) AS UNSIGNED))
             FROM bench_details

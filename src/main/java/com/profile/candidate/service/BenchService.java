@@ -59,13 +59,13 @@ public class BenchService {
     private String generateNextUserId() {
 
         String sql = """
-        SELECT CONCAT(
-            'ADRTIN',
-            LPAD(COALESCE(MAX(CAST(SUBSTRING(user_id, 7) AS UNSIGNED)), 0) + 1, 4, '0')
-        ) AS next_user_id
-        FROM user_details
-        WHERE user_id LIKE 'ADRTIN%'
-    """;
+                    SELECT CONCAT(
+                        'ADRTIN',
+                        LPAD(COALESCE(MAX(CAST(SUBSTRING(user_id, 7) AS UNSIGNED)), 0) + 1, 4, '0')
+                    ) AS next_user_id
+                    FROM user_details
+                    WHERE user_id LIKE 'ADRTIN%'
+                """;
 
         return jdbcTemplate.queryForObject(sql, String.class);
     }
@@ -230,7 +230,7 @@ public class BenchService {
         return userDto;
     }
 
-    public Map<String, Object> findAllBenchDetails(int page, int size,String search) {
+    public Map<String, Object> findAllBenchDetails(int page, int size, String search) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<BenchDetails> benchPage;
@@ -264,143 +264,142 @@ public class BenchService {
     }
 
 
+    /* @Transactional
+     public BenchDetails saveBenchDetails(BenchDetails benchDetails, MultipartFile resumeFile) throws IOException {
+         // ✅ Check for duplicate email
+         System.out.println("calling the BenchSave service method ");
+         if (benchRepository.existsByEmail(benchDetails.getEmail())) {
+             throw new IllegalArgumentException("Duplicate entry: Email already exists -> " + benchDetails.getEmail());
+         }
 
-   /* @Transactional
-    public BenchDetails saveBenchDetails(BenchDetails benchDetails, MultipartFile resumeFile) throws IOException {
-        // ✅ Check for duplicate email
-        System.out.println("calling the BenchSave service method ");
-        if (benchRepository.existsByEmail(benchDetails.getEmail())) {
-            throw new IllegalArgumentException("Duplicate entry: Email already exists -> " + benchDetails.getEmail());
+         // ✅ Check for duplicate contact number
+         if (benchRepository.existsByContactNumber(benchDetails.getContactNumber())) {
+             throw new IllegalArgumentException("Duplicate entry: Contact number already exists -> " + benchDetails.getContactNumber());
+         }
+
+         // ✅ Check for duplicate full name
+ //        if (benchRepository.existsByFullName(benchDetails.getFullName())) {
+ //            throw new IllegalArgumentException("Duplicate entry: Full name already exists -> " + benchDetails.getFullName());
+ //        }
+
+         // ✅ Auto-generate ID if not provided
+         if (benchDetails.getId() == null || benchDetails.getId().isEmpty()) {
+             benchDetails.setId(generateCustomId());
+         }
+         benchDetails.setCreatedDate(LocalDate.now());
+
+         // ✅ Store resume if provided
+         if (resumeFile != null && !resumeFile.isEmpty()) {
+             benchDetails.setResume(resumeFile.getBytes());
+         }
+
+         if (benchDetails.getTechnology() != null) {
+             benchDetails.setTechnology(benchDetails.getTechnology());
+         }
+         return benchRepository.save(benchDetails);
+     }
+  **/
+    @Transactional
+    public BenchDetails saveBenchDetails(
+            BenchDetails benchDetails,
+            MultipartFile resumeFile
+    ) throws IOException {
+
+        System.out.println("Calling Bench save service method");
+
+        // ✅ Single DB call for duplicate check
+        boolean exists = benchRepository
+                .existsByEmailOrContactNumber(
+                        benchDetails.getEmail(),
+                        benchDetails.getContactNumber()
+                );
+
+        if (exists) {
+
+            // More precise error message
+            if (benchRepository.existsByEmail(
+                    benchDetails.getEmail())) {
+
+                throw new IllegalArgumentException(
+                        "Duplicate entry: Email already exists -> "
+                                + benchDetails.getEmail()
+                );
+            }
+
+            if (benchRepository
+                    .existsByContactNumber(
+                            benchDetails.getContactNumber())) {
+
+                throw new IllegalArgumentException(
+                        "Duplicate entry: Contact number already exists -> "
+                                + benchDetails.getContactNumber()
+                );
+            }
         }
 
-        // ✅ Check for duplicate contact number
-        if (benchRepository.existsByContactNumber(benchDetails.getContactNumber())) {
-            throw new IllegalArgumentException("Duplicate entry: Contact number already exists -> " + benchDetails.getContactNumber());
+        // ✅ Auto-generate ID (optimized)
+        if (benchDetails.getId() == null
+                || benchDetails.getId().isEmpty()) {
+
+            Integer maxNumber =
+                    benchRepository.findMaxBenchNumber();
+
+            int nextNumber =
+                    (maxNumber == null)
+                            ? 1
+                            : maxNumber + 1;
+
+            String generatedId =
+                    String.format(
+                            "BENCH%03d",
+                            nextNumber
+                    );
+
+            benchDetails.setId(
+                    generatedId
+            );
         }
 
-        // ✅ Check for duplicate full name
-//        if (benchRepository.existsByFullName(benchDetails.getFullName())) {
-//            throw new IllegalArgumentException("Duplicate entry: Full name already exists -> " + benchDetails.getFullName());
-//        }
+        // ✅ Set created date
+        benchDetails.setCreatedDate(
+                LocalDate.now()
+        );
 
-        // ✅ Auto-generate ID if not provided
-        if (benchDetails.getId() == null || benchDetails.getId().isEmpty()) {
-            benchDetails.setId(generateCustomId());
-        }
-        benchDetails.setCreatedDate(LocalDate.now());
+        // ✅ Store resume only if provided
+        if (resumeFile != null
+                && !resumeFile.isEmpty()) {
 
-        // ✅ Store resume if provided
-        if (resumeFile != null && !resumeFile.isEmpty()) {
-            benchDetails.setResume(resumeFile.getBytes());
+            // Optional file size validation (5MB)
+            long maxFileSize =
+                    5 * 1024 * 1024;
+
+            if (resumeFile.getSize()
+                    > maxFileSize) {
+
+                throw new IllegalArgumentException(
+                        "Resume file size exceeds 5MB limit"
+                );
+            }
+
+            benchDetails.setResume(
+                    resumeFile.getBytes()
+            );
         }
 
-        if (benchDetails.getTechnology() != null) {
-            benchDetails.setTechnology(benchDetails.getTechnology());
+        // ✅ Set technology only if present
+        if (benchDetails.getTechnology()
+                != null) {
+
+            benchDetails.setTechnology(
+                    benchDetails.getTechnology()
+            );
         }
-        return benchRepository.save(benchDetails);
+
+        // ✅ Save
+        return benchRepository.save(
+                benchDetails
+        );
     }
- **/
-   @Transactional
-   public BenchDetails saveBenchDetails(
-           BenchDetails benchDetails,
-           MultipartFile resumeFile
-   ) throws IOException {
-
-       System.out.println("Calling Bench save service method");
-
-       // ✅ Single DB call for duplicate check
-       boolean exists = benchRepository
-               .existsByEmailOrContactNumber(
-                       benchDetails.getEmail(),
-                       benchDetails.getContactNumber()
-               );
-
-       if (exists) {
-
-           // More precise error message
-           if (benchRepository.existsByEmail(
-                   benchDetails.getEmail())) {
-
-               throw new IllegalArgumentException(
-                       "Duplicate entry: Email already exists -> "
-                               + benchDetails.getEmail()
-               );
-           }
-
-           if (benchRepository
-                   .existsByContactNumber(
-                           benchDetails.getContactNumber())) {
-
-               throw new IllegalArgumentException(
-                       "Duplicate entry: Contact number already exists -> "
-                               + benchDetails.getContactNumber()
-               );
-           }
-       }
-
-       // ✅ Auto-generate ID (optimized)
-       if (benchDetails.getId() == null
-               || benchDetails.getId().isEmpty()) {
-
-           Integer maxNumber =
-                   benchRepository.findMaxBenchNumber();
-
-           int nextNumber =
-                   (maxNumber == null)
-                           ? 1
-                           : maxNumber + 1;
-
-           String generatedId =
-                   String.format(
-                           "BENCH%03d",
-                           nextNumber
-                   );
-
-           benchDetails.setId(
-                   generatedId
-           );
-       }
-
-       // ✅ Set created date
-       benchDetails.setCreatedDate(
-               LocalDate.now()
-       );
-
-       // ✅ Store resume only if provided
-       if (resumeFile != null
-               && !resumeFile.isEmpty()) {
-
-           // Optional file size validation (5MB)
-           long maxFileSize =
-                   5 * 1024 * 1024;
-
-           if (resumeFile.getSize()
-                   > maxFileSize) {
-
-               throw new IllegalArgumentException(
-                       "Resume file size exceeds 5MB limit"
-               );
-           }
-
-           benchDetails.setResume(
-                   resumeFile.getBytes()
-           );
-       }
-
-       // ✅ Set technology only if present
-       if (benchDetails.getTechnology()
-               != null) {
-
-           benchDetails.setTechnology(
-                   benchDetails.getTechnology()
-           );
-       }
-
-       // ✅ Save
-       return benchRepository.save(
-               benchDetails
-       );
-   }
 
     @Transactional
     public BenchDetails updateBenchDetails(String id, BenchDetails benchDetails) {
@@ -421,8 +420,10 @@ public class BenchService {
             // ✅ Update only non-null fields
             if (benchDetails.getFullName() != null) existingBench.setFullName(benchDetails.getFullName());
             if (benchDetails.getEmail() != null) existingBench.setEmail(benchDetails.getEmail());
-            if (benchDetails.getRelevantExperience() != null) existingBench.setRelevantExperience(benchDetails.getRelevantExperience());
-            if (benchDetails.getTotalExperience() != null) existingBench.setTotalExperience(benchDetails.getTotalExperience());
+            if (benchDetails.getRelevantExperience() != null)
+                existingBench.setRelevantExperience(benchDetails.getRelevantExperience());
+            if (benchDetails.getTotalExperience() != null)
+                existingBench.setTotalExperience(benchDetails.getTotalExperience());
             if (benchDetails.getContactNumber() != null && !benchDetails.getContactNumber().isBlank()) {
                 existingBench.setContactNumber(benchDetails.getContactNumber());
             }
@@ -611,11 +612,11 @@ public class BenchService {
                     System.out.println("Sending mail to: " + bench.getEmail());
 
                     emailregisterService.sendBenchJdMail(
-                                    bench.getEmail(),
-                                    bench.getFullName(),
-                                    jobTitle,
-                                    jobDescription
-                            );
+                            bench.getEmail(),
+                            bench.getFullName(),
+                            jobTitle,
+                            jobDescription
+                    );
 
                     successCount++;
 
@@ -634,6 +635,30 @@ public class BenchService {
             e.printStackTrace();
 
             throw new RuntimeException("Failed to send JD mails: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void sendManualJdToCandidates(
+            List<String> emails,
+            String subject,
+            String body
+    ) {
+        System.out.println("Emails found = " + emails.size());
+        for (String email : emails) {
+            try {
+                System.out.println("Sending mail to: " + email);
+                // Fetch candidate from DB using email
+                BenchDetails candidate = benchRepository.findByEmail(email).orElse(null);
+                String candidateName = candidate != null
+                                ? candidate.getFullName()
+                                : "Candidate";
+
+                emailregisterService.sendManualJdMail(email, candidateName, subject, body);
+
+            } catch (Exception e) {
+                System.out.println("Mail failed for: " + email + " Error: " + e.getMessage());
+            }
         }
     }
 }
