@@ -584,4 +584,22 @@ public class BenchController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("status", "Error", "message", e.getMessage()));
         }
     }
+
+    @PostMapping("/send-jd")
+    public ResponseEntity<?> sendJdToCandidates(
+            @RequestBody SendJdRequestDto requestDto
+    ) {
+        try {
+            benchService.sendManualJdToCandidates(requestDto.getEmails(), requestDto.getSubject(), requestDto.getBody());
+
+            return ResponseEntity.ok(Map.of(
+                            "status", "Success",
+                            "message", "JD mails sent successfully"));
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of(
+                            "status", "Error",
+                            "message", "Failed to send JD mails: " + e.getMessage()));
+        }
+    }
 }
