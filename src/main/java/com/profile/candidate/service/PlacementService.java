@@ -242,7 +242,9 @@ public class PlacementService {
 
         placementDetails.setUserId(userId);
         placementDetails.setEmployeeWorkingType("MONTHLY");
-        placementDetails.setStatus("InActive");
+        if (placementDetails.getStatus() == null || placementDetails.getStatus().isBlank()) {
+            placementDetails.setStatus("Active");
+        }
 
         PlacementDetailsUS saved = placementUsRepository.save(placementDetails);
         boolean usIsPlaced = "Active".equalsIgnoreCase(saved.getStatus());
