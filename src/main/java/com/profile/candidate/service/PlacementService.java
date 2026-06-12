@@ -445,7 +445,7 @@ public class PlacementService {
         return convertToResponseDto(placement);
     }
 
-    public List<PlacementDetails> getAllPlacements(LocalDate startDate, LocalDate endDate) {
+    public List<PlacementDetails> getAllPlacements(LocalDate startDate, LocalDate endDate, String status) {
         LocalDate now = LocalDate.now();
 
         logger.info("Fetching placements between {} and {}", startDate, endDate);
@@ -464,9 +464,28 @@ public class PlacementService {
                 placement.setStatus("completed");
                 placementRepository.save(placement); // Save the change
             }
-            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+            boolean shouldAdd = false;
+
+            if (status != null &&
+                    !status.isEmpty()) {
+
+                shouldAdd =
+                        placement.getStatus() != null &&
+                                placement.getStatus()
+                                        .equalsIgnoreCase(status);
+
+            } else {
+
+                shouldAdd =
+                        !"inactive".equalsIgnoreCase(
+                                placement.getStatus());
+            }
+
+            if (shouldAdd) {
+
                 boolean isLogin = false;
-                String candidateEmail = placement.getCandidateEmailId();
+                String candidateEmail =
+                        placement.getCandidateEmailId();
 
                 if (candidateEmail != null && !candidateEmail.isEmpty()) {
                     try {
@@ -498,16 +517,24 @@ public class PlacementService {
         return updatedPlacements;
     }
 
-    public List<PlacementDetails> getAllPlacementsWithoutDate() {
+    public List<PlacementDetails> getAllPlacementsWithoutDate( String status) {
         logger.info("Fetching all placements without date filter");
 
         // Fetch all placements
         List<PlacementDetails> allPlacements = placementRepository.findAll();
         logger.info("Total placements found: {}", allPlacements.size());
+        if (status != null && !status.isEmpty()) {
+
+            return allPlacements.stream()
+                    .filter(p -> p.getStatus() != null
+                            && p.getStatus()
+                            .equalsIgnoreCase(status))
+                    .toList();
+        }
         return allPlacements;
     }
 
-    public List<PlacementDetails> getPlacementsByUserId(String userId) {
+    public List<PlacementDetails> getPlacementsByUserId(String userId, String status) {
         LocalDate now = LocalDate.now();
         LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
         LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
@@ -530,16 +557,28 @@ public class PlacementService {
                 placement.setStatus("completed");
                 placementRepository.save(placement);
             }
-            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
-                filteredPlacements.add(placement);
+            if (status != null && !status.isEmpty()) {
+
+                if (placement.getStatus() != null &&
+                        placement.getStatus().equalsIgnoreCase(status)) {
+
+                    filteredPlacements.add(placement);
+                }
+
+            } else {
+
+                if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                    filteredPlacements.add(placement);
+                }
             }
+
         }
         logger.info("Filtered placements count: {}", filteredPlacements.size());
 
         return filteredPlacements;
     }
 
-    public List<PlacementDetails> getPlacementsByRecruiterAndDateRange(String userId, LocalDate startDate, LocalDate endDate) {
+    public List<PlacementDetails> getPlacementsByRecruiterAndDateRange(String userId, LocalDate startDate, LocalDate endDate, String status) {
         LocalDate now = LocalDate.now();
         LocalDate endOfCurrentMonth = now.withDayOfMonth(now.lengthOfMonth());
 
@@ -556,14 +595,29 @@ public class PlacementService {
                 placement.setStatus("completed");
                 placementRepository.save(placement);
             }
-            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
-                filteredPlacements.add(placement);
+            if (status != null && !status.isEmpty()) {
+
+                if (placement.getStatus() != null &&
+                        placement.getStatus()
+                                .equalsIgnoreCase(status)) {
+
+                    filteredPlacements.add(placement);
+                }
+
+            } else {
+
+                if (!"inactive".equalsIgnoreCase(
+                        placement.getStatus())) {
+
+                    filteredPlacements.add(placement);
+                }
             }
+
         }
         return filteredPlacements;
     }
 
-    public List<PlacementDetails> getPlacementsByCandidateEmail(String email) {
+    public List<PlacementDetails> getPlacementsByCandidateEmail(String email, String status) {
         LocalDate now = LocalDate.now();
         LocalDate startDate = now.withDayOfMonth(1);             // 1st of current month
         LocalDate endDate = now.withDayOfMonth(now.lengthOfMonth()); // last day of current month
@@ -586,8 +640,19 @@ public class PlacementService {
                 placement.setStatus("completed");
                 placementRepository.save(placement);
             }
-            if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
-                filteredPlacements.add(placement);
+            if (status != null && !status.isEmpty()) {
+
+                if (placement.getStatus() != null &&
+                        placement.getStatus().equalsIgnoreCase(status)) {
+
+                    filteredPlacements.add(placement);
+                }
+
+            } else {
+
+                if (!"inactive".equalsIgnoreCase(placement.getStatus())) {
+                    filteredPlacements.add(placement);
+                }
             }
         }
         logger.info("Filtered placements count: {}", filteredPlacements.size());

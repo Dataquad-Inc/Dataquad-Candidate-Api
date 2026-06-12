@@ -198,7 +198,8 @@ public class PlacementController {
             @RequestParam(required = false) String userId,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate,
-            @RequestParam(required = false) String email) {
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String status) {
 
         LocalDate start;
         LocalDate end;
@@ -216,19 +217,19 @@ public class PlacementController {
         List<PlacementDetails> placements;
         // FIX: check email FIRST because it is most specific
         if (email != null && !email.isEmpty()) {
-            placements = placementService.getPlacementsByCandidateEmail(email);
+            placements = placementService.getPlacementsByCandidateEmail(email,status);
         }
         else if (userId != null && !userId.isEmpty() && startDate == null && endDate == null) {
-            placements = placementService.getPlacementsByUserId(userId);
+            placements = placementService.getPlacementsByUserId(userId,status);
         }
         else if (startDate == null && endDate == null) {
-            placements = placementService.getAllPlacementsWithoutDate();
+            placements = placementService.getAllPlacementsWithoutDate(status);
         }
         else if (userId != null && !userId.isEmpty()){
-            placements = placementService.getPlacementsByRecruiterAndDateRange(userId,start,end);
+            placements = placementService.getPlacementsByRecruiterAndDateRange(userId,start,end,status);
         }
         else {
-            placements = placementService.getAllPlacements(start, end);
+            placements = placementService.getAllPlacements(start, end, status);
         }
 
 
@@ -242,7 +243,7 @@ public class PlacementController {
 
     @GetMapping("/placement/placementsByRecruiter/{userId}")
     public ResponseEntity<?> getPlacementsByUserId(@PathVariable String userId) {
-        List<PlacementDetails> placements = placementService.getPlacementsByUserId(userId);
+        List<PlacementDetails> placements = placementService.getPlacementsByUserId(userId,null);
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
         response.put("message", "Placements fetched successfully");
@@ -270,7 +271,7 @@ public class PlacementController {
             end = now.withDayOfMonth(now.lengthOfMonth());
         }
 
-        List<PlacementDetails> placements = placementService.getPlacementsByRecruiterAndDateRange(userId, start, end);
+        List<PlacementDetails> placements = placementService.getPlacementsByRecruiterAndDateRange(userId, start, end,null);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
