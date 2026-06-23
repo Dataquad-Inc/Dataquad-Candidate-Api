@@ -107,4 +107,12 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
             String email,
             String contactNumber
     );
+
+    @Query("""
+            SELECT b.email
+            FROM BenchDetails b
+            WHERE b.email IN :emails
+           """)
+        List<String> findExistingEmails(@Param("emails") List<String> emails);
+
 }

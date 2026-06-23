@@ -161,37 +161,18 @@ public class BenchController {
 
 
     @PostMapping("/bench/import")
-    public ResponseEntity<?> importBenchFromJson(@RequestBody List<BenchJsonRequest> requestList) {
-        List<String> inserted = new ArrayList<>();
+    public ResponseEntity<?> importBenchFromJson(
+            @RequestBody List<BenchJsonRequest> requestList) {
 
-        for (BenchJsonRequest req : requestList) {
-            if (benchRepository.existsByEmail(req.getEmail())) continue;
+        int insertedCount = benchService.importBenchCandidates(requestList);
 
-            BenchDetails bench = new BenchDetails();
-            bench.setId(benchService.generateCustomId());
-            bench.setFullName(req.getFullName());
-            bench.setEmail(req.getEmail());
-            bench.setRelevantExperience(req.getRelevantExperience());
-            bench.setTotalExperience(req.getTotalExperience());
-            bench.setContactNumber(req.getContactNumber());
-            bench.setSkills(req.getSkills());
-            bench.setLinkedin(req.getLinkedin());
-            bench.setReferredBy(req.getReferredBy());
-            bench.setTechnology(req.getTechnology());
-            bench.setRemarks(req.getRemarks());
-
-            if (req.getResume() != null) {
-                byte[] decodedResume = Base64.getDecoder().decode(req.getResume());
-                bench.setResume(decodedResume);
-            }
-
-            benchRepository.save(bench);
-            inserted.add(req.getEmail());
-        }
-
-        return ResponseEntity.ok("Inserted to bench: " + inserted.size());
+        return ResponseEntity.ok(Map.of(
+                        "status", "SUCCESS",
+                        "insertedCount", insertedCount,
+                        "totalRecords", requestList.size()
+                )
+        );
     }
-
 
     @GetMapping("/bench/getBenchList")
     public ResponseEntity<?> getAllBenchDetails(

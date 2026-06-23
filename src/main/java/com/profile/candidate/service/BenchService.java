@@ -250,19 +250,75 @@ public class BenchService {
     }
 
     public String generateCustomId() {
-        // Fetch all existing Bench IDs that follow the pattern "BENCH###"
-        List<Integer> existingNumbers = benchRepository.findAll().stream()
-                .map(BenchDetails::getId)
-                .filter(id -> id != null && id.matches("BENCH\\d+"))  // Filter only valid "BENCH###" IDs
-                .map(id -> Integer.parseInt(id.replace("BENCH", "")))  // Extract number
-                .toList();
-
-        // Find the highest existing number
-        int nextNumber = existingNumbers.stream().max(Integer::compare).orElse(0) + 1;
-        // ✅ Generate new ID in "BENCH001" format
-        return String.format("BENCH%03d", nextNumber);
+        Integer maxNumber = benchRepository.findMaxBenchNumber();
+        int nextNumber = (maxNumber == null ? 1 : maxNumber + 1);
+        String generatedId = String.format("BENCH%03d", nextNumber);
+        logger.info("Generated Bench Id : {}", generatedId);
+        return generatedId;
     }
 
+    @Transactional
+        public int importBenchCandidates(List<BenchJsonRequest> requestList) {
+
+            if (requestList == null || requestList.isEmpty()) {
+                return 0;
+            }
+
+            // Get all incoming emails
+            List<String> incomingEmails = requestList.stream()
+                    .map(BenchJsonRequest::getEmail)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            // Single DB call
+            Set<String> existingEmails = new HashSet<>(benchRepository.findExistingEmails(incomingEmails));
+
+            Integer maxNumber = benchRepository.findMaxBenchNumber();
+            int nextNumber = maxNumber == null ? 1 : maxNumber + 1;
+
+            List<BenchDetails> candidatesToSave = new ArrayList<>();
+
+            for (BenchJsonRequest req : requestList) {
+
+                if (req.getEmail() == null ||
+                        req.getEmail().isBlank()) {
+                    continue;
+                }
+
+                if (req.getContactNumber() == null ||
+                        req.getContactNumber().isBlank()) {
+                    continue;
+                }
+
+                if (existingEmails.contains(req.getEmail())) {
+                    continue;
+                }
+
+                BenchDetails bench = new BenchDetails();
+
+                bench.setId(String.format("BENCH%03d", nextNumber++));
+
+                bench.setFullName(req.getFullName());
+                bench.setEmail(req.getEmail());
+                bench.setRelevantExperience(req.getRelevantExperience());
+                bench.setTotalExperience(req.getTotalExperience());
+                bench.setContactNumber(req.getContactNumber());
+                bench.setSkills(req.getSkills());
+                bench.setLinkedin(req.getLinkedin());
+                bench.setReferredBy(req.getReferredBy());
+                bench.setTechnology(req.getTechnology());
+                bench.setRemarks(req.getRemarks());
+
+                if (req.getResume() != null &&
+                        !req.getResume().isBlank()) {
+
+                    bench.setResume(Base64.getDecoder().decode(req.getResume()));
+                }
+                candidatesToSave.add(bench);
+            }
+            benchRepository.saveAll(candidatesToSave);
+            return candidatesToSave.size();
+        }
 
     /* @Transactional
      public BenchDetails saveBenchDetails(BenchDetails benchDetails, MultipartFile resumeFile) throws IOException {
