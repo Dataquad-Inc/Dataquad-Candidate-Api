@@ -972,72 +972,152 @@ public class InterviewService {
 
         else {
             if ("BDM".equalsIgnoreCase(role)) {
-                List<Tuple> bdmInterviews = interviewRepository.findScheduledInterviewsByBdmUserIdAndDateRange(userId, startDateTime, endDateTime);
-                logger.info("Fetched {} interviews for BDM userId: {}", bdmInterviews.size(), userId);
+
+                List<Tuple> bdmInterviews = interviewRepository.findScheduledInterviewsByBdmUserIdAndDateRange(
+                                userId,
+                                startDateTime,
+                                endDateTime);
+
+                int addedCount = 0;
+                int rejectedCount = 0;
+                int exceptionCount = 0;
+                int nullDateCount = 0;
 
                 for (Tuple tuple : bdmInterviews) {
+
                     try {
-                        String interviewStatusJson = tuple.get("interview_status", String.class);
-                        String candidateEmail = tuple.get("candidate_email_id", String.class);
-                        if (isInternalRejected(interviewStatusJson, candidateEmail)) {
+
+                        String interviewId =
+                                tuple.get("interview_id", String.class);
+
+                        String interviewStatusJson =
+                                tuple.get("interview_status", String.class);
+
+                        String candidateEmail =
+                                tuple.get("candidate_email_id", String.class);
+
+                        boolean rejected =
+                                isInternalRejected(
+                                        interviewStatusJson,
+                                        candidateEmail);
+
+                        if (rejected) {
+                            rejectedCount++;
                             continue;
                         }
 
-                        String interviewDateTimeStr = tuple.get("interview_date_time", String.class);
+                        String interviewDateTimeStr =
+                                tuple.get("interview_date_time", String.class);
+
                         OffsetDateTime interviewDateTime = null;
 
                         if (interviewDateTimeStr != null) {
-                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
-                            LocalDateTime localDateTime = LocalDateTime.parse(interviewDateTimeStr, formatter);
-                            interviewDateTime = localDateTime.atOffset(ZoneOffset.ofHoursMinutes(5, 30));
+
+                            DateTimeFormatter formatter =
+                                    DateTimeFormatter.ofPattern(
+                                            "yyyy-MM-dd'T'HH:mm:ss");
+
+                            LocalDateTime localDateTime =
+                                    LocalDateTime.parse(
+                                            interviewDateTimeStr,
+                                            formatter);
+
+                            interviewDateTime =
+                                    localDateTime.atOffset(
+                                            ZoneOffset.ofHoursMinutes(5, 30));
                         }
 
-                        if (interviewDateTime != null) {
-                            String latestInterviewStatus = latestInterviewStatusFromJson(interviewStatusJson);
-                            String timestampStr = tuple.get("timestamp", String.class);
-                            LocalDateTime timestamp = timestampStr != null
-                                    ? LocalDateTime.parse(timestampStr, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"))
-                                    : null;
-
-                            ObjectMapper objectMapper = new ObjectMapper();
-                            List<String> clientEmails = new ArrayList<>();
-                            try {
-                                clientEmails = objectMapper.readValue(tuple.get("client_email", String.class), new TypeReference<>() {});
-                            } catch (JsonProcessingException e) {
-                                logger.warn("Failed to parse client emails for interview ID {}", tuple.get("interview_id", String.class));
-                            }
-
-                            payloadList.add(new GetInterviewResponse.InterviewData(
-                                    tuple.get("interview_id", String.class),
-                                    tuple.get("job_id", String.class),
-                                    tuple.get("candidate_id", String.class),
-                                    tuple.get("full_name", String.class),
-                                    tuple.get("contact_number", String.class),
-                                    candidateEmail,
-                                    tuple.get("user_email", String.class),
-                                    tuple.get("user_id", String.class),
-                                    interviewDateTime,
-                                    tuple.get("duration", Integer.class),
-                                    tuple.get("zoom_link", String.class),
-                                    timestamp,
-                                    clientEmails,
-                                    tuple.get("client_name", String.class),
-                                    tuple.get("interview_level", String.class),
-                                    latestInterviewStatus,
-                                    tuple.get("is_placed", Boolean.class),
-                                    tuple.get("recruiterName", String.class),
-                                    tuple.get("total_experience", float.class),
-                                    tuple.get("relevant_experience", float.class),
-                                    tuple.get("skills", String.class),
-                                    interviewRepository.findJobTitleByJobId(tuple.get("job_id", String.class))
-                            ));
+                        if (interviewDateTime == null) {
+                            nullDateCount++;
+                            continue;
                         }
+
+                        String latestInterviewStatus =
+                                latestInterviewStatusFromJson(
+                                        interviewStatusJson);
+
+                        String timestampStr =
+                                tuple.get("timestamp", String.class);
+
+                        LocalDateTime timestamp =
+                                timestampStr != null
+                                        ? LocalDateTime.parse(
+                                        timestampStr,
+                                        DateTimeFormatter.ofPattern(
+                                                "yyyy-MM-dd'T'HH:mm:ss"))
+                                        : null;
+
+                        ObjectMapper objectMapper =
+                                new ObjectMapper();
+
+                        List<String> clientEmails =
+                                new ArrayList<>();
+
+                        try {
+
+                            clientEmails =
+                                    objectMapper.readValue(
+                                            tuple.get("client_email", String.class),
+                                            new TypeReference<>() {
+                                            });
+
+                        } catch (JsonProcessingException e) {
+
+                            logger.warn(
+                                    "Failed to parse client emails for interview {}",
+                                    interviewId);
+                        }
+
+                        payloadList.add(
+                                new GetInterviewResponse.InterviewData(
+                                        interviewId,
+                                        tuple.get("job_id", String.class),
+                                        tuple.get("candidate_id", String.class),
+                                        tuple.get("full_name", String.class),
+                                        tuple.get("contact_number", String.class),
+                                        candidateEmail,
+                                        tuple.get("user_email", String.class),
+                                        tuple.get("user_id", String.class),
+                                        interviewDateTime,
+                                        tuple.get("duration", Integer.class),
+                                        tuple.get("zoom_link", String.class),
+                                        timestamp,
+                                        clientEmails,
+                                        tuple.get("client_name", String.class),
+                                        tuple.get("interview_level", String.class),
+                                        latestInterviewStatus,
+                                        tuple.get("is_placed", Boolean.class),
+                                        tuple.get("recruiterName", String.class),
+                                        ((Number) tuple.get("total_experience")).floatValue(),
+                                        ((Number) tuple.get("relevant_experience")).floatValue(),
+                                        tuple.get("skills", String.class),
+                                        interviewRepository.findJobTitleByJobId(
+                                                tuple.get("job_id", String.class))
+                                )
+                        );
+
+                        addedCount++;
+
                     } catch (Exception e) {
-                        logger.error("Error processing interview tuple: {}", e.getMessage());
+
+                        exceptionCount++;
+
+                        logger.error(
+                                "Error processing interview {}",
+                                tuple.get("interview_id", String.class),
+                                e);
                     }
                 }
-            }
 
+                logger.info(
+                        "BDM Interviews Processed - Total: {}, Added: {}, Rejected: {}, NullDate: {}, Exceptions: {}",
+                        bdmInterviews.size(),
+                        addedCount,
+                        rejectedCount,
+                        nullDateCount,
+                        exceptionCount
+                );
+            }
             if ("SUPERADMIN".equalsIgnoreCase(role)) {
                 List<InterviewDetails> superAdminInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate);
                 logger.info("Fetched {} interviews for SUPERADMIN", superAdminInterviews.size());
