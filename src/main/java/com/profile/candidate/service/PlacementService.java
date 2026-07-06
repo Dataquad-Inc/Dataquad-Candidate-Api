@@ -171,7 +171,7 @@ public class PlacementService {
 
         // Default values for placement
         placementDetails.setEmployeeWorkingType("MONTHLY");
-        placementDetails.setStatus("Active");
+        placementDetails.setStatus("Pending");
 
         // Save placement details
         PlacementDetails saved = placementRepository.save(placementDetails);
@@ -243,7 +243,7 @@ public class PlacementService {
         placementDetails.setUserId(userId);
         placementDetails.setEmployeeWorkingType("MONTHLY");
         if (placementDetails.getStatus() == null || placementDetails.getStatus().isBlank()) {
-            placementDetails.setStatus("Active");
+            placementDetails.setStatus("Pending");
         }
 
         PlacementDetailsUS saved = placementUsRepository.save(placementDetails);
@@ -297,11 +297,11 @@ public class PlacementService {
     }
 
     public org.springframework.data.domain.Page<PlacementDetailsUS> searchAndPaginateUsPlacements(
-            String userId, String search, org.springframework.data.domain.Pageable pageable) {
+            String userId,String status,  String search, org.springframework.data.domain.Pageable pageable) {
         if (userId != null && !userId.isBlank()) {
             return placementUsRepository.searchUsPlacements(userId, search, pageable);
         } else {
-            return placementUsRepository.searchUsPlacements(search, pageable);
+            return placementUsRepository.searchUsPlacements(search,status, pageable);
         }
     }
 
