@@ -16,17 +16,41 @@ public interface PlacementUsRepository extends JpaRepository<PlacementDetailsUS,
     PlacementDetailsUS findByCandidateContactNoAndClientName(String candidateContactNo, String clientName);
     java.util.List<PlacementDetailsUS> findByUserId(String userId);
     Page<PlacementDetailsUS> findByUserId(String userId, Pageable pageable);
-    
-    @Query("SELECT p FROM PlacementDetailsUS p WHERE " +
-           "(:search IS NULL OR LOWER(p.candidateFullName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.candidateEmailId) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.technology) LIKE LOWER(CONCAT('%', :search, '%')))")
-    Page<PlacementDetailsUS> searchUsPlacements(@Param("search") String search, Pageable pageable);
-    
-    @Query("SELECT p FROM PlacementDetailsUS p WHERE " +
-           "p.userId = :userId AND " +
-           "(:search IS NULL OR LOWER(p.candidateFullName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.candidateEmailId) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.technology) LIKE LOWER(CONCAT('%', :search, '%')))")
-    Page<PlacementDetailsUS> searchUsPlacements(@Param("userId") String userId, @Param("search") String search, Pageable pageable);
+
+    @Query("""
+       SELECT p FROM PlacementDetailsUS p
+       WHERE
+       (:status IS NULL OR LOWER(p.status) = LOWER(:status))
+       AND
+       (
+        :search IS NULL
+        OR LOWER(p.candidateFullName) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.candidateEmailId) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.technology) LIKE LOWER(CONCAT('%', :search, '%'))
+    )
+""")
+    Page<PlacementDetailsUS> searchUsPlacements(
+            @Param("search") String search,
+            @Param("status") String status,
+            Pageable pageable);
+
+    @Query("""
+         SELECT p FROM PlacementDetailsUS p
+         WHERE
+         p.userId = :userId
+          AND
+          (:status IS NULL OR LOWER(p.status) = LOWER(:status))
+          AND
+        (
+        :search IS NULL
+        OR LOWER(p.candidateFullName) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.candidateEmailId) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(p.technology) LIKE LOWER(CONCAT('%', :search, '%'))
+    )
+""")
+    Page<PlacementDetailsUS> searchUsPlacements(
+            @Param("userId") String userId,
+            @Param("search") String search,
+            @Param("status") String status,
+            Pageable pageable);
 }

@@ -72,6 +72,7 @@ public class PlacementController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
             @RequestParam(required = false) String sort) {
         
         org.springframework.data.domain.Sort.Direction direction = org.springframework.data.domain.Sort.Direction.DESC;
@@ -90,7 +91,7 @@ public class PlacementController {
         );
         
         org.springframework.data.domain.Page<PlacementDetailsUS> placements = 
-                placementService.searchAndPaginateUsPlacements(userId, search, pageable);
+                placementService.searchAndPaginateUsPlacements(userId, search,status, pageable);
 
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("success", true);
