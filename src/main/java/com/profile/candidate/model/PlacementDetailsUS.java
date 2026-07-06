@@ -125,9 +125,6 @@ public class PlacementDetailsUS {
     @Column(name = "currency")
     private String currency;
 
-    @Column(name = "placement_stage")
-    private String placementStage;
-
     public String getId() {
         return id;
     }
@@ -391,11 +388,6 @@ public class PlacementDetailsUS {
     public void setCurrency(String currency) {
         this.currency = currency;
     }
-
-
-    public String getPlacementStage() { return placementStage; }
-
-    public void setPlacementStage(String placementStage) { this.placementStage = placementStage; }
 
     @PrePersist
     public void prePersist() {

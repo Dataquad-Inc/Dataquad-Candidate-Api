@@ -138,9 +138,4 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
     List<PlacementDetails> findByUserId(String userId);
 
     List<PlacementDetails> findByUserIdAndCreatedAtBetween(String userId, LocalDate startDate, LocalDate endDate);
-
-    List<PlacementDetails> findByPlacementStage(String placementStage);
-
-    List<PlacementDetails> findByPlacementStageAndUserId(String placementStage,
-                                                         String userId);
 }
