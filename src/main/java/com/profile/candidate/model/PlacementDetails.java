@@ -87,9 +87,6 @@ public class PlacementDetails {
     @Column(name = "isRegister")
     private Boolean isRegister = false;
 
-    @Column(name = "placement_stage")
-    private String placementStage;
-
     private String createdBy;
     private String updatedBy;
 
@@ -333,6 +330,8 @@ public class PlacementDetails {
         this.interviewId = interviewId;
     }
 
+
+
     public Boolean getRegister() {
         return isRegister;
     }
@@ -340,10 +339,6 @@ public class PlacementDetails {
     public void setRegister(Boolean register) {
         this.isRegister = register;
     }
-
-    public String getPlacementStage() { return placementStage; }
-
-    public void setPlacementStage(String placementStage) { this.placementStage = placementStage; }
 
 }
 

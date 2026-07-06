@@ -437,30 +437,4 @@ public class PlacementController {
         }
     }
 
-    @GetMapping("/placement/pending")
-    public ResponseEntity<?> getPendingPlacements(
-            @RequestParam(required = false) String userId) {
-
-        List<PlacementDetails> placements =
-                placementService.getPendingPlacements(userId);
-
-        Map<String, Object> response = new LinkedHashMap<>();
-        response.put("success", true);
-        response.put("message", "Pending placements fetched successfully");
-        response.put("data", placements);
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PutMapping("/placement/move-to-active/{placementId}/{userId}")
-    public ResponseEntity<?> moveToActive(
-            @PathVariable String placementId,
-            @PathVariable String userId) {
-
-        PlacementResponseDto response =
-                placementService.moveToActive(placementId, userId);
-
-        return ResponseEntity.ok(response);
-    }
-
 }

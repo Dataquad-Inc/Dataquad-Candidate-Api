@@ -111,10 +111,9 @@ public class PlacementService {
 
     @Transactional
     public PlacementResponseDto savePlacement(String userId, PlacementDto placementDto) {
-
         PlacementDetails placementDetails = convertToEntity(placementDto);
 
-        // Check duplicate candidate + client
+        // Check for existing placement by candidateContactNo and clientName
         PlacementDetails existingPlacement = placementRepository
                 .findByCandidateContactNoAndClientName(
                         placementDto.getCandidateContactNo(),
@@ -127,71 +126,73 @@ public class PlacementService {
             );
         }
 
-        // Generate Placement ID
+        // Generate custom ID
         placementDetails.setId(generateCustomId());
+        logger.info("Generated ID is: {}", placementDetails.getId());
         placementDetails.setCreatedBy(userId);
 
+        // ✅ Validate interviewId before querying repository
         String interviewId = placementDto.getInterviewId();
-
         if (interviewId != null) {
+            logger.info("Interview ID received: {}", interviewId);
 
-            Optional<InterviewDetails> interviewDetailsOpt =
-                    interviewRepository.findById(interviewId);
-
+            Optional<InterviewDetails> interviewDetailsOpt = interviewRepository.findById(interviewId);
             if (interviewDetailsOpt.isPresent()) {
-
                 InterviewDetails interviewDetails = interviewDetailsOpt.get();
+                String latestStatus = interviewService.latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
+                logger.info("Latest interview status: {}", latestStatus);
 
-                String latestStatus =
-                        interviewService.latestInterviewStatusFromJson(
-                                interviewDetails.getInterviewStatus());
-
+                // Ensure status is "placed"
                 if (!"placed".equalsIgnoreCase(latestStatus)) {
-                    throw new CandidateNotFoundException(
-                            "Candidate status is not placed."
-                    );
+                    throw new CandidateNotFoundException("Candidate status is not placed in the interview table.");
                 }
 
-                boolean alreadyPlaced =
-                        placementRepository.existsByInterviewId(interviewId);
-
+                // Check for duplicate interviewId
+                boolean alreadyPlaced = placementRepository.existsByInterviewId(interviewId);
                 if (alreadyPlaced) {
                     throw new DuplicateInterviewPlacementException(
-                            "Interview ID " + interviewId +
-                                    " is already used in a placement."
+                            "Interview ID " + interviewId + " is already used in a placement."
                     );
                 }
 
+                // Mark candidate as placed in interview
                 interviewDetails.setIsPlaced(true);
                 interviewRepository.save(interviewDetails);
+                logger.info("Interview details updated with isPlaced=true: {}", interviewDetails);
+            } else {
+                logger.warn("No matching interview details found for ID {}. Proceeding without updating interview.", interviewId);
             }
 
         } else {
-            logger.warn("Interview ID is null.");
+            // ✅ Skip interview logic safely if interviewId is null
+            logger.warn("Interview ID is null — skipping interview linkage.");
         }
-
         placementDetails.setUserId(userId);
+
+        // Default values for placement
         placementDetails.setEmployeeWorkingType("MONTHLY");
+        placementDetails.setStatus("Active");
 
-        // NEW FLOW
-        placementDetails.setStatus("PENDING_APPROVAL");
-
+        // Save placement details
         PlacementDetails saved = placementRepository.save(placementDetails);
+        boolean isPlaced = "Active".equalsIgnoreCase(saved.getStatus());
 
+        // Build response
         return new PlacementResponseDto(
                 saved.getId(),
                 saved.getCandidateFullName(),
                 saved.getCandidateContactNo(),
-                false
+                isPlaced
         );
     }
 
+
+
     @Transactional
     public PlacementResponseDto savePlacementUs(String userId, PlacementDto placementDto) {
-
         PlacementDetailsUS placementDetails = convertToUsEntity(placementDto);
 
-        // Check duplicate
+        // Check for existing placement by candidateContactNo and clientName in placements_us
         PlacementDetailsUS existingPlacement = placementUsRepository
                 .findByCandidateContactNoAndClientName(
                         placementDto.getCandidateContactNo(),
@@ -200,66 +201,59 @@ public class PlacementService {
 
         if (existingPlacement != null) {
             throw new CandidateAlreadyExistsException(
-                    "Placement already exists for this candidate and client."
+                    "Placement already exists for this candidate and client in placements_us."
             );
         }
 
-        // Generate Placement ID
         placementDetails.setId(generateUsCustomId());
+        logger.info("Generated US placement ID is: {}", placementDetails.getId());
         placementDetails.setCreatedBy(userId);
 
         String interviewId = placementDto.getInterviewId();
-
         if (interviewId != null) {
+            logger.info("Interview ID received for US placement: {}", interviewId);
 
-            Optional<InterviewDetailsUS> interviewDetailsOpt =
-                    interviewUsRepository.findById(interviewId);
-
+            Optional<InterviewDetailsUS> interviewDetailsOpt = interviewUsRepository.findById(interviewId);
             if (interviewDetailsOpt.isPresent()) {
-
                 InterviewDetailsUS interviewDetails = interviewDetailsOpt.get();
-
-                String latestStatus =
-                        interviewService.latestInterviewStatusFromJson(
-                                interviewDetails.getInterviewStatus());
+                String latestStatus = interviewService.latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
+                logger.info("Latest interview status: {}", latestStatus);
 
                 if (!"placed".equalsIgnoreCase(latestStatus)) {
-                    throw new CandidateNotFoundException(
-                            "Candidate status is not placed."
-                    );
+                    throw new CandidateNotFoundException("Candidate status is not placed in the interview table.");
                 }
 
-                boolean alreadyPlaced =
-                        placementUsRepository.existsByInterviewId(interviewId);
-
+                boolean alreadyPlaced = placementUsRepository.existsByInterviewId(interviewId);
                 if (alreadyPlaced) {
                     throw new DuplicateInterviewPlacementException(
-                            "Interview ID " + interviewId +
-                                    " is already used in a placement."
+                            "Interview ID " + interviewId + " is already used in a US placement."
                     );
                 }
 
                 interviewDetails.setIsPlaced(true);
                 interviewUsRepository.save(interviewDetails);
+                logger.info("Interview details updated with isPlaced=true for US placement: {}", interviewDetails);
+            } else {
+                logger.warn("No matching interview details found for ID {}. Proceeding without updating interview.", interviewId);
             }
-
         } else {
-            logger.warn("Interview ID is null.");
+            logger.warn("Interview ID is null for US placement — skipping interview linkage.");
         }
 
         placementDetails.setUserId(userId);
         placementDetails.setEmployeeWorkingType("MONTHLY");
-
-        // NEW FLOW
-        placementDetails.setStatus("PENDING_APPROVAL");
+        if (placementDetails.getStatus() == null || placementDetails.getStatus().isBlank()) {
+            placementDetails.setStatus("Active");
+        }
 
         PlacementDetailsUS saved = placementUsRepository.save(placementDetails);
+        boolean usIsPlaced = "Active".equalsIgnoreCase(saved.getStatus());
 
         return new PlacementResponseDto(
                 saved.getId(),
                 saved.getCandidateFullName(),
                 saved.getCandidateContactNo(),
-                false
+                usIsPlaced
         );
     }
 
@@ -1227,31 +1221,5 @@ public class PlacementService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
-    }
-
-    public List<PlacementDetails> getPendingPlacements(String userId) {
-
-        if (userId != null && !userId.isBlank()) {
-            return placementRepository.findByPlacementStageAndUserId("PENDING", userId);
-        }
-
-        return placementRepository.findByPlacementStage("PENDING");
-    }
-
-    @Transactional
-    public PlacementResponseDto moveToActive(String placementId,
-                                             String userId) {
-
-        PlacementDetails placement = placementRepository.findById(placementId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Placement not found"));
-
-        placement.setPlacementStage("ACTIVE");
-        placement.setStatus("Active");
-        placement.setUpdatedBy(userId);
-
-        PlacementDetails saved = placementRepository.save(placement);
-
-        return convertToResponseDto(saved);
     }
 }
