@@ -53,4 +53,40 @@ public interface PlacementUsRepository extends JpaRepository<PlacementDetailsUS,
             @Param("search") String search,
             @Param("status") String status,
             Pageable pageable);
+
+    @Query("""
+SELECT p
+FROM PlacementDetailsUS p
+WHERE LOWER(p.clientName)=LOWER(:clientName)
+""")
+    Page<PlacementDetailsUS> findByClient(
+            @Param("clientName") String clientName,
+            Pageable pageable);
+
+    @Query("""
+SELECT p
+FROM PlacementDetailsUS p
+WHERE LOWER(p.vendorName)=LOWER(:vendorName)
+""")
+    Page<PlacementDetailsUS> findByVendor(
+            @Param("vendorName") String vendorName,
+            Pageable pageable);
+
+    @Query("""
+SELECT p
+FROM PlacementDetailsUS p
+WHERE LOWER(p.sales)=LOWER(:sales)
+""")
+    Page<PlacementDetailsUS> findBySales(
+            @Param("sales") String sales,
+            Pageable pageable);
+
+    @Query("""
+SELECT p
+FROM PlacementDetailsUS p
+WHERE LOWER(p.recruiterName)=LOWER(:recruiter)
+""")
+    Page<PlacementDetailsUS> findByRecruiter(
+            @Param("recruiter") String recruiter,
+            Pageable pageable);
 }

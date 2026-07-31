@@ -20,12 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -1221,5 +1224,53 @@ public class PlacementService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    public Page<PlacementDetailsUS> getPlacementsByFilter(
+            String type,
+            String value,
+            Pageable pageable) {
+
+        switch (type.toLowerCase()) {
+
+            case "client":
+                return placementUsRepository.findByClient(value, pageable);
+
+            case "vendor":
+                return placementUsRepository.findByVendor(value, pageable);
+
+            case "sales":
+                return placementUsRepository.findBySales(value, pageable);
+
+            case "recruiter":
+                return placementUsRepository.findByRecruiter(value, pageable);
+
+            default:
+                throw new IllegalArgumentException("Invalid filter type");
+        }
+    }
+
+    public Page<PlacementDetails> getPlacementsByFilters(
+            String type,
+            String value,
+            Pageable pageable) {
+
+        switch (type.toLowerCase()) {
+
+            case "client":
+                return placementRepository.findByClientNameIgnoreCase(value, pageable);
+
+            case "vendor":
+                return placementRepository.findByVendorNameIgnoreCase(value, pageable);
+
+            case "sales":
+                return placementRepository.findBySalesIgnoreCase(value, pageable);
+
+            case "recruiter":
+                return placementRepository.findByRecruiterNameIgnoreCase(value, pageable);
+
+            default:
+                throw new IllegalArgumentException("Invalid filter type");
+        }
     }
 }
