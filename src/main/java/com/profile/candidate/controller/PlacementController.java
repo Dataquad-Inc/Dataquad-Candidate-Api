@@ -8,6 +8,10 @@ import com.profile.candidate.service.PlacementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -436,6 +440,78 @@ public class PlacementController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to fetch vendor names", "FETCH_ERROR", e.getMessage()));
         }
+    }
+
+    @GetMapping("/us-placement/filter")
+    public ResponseEntity<?> getPlacementsByFilter(
+            @RequestParam String type,
+            @RequestParam String value,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<PlacementDetailsUS> placements = placementService.getPlacementsByFilter(type, value, pageable);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Placements fetched successfully");
+        response.put("timestamp", LocalDateTime.now());
+        response.put("data", placements.getContent());
+        response.put("pagination", Map.of(
+                "currentPage", placements.getNumber(),
+                "pageSize", placements.getSize(),
+                "totalElements", placements.getTotalElements(),
+                "totalPages", placements.getTotalPages(),
+                "isLast", placements.isLast()));
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/placement/filter")
+    public ResponseEntity<?> getPlacementsByFilter(
+            @RequestParam String type,
+            @RequestParam String value,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sort) {
+
+        Sort.Direction direction = Sort.Direction.DESC;
+        String sortField = "createdAt";
+
+        if (sort != null && !sort.isBlank()) {
+            String[] parts = sort.split(":");
+            sortField = parts[0];
+
+            if (parts.length > 1 && "asc".equalsIgnoreCase(parts[1])) {
+                direction = Sort.Direction.ASC;
+            }
+        }
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(direction, sortField)
+        );
+
+        Page<PlacementDetails> placements =
+                placementService.getPlacementsByFilters(type, value, pageable);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("success", true);
+        response.put("message", "Placements fetched successfully");
+        response.put("timestamp", LocalDateTime.now());
+        response.put("data", placements.getContent());
+        response.put("pagination", Map.of(
+                "currentPage", placements.getNumber(),
+                "pageSize", placements.getSize(),
+                "totalElements", placements.getTotalElements(),
+                "totalPages", placements.getTotalPages(),
+                "isLast", placements.isLast()
+        ));
+
+        return ResponseEntity.ok(response);
     }
 
 }

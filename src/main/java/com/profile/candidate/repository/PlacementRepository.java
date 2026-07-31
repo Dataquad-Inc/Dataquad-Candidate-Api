@@ -1,6 +1,8 @@
 package com.profile.candidate.repository;
 
 import com.profile.candidate.model.PlacementDetails;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -138,4 +140,13 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
     List<PlacementDetails> findByUserId(String userId);
 
     List<PlacementDetails> findByUserIdAndCreatedAtBetween(String userId, LocalDate startDate, LocalDate endDate);
+
+    Page<PlacementDetails> findByClientNameIgnoreCase(String clientName, Pageable pageable);
+
+    Page<PlacementDetails> findByVendorNameIgnoreCase(String vendorName, Pageable pageable);
+
+    Page<PlacementDetails> findBySalesIgnoreCase(String sales, Pageable pageable);
+
+    Page<PlacementDetails> findByRecruiterNameIgnoreCase(String recruiterName, Pageable pageable);
+
 }
