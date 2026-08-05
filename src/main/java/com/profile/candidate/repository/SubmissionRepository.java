@@ -176,6 +176,7 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
         NULL as resume,
         s.preferred_location,
         s.skills,
+        s.tag,
         s.client_name,
         s.communication_skills,
         s.required_technologies_rating,
@@ -255,7 +256,8 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             s.recruiter_name,
             s.user_email,
             s.user_id,
-            s.status
+            s.status,
+            s.tag
         FROM candidate_submissions s 
         JOIN candidates c ON s.candidate_id = c.candidate_id 
         JOIN requirements_model r ON s.job_id = r.job_id 
@@ -318,7 +320,8 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             s.recruiter_name,
             s.user_email,
             s.user_id,
-            s.status
+            s.status,
+            s.tag
         FROM candidate_submissions s 
         JOIN candidates c ON s.candidate_id = c.candidate_id 
         JOIN requirements_model r ON s.job_id = r.job_id 
@@ -376,7 +379,8 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             c.full_name AS full_name,       
             c.contact_number AS contact_number,      
             c.candidate_email_id AS candidate_email_id,       
-            cs.skills AS skills,        
+            cs.skills AS skills,   
+            cs.tag AS tag,
             cs.job_id AS job_id,        
             cs.user_id AS user_id,  
             cs.user_email AS user_email,        
@@ -444,7 +448,8 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             cs.candidate_id AS candidateId,       
             cs.recruiter_name as recruiter_name,   
             c.full_name AS full_name,    
-            cs.skills AS skills,      
+            cs.skills AS skills,   
+            cs.tag AS tag,
             cs.job_id AS job_id,
             cs.user_id AS user_id,
             cs.user_email AS user_email,

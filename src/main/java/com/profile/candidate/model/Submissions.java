@@ -52,6 +52,9 @@ public class Submissions {
 
     private String status;
 
+    @Column(name = "tag")
+    private String tag;
+
     public String getStatus() {
         return status;
     }
@@ -187,4 +190,8 @@ public class Submissions {
     public void setRecruiterName(String recruiterName) {
         this.recruiterName = recruiterName;
     }
+
+    public String getTag() { return tag; }
+
+    public void setTag(String tag) { this.tag = tag; }
 }
