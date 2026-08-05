@@ -57,6 +57,8 @@ public class SubmissionsGetResponse {
 
         private String skills;
 
+        private String tag;
+
         private String communicationSkills;
 
         private Double requiredTechnologiesRating;
@@ -154,6 +156,10 @@ public class SubmissionsGetResponse {
         public void setCurrentOrganization(String currentOrganization) {
             this.currentOrganization = currentOrganization;
         }
+
+        public String getTag() { return tag; }
+
+        public void setTag(String tag) { this.tag = tag; }
 
         public String getQualification() {
             return qualification;

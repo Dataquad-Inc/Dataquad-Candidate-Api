@@ -201,6 +201,7 @@ public class SubmissionService {
         data.setSubmittedAt(sub.getSubmittedAt());
         data.setCommunicationSkills(sub.getCommunicationSkills());
         data.setSkills(sub.getSkills());
+        data.setTag(sub.getTag());
         data.setOverallFeedback(sub.getOverallFeedback());
         data.setPreferredLocation(sub.getPreferredLocation());
         data.setProfileReceivedDate(sub.getProfileReceivedDate());
@@ -514,6 +515,7 @@ public class SubmissionService {
             dto.setCandidateId(tuple.get("candidateId", String.class));
             dto.setFullName(tuple.get("full_name", String.class));
             dto.setSkills(tuple.get("skills", String.class));
+            dto.setTag((String) tuple.get("tag"));
             dto.setJobId(tuple.get("job_id", String.class));
             dto.setUserId(tuple.get("user_id", String.class));
             dto.setUserEmail(tuple.get("user_email", String.class));

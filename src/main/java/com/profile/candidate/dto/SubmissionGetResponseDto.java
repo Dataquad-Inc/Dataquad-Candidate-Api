@@ -48,6 +48,8 @@ public class SubmissionGetResponseDto {
 
     private String skills;  // Now it's just a single string
 
+    private String tag;
+
     private String communicationSkills;
 
     private Double requiredTechnologiesRating;
@@ -273,4 +275,9 @@ public class SubmissionGetResponseDto {
     public void setRecruiterName(String recruiterName) {
         this.recruiterName = recruiterName;
     }
+
+    public String getTag() { return tag; }
+
+    public void setTag(String tag) { this.tag = tag; }
+
 }

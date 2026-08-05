@@ -119,6 +119,7 @@ public class CandidateService {
         submission.setResumeFilePath(submissionDetails.getResumeFilePath());
         submission.setResume(submissionDetails.getResume());
         submission.setSkills(submissionDetails.getSkills());
+        submission.setTag(submissionDetails.getTag());
         submission.setCommunicationSkills(submissionDetails.getCommunicationSkills());
         submission.setRequiredTechnologiesRating(submissionDetails.getRequiredTechnologiesRating());
         submission.setOverallFeedback(submissionDetails.getOverallFeedback());
