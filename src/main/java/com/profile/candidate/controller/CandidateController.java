@@ -89,7 +89,7 @@ public class CandidateController {
             submission.setCandidate(candidateDetails);
             submission.setPreferredLocation(formData.get("preferredLocation"));
             submission.setSkills(formData.get("skills"));
-            submission.setTag(formData.get("tag"));
+            submission.setTag(formData.get("tags"));
             submission.setCommunicationSkills(formData.get("communicationSkills"));
             submission.setClientName(formData.get("clientName"));
             submission.setUserId(formData.get("userId"));
