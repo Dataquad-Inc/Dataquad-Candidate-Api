@@ -81,7 +81,8 @@ public interface BenchRepository extends JpaRepository<BenchDetails, String> {
            b.createdDate,
            b.technology,
            b.remarks,
-           b.tags
+           b.tags,
+           b.status
        )
        FROM BenchDetails b
        WHERE LOWER(b.tags) LIKE LOWER(CONCAT('%', :tagName, '%'))

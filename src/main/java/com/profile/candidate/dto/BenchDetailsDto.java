@@ -1,11 +1,13 @@
-
 package com.profile.candidate.dto;
+
+import com.profile.candidate.model.BenchStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
 public class BenchDetailsDto {
+
     private String id;
     private String fullName;
     private String email;
@@ -19,13 +21,29 @@ public class BenchDetailsDto {
     private String technology;
     private String remarks;
     private String tags;
+    private BenchStatus status;
 
-    public BenchDetailsDto(String id, String fullName,
-                           String email, BigDecimal relevantExperience,
-                           BigDecimal totalExperience, String contactNumber,
-                           List<String> skills, String linkedin,
-                           String referredBy, LocalDate createdDate,
-                           String technology, String remarks) {
+
+    public BenchDetailsDto() {
+    }
+
+
+    public BenchDetailsDto(
+            String id,
+            String fullName,
+            String email,
+            BigDecimal relevantExperience,
+            BigDecimal totalExperience,
+            String contactNumber,
+            List<String> skills,
+            String linkedin,
+            String referredBy,
+            LocalDate createdDate,
+            String technology,
+            String remarks,
+            String tags,
+            BenchStatus status
+    ) {
         this.id = id;
         this.fullName = fullName;
         this.email = email;
@@ -38,23 +56,10 @@ public class BenchDetailsDto {
         this.createdDate = createdDate;
         this.technology = technology;
         this.remarks = remarks;
-    }
-
-    public BenchDetailsDto(String id, String fullName,
-                           String email, BigDecimal relevantExperience,
-                           BigDecimal totalExperience, String contactNumber,
-                           List<String> skills, String linkedin,
-                           String referredBy, LocalDate createdDate,
-                           String technology, String remarks, String tags) {
-        this(id, fullName, email, relevantExperience, totalExperience, contactNumber,
-                skills, linkedin, referredBy, createdDate, technology, remarks);
         this.tags = tags;
+        this.status = status;
     }
 
-    public BenchDetailsDto() {
-
-    }
-    // ✅ Getters & Setters
 
     public String getId() {
         return id;
@@ -158,5 +163,13 @@ public class BenchDetailsDto {
 
     public void setTags(String tags) {
         this.tags = tags;
+    }
+
+    public BenchStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(BenchStatus status) {
+        this.status = status;
     }
 }

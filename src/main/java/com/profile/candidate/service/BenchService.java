@@ -9,6 +9,7 @@ import com.profile.candidate.exceptions.DateRangeValidationException;
 import com.profile.candidate.model.BenchDetails;
 import com.profile.candidate.model.Submissions;
 import com.profile.candidate.repository.BenchRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.profile.candidate.model.BenchStatus;
 
 import org.springframework.http.ResponseEntity;
 import java.time.LocalDate;
@@ -601,6 +603,7 @@ public class BenchService {
             dto.setTechnology(bench.getTechnology());
             dto.setRemarks(bench.getRemarks());
             dto.setTags(bench.getTags());
+            dto.setStatus(bench.getStatus());
 
             return dto;
         } else {
@@ -716,5 +719,40 @@ public class BenchService {
                 System.out.println("Mail failed for: " + email + " Error: " + e.getMessage());
             }
         }
+    }
+
+    @Transactional
+    public BenchDetails updateBenchStatus(
+            String benchId,
+            BenchStatus newStatus) {
+
+        BenchDetails bench = benchRepository.findById(benchId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Bench profile with ID "
+                                        + benchId
+                                        + " not found"
+                        )
+                );
+
+        if (newStatus == null) {
+            throw new IllegalArgumentException(
+                    "Status is required. Allowed values are ACTIVE or INACTIVE."
+            );
+        }
+
+        // Check if the requested status is already set
+        if (bench.getStatus() == newStatus) {
+            throw new IllegalArgumentException(
+                    "Bench profile with ID "
+                            + benchId
+                            + " is already "
+                            + newStatus
+            );
+        }
+
+        bench.setStatus(newStatus);
+
+        return benchRepository.save(bench);
     }
 }

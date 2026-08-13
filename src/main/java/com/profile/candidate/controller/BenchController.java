@@ -200,7 +200,8 @@ public class BenchController {
                             bench.getCreatedDate(),
                             bench.getTechnology(),
                             bench.getRemarks(),
-                            bench.getTags()
+                            bench.getTags(),
+                            bench.getStatus()
                     ))
                     .collect(Collectors.toList());
 
@@ -237,7 +238,8 @@ public class BenchController {
                             bench.getCreatedDate(),
                             bench.getTechnology(),
                             bench.getRemarks(),
-                            bench.getTags()
+                            bench.getTags(),
+                            bench.getStatus()
                     ))
                     .collect(Collectors.toList());
 
@@ -581,6 +583,59 @@ public class BenchController {
             return ResponseEntity.internalServerError().body(Map.of(
                             "status", "Error",
                             "message", "Failed to send JD mails: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/bench/status/{benchId}")
+    public ResponseEntity<?> updateBenchStatus(
+            @PathVariable String benchId,
+            @RequestBody BenchStatusUpdateRequest request) {
+
+        try {
+
+            BenchDetails updatedBench =
+                    benchService.updateBenchStatus(
+                            benchId,
+                            request.getStatus()
+                    );
+
+            return ResponseEntity.ok(
+                    Map.of(
+                            "status", "Success",
+                            "message", "Bench status updated successfully",
+                            "benchId", updatedBench.getId(),
+                            "candidateName", updatedBench.getFullName(),
+                            "benchStatus", updatedBench.getStatus()
+                    )
+            );
+
+        } catch (EntityNotFoundException e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "status", "Error",
+                            "message", e.getMessage()
+                    ));
+
+        } catch (IllegalArgumentException e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "status", "Error",
+                            "message", e.getMessage()
+                    ));
+
+        } catch (Exception e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "Error",
+                            "message",
+                            "Failed to update bench status: " + e.getMessage()
+                    ));
         }
     }
 }

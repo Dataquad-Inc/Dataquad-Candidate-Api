@@ -87,6 +87,10 @@ public class BenchDetails {
  @Column(name = "created_date")
  private LocalDate createdDate;
 
+ @Enumerated(EnumType.STRING)
+ @Column(name = "status", nullable = false)
+ private BenchStatus status = BenchStatus.ACTIVE;
+
  private String remarks;
 
  public String getRemarks() {
