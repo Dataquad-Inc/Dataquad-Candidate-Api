@@ -232,25 +232,51 @@ public class BenchService {
         return userDto;
     }
 
-    public Map<String, Object> findAllBenchDetails(int page, int size, String search) {
+    public Map<String, Object> findAllBenchDetails(
+            int page,
+            int size,
+            String search,
+            BenchStatus status) {
 
         Pageable pageable = PageRequest.of(page, size);
+
         Page<BenchDetails> benchPage;
-        if (search != null && !search.trim().isEmpty()) {
-            benchPage = benchRepository.searchBenchDetails(search, pageable);
+
+        boolean hasSearch = search != null && !search.trim().isEmpty();
+        boolean hasStatus = status != null;
+
+        if (hasSearch && hasStatus) {
+
+            benchPage = benchRepository
+                    .searchBenchDetailsByStatus(search.trim(), status, pageable);
+
+        } else if (hasSearch) {
+
+            benchPage = benchRepository
+                    .searchBenchDetails(search.trim(), pageable);
+
+        } else if (hasStatus) {
+
+            benchPage = benchRepository
+                    .findByStatus(status, pageable);
+
         } else {
+
             benchPage = benchRepository.findAll(pageable);
         }
 
         Map<String, Object> response = new HashMap<>();
+
         response.put("data", benchPage.getContent());
         response.put("currentPage", benchPage.getNumber());
+        response.put("pageSize", benchPage.getSize());
         response.put("totalItems", benchPage.getTotalElements());
         response.put("totalPages", benchPage.getTotalPages());
+        response.put("hasNext", benchPage.hasNext());
+        response.put("hasPrevious", benchPage.hasPrevious());
 
         return response;
     }
-
     public String generateCustomId() {
         Integer maxNumber = benchRepository.findMaxBenchNumber();
         int nextNumber = (maxNumber == null ? 1 : maxNumber + 1);
@@ -494,6 +520,7 @@ public class BenchService {
             if (benchDetails.getTechnology() != null) existingBench.setTechnology(benchDetails.getTechnology());
             if (benchDetails.getRemarks() != null) existingBench.setRemarks(benchDetails.getRemarks());
             if (benchDetails.getTags() != null) existingBench.setTags(benchDetails.getTags());
+            if (benchDetails.getStatus() != null) existingBench.setStatus(benchDetails.getStatus());
             return benchRepository.save(existingBench);
         }).orElseThrow(() -> new IllegalArgumentException("BenchDetails with ID " + id + " not found"));
     }

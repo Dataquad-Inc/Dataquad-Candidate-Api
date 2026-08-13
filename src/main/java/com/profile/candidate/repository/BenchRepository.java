@@ -1,6 +1,7 @@
 package com.profile.candidate.repository;
 import com.profile.candidate.dto.BenchDetailsDto;
 import com.profile.candidate.model.BenchDetails;
+import com.profile.candidate.model.BenchStatus;
 import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.Submissions;
 import jakarta.transaction.Transactional;
@@ -20,6 +21,23 @@ import java.util.Optional;
 @Repository
 public interface BenchRepository extends JpaRepository<BenchDetails, String> {
     Page<BenchDetails> findAll(Pageable pageable);
+    Page<BenchDetails> findByStatus(BenchStatus status, Pageable pageable);
+    @Query("""
+    SELECT b FROM BenchDetails b
+    WHERE b.status = :status
+    AND (
+        LOWER(b.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(b.email) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(b.technology) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(b.contactNumber) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(b.tags) LIKE LOWER(CONCAT('%', :search, '%'))
+    )
+""")
+    Page<BenchDetails> searchBenchDetailsByStatus(
+            @Param("search") String search,
+            @Param("status") BenchStatus status,
+            Pageable pageable
+    );
 
     @Query("SELECT b FROM BenchDetails b " +
             "WHERE LOWER(b.id) LIKE LOWER(CONCAT('%', :search, '%')) " +
