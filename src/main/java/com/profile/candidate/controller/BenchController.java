@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.DateRangeValidationException;
 import com.profile.candidate.model.BenchDetails;
+import com.profile.candidate.model.BenchStatus;
 import com.profile.candidate.repository.BenchRepository;
 import com.profile.candidate.service.BenchService;
 import com.profile.candidate.service.SubmissionService;
@@ -177,11 +178,12 @@ public class BenchController {
     @GetMapping("/bench/getBenchList")
     public ResponseEntity<?> getAllBenchDetails(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "3000") int size,
-            @RequestParam(required = false) String search) {
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) BenchStatus status) {
 
         try {
-            Map<String, Object> response = benchService.findAllBenchDetails(page, size,search);
+            Map<String, Object> response = benchService.findAllBenchDetails(page, size,search,status);
 
 
             List<BenchDetails> benchList = (List<BenchDetails>) response.get("data");
@@ -210,8 +212,23 @@ public class BenchController {
 
             return ResponseEntity.ok(response);
 
+        } catch (IllegalArgumentException e) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "status", "Error",
+                            "message", "Invalid status. Use ACTIVE or INACTIVE"
+                    ));
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "status", "Error",
+                            "message", e.getMessage()
+                    ));
         }
     }
 
@@ -312,7 +329,8 @@ public class BenchController {
             @RequestParam(value = "referredBy", required = false) String referredBy,
             @RequestParam(value = "technology", required = false) String technology,
             @RequestParam(value = "remarks", required = false) String remarks,
-            @RequestParam(value = "tags", required = false) String tags
+            @RequestParam(value = "tags", required = false) String tags,
+            @RequestParam(value = "status", required = false) String status
 
     ) {
         try {
@@ -346,6 +364,21 @@ public class BenchController {
             benchDetails.setTechnology(technology);
             benchDetails.setRemarks(remarks);
             benchDetails.setTags(tags);
+            if (status != null && !status.isBlank()) {
+
+                try {
+                    benchDetails.setStatus(
+                            BenchStatus.valueOf(status.trim().toUpperCase())
+                    );
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity
+                            .status(HttpStatus.BAD_REQUEST)
+                            .body(new ErrorResponseDto(
+                                    false,
+                                    "Invalid status. Allowed values are ACTIVE or INACTIVE."
+                            ));
+                }
+            }
             // ✅ Call service to update details
             BenchDetails updatedBenchDetails = benchService.updateBenchDetails(id, benchDetails);
 
