@@ -95,6 +95,16 @@ public class PlacementDetails {
     @Column(name = "hourly_rate")
     private BigDecimal hourlyRate;
 
+    public String getCompany() {
+        return company;
+    }
+
+    public void setCompany(String company) {
+        this.company = company;
+    }
+
+    private String company;
+
     // Automatically set the current date
     @PrePersist
     public void prePersist() {
