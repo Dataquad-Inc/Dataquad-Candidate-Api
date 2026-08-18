@@ -95,6 +95,16 @@ public class PlacementDetails {
     @Column(name = "hourly_rate")
     private BigDecimal hourlyRate;
 
+    public String getCompany() {
+        return company;
+    }
+
+    public void setCompany(String company) {
+        this.company = company;
+    }
+
+    private String company;
+
     // Automatically set the current date
     @PrePersist
     public void prePersist() {
@@ -112,6 +122,26 @@ public class PlacementDetails {
 
     @Column(name = "user_id")
     private String userId;
+
+    private String currency;
+    private String ratePeriod;
+
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public String getRatePeriod() {
+        return ratePeriod;
+    }
+
+    public void setRatePeriod(String ratePeriod) {
+        this.ratePeriod = ratePeriod;
+    }
 
     public String getUserId() {
         return userId;
