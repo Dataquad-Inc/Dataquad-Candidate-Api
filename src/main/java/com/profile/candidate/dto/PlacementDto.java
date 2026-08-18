@@ -50,6 +50,8 @@ public class PlacementDto {
     private String visa;
     private String projectInC2cSubVendorName;
     private String currency;
+    private String company;
+    private String ratePeriod;
 
     public String getUserId() {
         return userId;
@@ -303,5 +305,21 @@ public class PlacementDto {
 
     public void setCurrency(String currency) {
         this.currency = currency;
+    }
+
+    public String getCompany() {
+        return company;
+    }
+
+    public void setCompany(String company) {
+        this.company = company;
+    }
+
+    public String getRatePeriod() {
+        return ratePeriod;
+    }
+
+    public void setRatePeriod(String ratePeriod) {
+        this.ratePeriod = ratePeriod;
     }
 }

@@ -4,7 +4,7 @@ import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.ResourceNotFoundException;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.model.PlacementDetailsUS;
-import com.profile.candidate.repository.UserRepo;
+import com.profile.candidate.repository.UserRepository;
 import com.profile.candidate.service.PlacementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +21,9 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = {
         "http://35.188.150.92", "http://192.168.0.140:3000", "http://192.168.0.139:3000",
@@ -40,7 +39,7 @@ public class PlacementController {
     private PlacementService placementService;
     private static final Logger logger = LoggerFactory.getLogger(PlacementController.class);
     @Autowired
-    private UserRepo userDetailsService;
+    private UserRepository userDetailsService;
 
 
     // Save placement
