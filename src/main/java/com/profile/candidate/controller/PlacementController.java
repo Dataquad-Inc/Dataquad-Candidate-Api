@@ -4,6 +4,7 @@ import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.ResourceNotFoundException;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.model.PlacementDetailsUS;
+import com.profile.candidate.repository.UserRepo;
 import com.profile.candidate.service.PlacementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,8 @@ public class PlacementController {
     @Autowired
     private PlacementService placementService;
     private static final Logger logger = LoggerFactory.getLogger(PlacementController.class);
+    @Autowired
+    private UserRepo userDetailsService;
 
 
     // Save placement
@@ -512,6 +515,11 @@ public class PlacementController {
         ));
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/employees")
+    public List<String> getEmployeesByRole(@RequestParam String role) {
+        return userDetailsService.findEmployeeNamesByRole(role);
     }
 
 }
