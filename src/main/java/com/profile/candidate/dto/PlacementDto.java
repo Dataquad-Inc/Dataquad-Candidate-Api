@@ -52,6 +52,24 @@ public class PlacementDto {
     private String currency;
     private String company;
     private String ratePeriod;
+    private String teamLead;
+    private boolean lock;
+
+    public boolean isLock() {
+        return lock;
+    }
+
+    public void setLock(boolean lock) {
+        this.lock = lock;
+    }
+
+    public String getTeamLead() {
+        return teamLead;
+    }
+
+    public void setTeamLead(String teamLead) {
+        this.teamLead = teamLead;
+    }
 
     public String getUserId() {
         return userId;
