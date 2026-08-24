@@ -339,6 +339,8 @@ public class PlacementService {
         Optional.ofNullable(dto.getCompany()).ifPresent(existing::setCompany);
         Optional.ofNullable(dto.getCurrency()).ifPresent(existing::setCurrency);
         Optional.ofNullable(dto.getRatePeriod()).ifPresent(existing::setRatePeriod);
+        Optional.ofNullable(dto.getTeamLead()).ifPresent(existing::setTeamLead);
+        Optional.ofNullable(dto.isLock()).ifPresent(existing::setLock);
 
         if (dto.getPayRate() != null) {
             existing.setPayRate(dto.getPayRate());
