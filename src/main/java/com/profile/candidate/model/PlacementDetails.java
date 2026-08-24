@@ -125,6 +125,25 @@ public class PlacementDetails {
 
     private String currency;
     private String ratePeriod;
+    private String teamLead;
+
+    public String getTeamLead() {
+        return teamLead;
+    }
+
+    public void setTeamLead(String teamLead) {
+        this.teamLead = teamLead;
+    }
+
+    public boolean isLock() {
+        return lock;
+    }
+
+    public void setLock(boolean lock) {
+        this.lock = lock;
+    }
+
+    private boolean lock;
 
 
     public String getCurrency() {
