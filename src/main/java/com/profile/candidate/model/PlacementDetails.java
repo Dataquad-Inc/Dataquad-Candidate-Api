@@ -143,6 +143,7 @@ public class PlacementDetails {
         this.lock = lock;
     }
 
+    @Column(name = "is_lock")
     private boolean lock;
 
 
