@@ -8,6 +8,9 @@ import lombok.Setter;
 import javax.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
 @Setter
 @Getter
 @Entity
@@ -126,6 +129,9 @@ public class PlacementDetails {
     private String currency;
     private String ratePeriod;
     private String teamLead;
+
+    @OneToMany(mappedBy = "placementDetails", cascade = CascadeType.ALL,orphanRemoval = true)
+    private List<PlacementDocs> placementDocs=new ArrayList<>();
 
     public String getTeamLead() {
         return teamLead;
