@@ -4,8 +4,12 @@ import com.profile.candidate.dto.*;
 import com.profile.candidate.exceptions.ResourceNotFoundException;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.model.PlacementDetailsUS;
+import com.profile.candidate.model.PlacementDocs;
 import com.profile.candidate.repository.UserRepository;
 import com.profile.candidate.service.PlacementService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -514,6 +518,86 @@ public class PlacementController {
         ));
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/placement/{placementId}/docs/upload")
+    public ResponseEntity<?> uploadDocs(
+            @PathVariable String placementId,
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam(required = false, defaultValue = "GENERAL") String documentType,
+            @RequestParam(required = false, defaultValue = "system") String uploadedBy) {
+        try {
+            List<PlacementDocs> saved = placementService.uploadDocs(placementId, files, documentType, uploadedBy);
+            List<Map<String, Object>> docList = saved.stream().map(d -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("documentId", d.getDocumentId());
+                m.put("fileName", d.getFileName());
+                m.put("documentType", d.getDocumentType());
+                m.put("fileType", d.getFileType());
+                m.put("createdAt", d.getCreatedAt());
+                return m;
+            }).toList();
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "success", true,
+                    "message", "Documents uploaded successfully",
+                    "timestamp", LocalDateTime.now(),
+                    "data", docList));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/placement/{placementId}/docs")
+    public ResponseEntity<?> getDocsByPlacementId(@PathVariable String placementId) {
+        try {
+            List<PlacementDocs> docs = placementService.getDocsByPlacementId(placementId);
+            List<Map<String, Object>> docList = docs.stream().map(d -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("documentId", d.getDocumentId());
+                m.put("fileName", d.getFileName());
+                m.put("documentType", d.getDocumentType());
+                m.put("fileType", d.getFileType());
+                m.put("createdAt", d.getCreatedAt());
+                return m;
+            }).toList();
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Documents fetched successfully",
+                    "timestamp", LocalDateTime.now(),
+                    "data", docList));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/placement/docs/{documentId}")
+    public ResponseEntity<?> deleteDoc(
+            @PathVariable Long documentId,
+            @RequestParam(required = false, defaultValue = "system") String deletedBy) {
+        try {
+            placementService.deleteDoc(documentId, deletedBy);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Document deleted successfully",
+                    "timestamp", LocalDateTime.now()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/placement/docs/{documentId}/download")
+    public ResponseEntity<?> downloadDoc(@PathVariable Long documentId) {
+        try {
+            PlacementDocs doc = placementService.downloadDoc(documentId);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(doc.getFileType() != null ? doc.getFileType() : MediaType.APPLICATION_OCTET_STREAM_VALUE))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + doc.getFileName() + "\"")
+                    .body(doc.getFileData());
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("success", false, "message", e.getMessage()));
+        }
     }
 
     @GetMapping("/employees")

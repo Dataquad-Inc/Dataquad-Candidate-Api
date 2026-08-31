@@ -9,11 +9,14 @@ import com.profile.candidate.model.InterviewDetails;
 import com.profile.candidate.model.InterviewDetailsUS;
 import com.profile.candidate.model.PlacementDetails;
 import com.profile.candidate.model.PlacementDetailsUS;
+import com.profile.candidate.model.PlacementDocs;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.InterviewUsRepository;
+import com.profile.candidate.repository.PlacementDocsRepository;
 import com.profile.candidate.repository.PlacementRepository;
 import com.profile.candidate.repository.PlacementUsRepository;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -43,6 +46,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class PlacementService {
+
+    @Autowired
+    private PlacementDocsRepository placementDocsRepository;
 
     @Autowired
     private  PlacementRepository placementRepository;
@@ -1220,6 +1226,48 @@ public class PlacementService {
         }
 
         return userDto;
+    }
+
+    @Transactional
+    public List<PlacementDocs> uploadDocs(String placementId, List<MultipartFile> files, String documentType, String uploadedBy) throws java.io.IOException {
+        PlacementDetails placement = placementRepository.findById(placementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Placement not found with ID: " + placementId));
+        List<PlacementDocs> saved = new java.util.ArrayList<>();
+        for (MultipartFile file : files) {
+            PlacementDocs doc = new PlacementDocs();
+            doc.setFileName(file.getOriginalFilename());
+            doc.setFileData(file.getBytes());
+            doc.setFileType(file.getContentType());
+            doc.setDocumentType(documentType);
+            doc.setPlacementDetails(placement);
+            doc.setCreatedAt(java.time.LocalDateTime.now());
+            doc.setDeleted(false);
+            saved.add(placementDocsRepository.save(doc));
+        }
+        return saved;
+    }
+
+    public List<PlacementDocs> getDocsByPlacementId(String placementId) {
+        if (!placementRepository.existsById(placementId))
+            throw new ResourceNotFoundException("Placement not found with ID: " + placementId);
+        return placementDocsRepository.findByPlacementDetails_IdAndIsDeletedFalse(placementId);
+    }
+
+    @Transactional
+    public void deleteDoc(Long documentId, String deletedBy) {
+        PlacementDocs doc = placementDocsRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with ID: " + documentId));
+        doc.setDeleted(true);
+        doc.setDeletedBy(deletedBy);
+        doc.setDeletedAt(java.time.LocalDateTime.now());
+        placementDocsRepository.save(doc);
+    }
+
+    public PlacementDocs downloadDoc(Long documentId) {
+        PlacementDocs doc = placementDocsRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found with ID: " + documentId));
+        if (doc.isDeleted()) throw new ResourceNotFoundException("Document not found with ID: " + documentId);
+        return doc;
     }
 
     public List<String> getAllVendorNames() {
