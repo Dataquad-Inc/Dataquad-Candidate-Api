@@ -53,13 +53,13 @@ public class PlacementDto {
     private String company;
     private String ratePeriod;
     private String teamLead;
-    private boolean lock;
+    private Boolean  lock;
 
-    public boolean isLock() {
+    public Boolean  isLock() {
         return lock;
     }
 
-    public void setLock(boolean lock) {
+    public void setLock(Boolean lock) {
         this.lock = lock;
     }
 
