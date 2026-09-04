@@ -84,11 +84,33 @@ public class PlacementDetails {
     @Column(name = "created_At")
     private LocalDate createdAt;
 
+    public boolean isSubmitted() {
+        return submitted;
+    }
+
+    public void setSubmitted(boolean submitted) {
+        this.submitted = submitted;
+    }
+
+    public boolean isApproved() {
+        return approved;
+    }
+
+    public void setApproved(boolean approved) {
+        this.approved = approved;
+    }
+
     @Column(name = "interview_id")
     private String interviewId;
 
     @Column(name = "isRegister")
     private Boolean isRegister = false;
+
+    @Column(name = "is_submitted")
+    private boolean submitted = false;
+
+    @Column(name = "is_approved")
+    private boolean approved = false;
 
     private String createdBy;
     private String updatedBy;

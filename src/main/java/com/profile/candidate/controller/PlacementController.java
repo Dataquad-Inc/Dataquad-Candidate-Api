@@ -605,4 +605,69 @@ public class PlacementController {
         return userDetailsService.findEmployeeNamesByRole(role);
     }
 
+    @PutMapping("/placement/submit-placement/{id}")
+    public ResponseEntity<?> submitPlacement(
+            @PathVariable String id) {
+
+        try {
+            PlacementResponseDto response = placementService.submitPlacement(id);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("message", "Placement submitted successfully");
+            result.put("timestamp", LocalDateTime.now());
+            result.put("data", response);
+
+            return ResponseEntity.ok(result);
+
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+
+        } catch (IllegalStateException e) {
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+        }
+    }
+
+    @PutMapping("/placement/approve-placement/{id}")
+    public ResponseEntity<?> approvePlacement(
+            @PathVariable String id) {
+
+        try {
+            PlacementResponseDto response = placementService.approvePlacement(id);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("success", true);
+            result.put("message", "Placement approved successfully");
+            result.put("timestamp", LocalDateTime.now());
+            result.put("data", response);
+
+            return ResponseEntity.ok(result);
+
+        } catch (ResourceNotFoundException e) {
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+
+        } catch (IllegalStateException e) {
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "timestamp", LocalDateTime.now()
+            ));
+        }
+    }
+
 }

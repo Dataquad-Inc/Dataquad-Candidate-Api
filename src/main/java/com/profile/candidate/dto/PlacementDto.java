@@ -54,6 +54,8 @@ public class PlacementDto {
     private String ratePeriod;
     private String teamLead;
     private Boolean  lock;
+    private Boolean submitted;
+    private Boolean approved;
 
     public Boolean  isLock() {
         return lock;

@@ -1330,4 +1330,36 @@ public class PlacementService {
                 throw new IllegalArgumentException("Invalid filter type");
         }
     }
+
+    public PlacementResponseDto submitPlacement(String id) {
+        PlacementDetails existing = placementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Placement not found with ID: " + id));
+        if (existing.isLock()) {
+            throw new IllegalStateException("Placement is already locked and cannot be submitted");
+        }
+        if (existing.isSubmitted()) {
+            throw new IllegalStateException("Placement is already submitted");
+        }
+        existing.setSubmitted(true);
+        existing.setApproved(false);
+        PlacementDetails updated = placementRepository.save(existing);
+        return convertToResponseDto(updated);
+    }
+
+    public PlacementResponseDto approvePlacement(String id) {
+        PlacementDetails existing = placementRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Placement not found with ID: " + id));
+        if (!existing.isSubmitted()) {
+            throw new IllegalStateException("Placement must be submitted before approval");
+        }
+        if (existing.isApproved()) {
+            throw new IllegalStateException("Placement is already approved");
+        }
+        if (existing.isLock()) {
+            throw new IllegalStateException("Placement is already locked");
+        }
+        existing.setApproved(true);
+        PlacementDetails updated = placementRepository.save(existing);
+        return convertToResponseDto(updated);
+    }
 }
