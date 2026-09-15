@@ -107,8 +107,7 @@ public interface PlacementRepository extends JpaRepository<PlacementDetails, Str
             nativeQuery = true)
     Object getPlacementCountsWithOutDate();
 
-    @Query("SELECT p FROM PlacementDetails p WHERE (p.createdAt BETWEEN :startDate AND :endDate)"+
-    "OR (p.startDate BETWEEN :startDate AND :endDate)")
+    @Query("SELECT p FROM PlacementDetails p WHERE p.startDate BETWEEN :startDate AND :endDate")
     List<PlacementDetails> findPlacementsByCreatedAtOrStartDateBetween(@Param("startDate") LocalDate startDate,
                                                             @Param("endDate") LocalDate endDate
     );
