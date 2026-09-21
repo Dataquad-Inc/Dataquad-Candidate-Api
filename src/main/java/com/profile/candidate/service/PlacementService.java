@@ -1162,13 +1162,16 @@ public class PlacementService {
         userDto.setPhoneNumber(placement.getCandidateContactNo());
         userDto.setDob("1990-01-01");
         userDto.setGender("male");
-        userDto.setJoiningDate(LocalDate.parse("2025-08-06")); // Ideally dynamically set
+        userDto.setJoiningDate(placement.getStartDate() != null ? placement.getStartDate() : LocalDate.now());
         userDto.setDesignation("Candidate");
-        userDto.setStatus("ACTIVE");
+        // Sync into HRMS External as inactive until HR invites + acknowledges onboarding
+        userDto.setStatus("INACTIVE");
+        userDto.setOnboardingStatus("PENDING_INVITE");
+        userDto.setPlacementId(placementId);
         userDto.setRoles(Collections.singleton("EXTERNALEMPLOYEE"));
         userDto.setEntity("IN");
 
-        // Generate random 8-character password
+        // Temporary password; candidate sets their own during onboarding invite flow
         String randomPassword = PasswordGenerator.generateRandomPassword(8);
         userDto.setPassword(randomPassword);
         userDto.setConfirmPassword(randomPassword);
@@ -1182,36 +1185,8 @@ public class PlacementService {
                 // Save placement with register=true
                 placement.setRegister(true);
                 placementRepository.save(placement);
-                logger.info("Placement updated with register=true for placementId: {}", placementId);
-
-                // --- Always Initialize Leave ---
-                EmployeeLeaveSummaryDto leaveInitDto = new EmployeeLeaveSummaryDto();
-                leaveInitDto.setUserId(userDto.getUserId());
-                leaveInitDto.setEmployeeName(userDto.getUserName());
-                leaveInitDto.setEmployeeType(placement.getEmploymentType());
-                leaveInitDto.setJoiningDate(placement.getStartDate()); // or use userDto.getJoiningDate()
-                leaveInitDto.setUpdatedBy(placement.getCandidateFullName());
-
-                logger.info("Calling timesheet microservice to initialize leave for userId: {}", userDto.getUserId());
-                ApiResponse<EmployeeLeaveSummaryDto> leaveResponse = timesheetClient.initializeLeave(leaveInitDto);
-
-                if (leaveResponse == null || !leaveResponse.isSuccess()) {
-                    String errorCode = leaveResponse != null && leaveResponse.getError() != null
-                            ? leaveResponse.getError().getErrorCode()
-                            : "UNKNOWN_ERROR";
-                    String errorMessage = leaveResponse != null && leaveResponse.getError() != null
-                            ? leaveResponse.getError().getErrorMessage()
-                            : "Leave initialization failed";
-                    logger.error("Leave initialization failed with error code: {}, message: {}", errorCode, errorMessage);
-                    throw new RuntimeException("Leave initialization failed with error code: " + errorCode + ", message: " + errorMessage);
-                } else {
-                    logger.info("Leave initialized successfully for userId: {}", userDto.getUserId());
-                }
-
-                // Send password email ONLY after leave is successfully initialized
-                emailregisterService.sendPasswordEmailHtml(userDto.getEmail(), userDto.getUserName(), randomPassword);
-                logger.info("Password email sent to: {}", userDto.getEmail());
-
+                logger.info("Placement synced to HRMS External (INACTIVE/PENDING_INVITE) for placementId: {}", placementId);
+                // Leave init + credentials are deferred until HR acknowledges onboarding
                 logger.info("User registration succeeded for userId: {}", userDto.getUserId());
             } else {
                 String errorCode = apiResponse != null && apiResponse.getError() != null
@@ -1229,6 +1204,35 @@ public class PlacementService {
         }
 
         return userDto;
+    }
+
+    /**
+     * After HR acknowledges onboarding, initialize leave for the placed candidate.
+     */
+    public void initializeLeaveForPlacementUser(String placementId, String userId) {
+        PlacementDetails placement = placementRepository.findById(placementId)
+                .orElseThrow(() -> new RuntimeException("Placement not found with ID: " + placementId));
+
+        EmployeeLeaveSummaryDto leaveInitDto = new EmployeeLeaveSummaryDto();
+        leaveInitDto.setUserId(userId);
+        leaveInitDto.setEmployeeName(placement.getCandidateFullName());
+        leaveInitDto.setEmployeeType(placement.getEmploymentType());
+        leaveInitDto.setJoiningDate(placement.getStartDate());
+        leaveInitDto.setUpdatedBy(placement.getCandidateFullName());
+
+        logger.info("Initializing leave after onboarding acknowledge for userId: {}", userId);
+        ApiResponse<EmployeeLeaveSummaryDto> leaveResponse = timesheetClient.initializeLeave(leaveInitDto);
+
+        if (leaveResponse == null || !leaveResponse.isSuccess()) {
+            String errorCode = leaveResponse != null && leaveResponse.getError() != null
+                    ? leaveResponse.getError().getErrorCode()
+                    : "UNKNOWN_ERROR";
+            String errorMessage = leaveResponse != null && leaveResponse.getError() != null
+                    ? leaveResponse.getError().getErrorMessage()
+                    : "Leave initialization failed";
+            throw new RuntimeException("Leave initialization failed with error code: " + errorCode + ", message: " + errorMessage);
+        }
+        logger.info("Leave initialized successfully for userId: {}", userId);
     }
 
     @Transactional

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 
-@FeignClient(name = "timesheet-service", url = "http://mulya-timesheet-prod:7072/timesheet")
+@FeignClient(name = "timesheet-service", url = "${timesheet.service.url:http://localhost:7071/timesheet}")
 public interface TimesheetClient {
 
         @PostMapping("/leave-initialization")

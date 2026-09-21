@@ -20,6 +20,8 @@ public class UserDetailsDTO {
         private Set<String> roles;  // keeping as Set<String> per your request
         private String status;
         private String entity;
+        private String onboardingStatus;
+        private String placementId;
         private LocalDateTime lastLoginTime;
 
         public LocalDateTime getLastLoginTime() {
@@ -140,5 +142,21 @@ public class UserDetailsDTO {
 
         public void setEntity(String entity) {
                 this.entity = entity;
+        }
+
+        public String getOnboardingStatus() {
+                return onboardingStatus;
+        }
+
+        public void setOnboardingStatus(String onboardingStatus) {
+                this.onboardingStatus = onboardingStatus;
+        }
+
+        public String getPlacementId() {
+                return placementId;
+        }
+
+        public void setPlacementId(String placementId) {
+                this.placementId = placementId;
         }
 }

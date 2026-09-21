@@ -425,7 +425,9 @@ public class PlacementController {
             responseDto.setStatus(createdUser.getStatus());
             responseDto.setEntity(createdUser.getEntity());
 
-            ApiResponse<UserResponseDTO> successResponse = ApiResponse.success("User created from placement successfully.", responseDto);
+            ApiResponse<UserResponseDTO> successResponse = ApiResponse.success(
+                    "Candidate synced to HRMS External. HR can send onboarding invitation from HRMS.",
+                    responseDto);
             return ResponseEntity.ok(successResponse);
         } catch (Exception e) {
             ApiResponse<UserResponseDTO> errorResponse = ApiResponse.error(
@@ -434,6 +436,22 @@ public class PlacementController {
                     e.getMessage()
             );
             return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    @PostMapping("/{placementId}/initialize-leave/{userId}")
+    public ResponseEntity<ApiResponse<String>> initializeLeaveAfterAcknowledge(
+            @PathVariable String placementId,
+            @PathVariable String userId) {
+        try {
+            placementService.initializeLeaveForPlacementUser(placementId, userId);
+            return ResponseEntity.ok(ApiResponse.success("Leave initialized successfully.", "OK"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error(
+                    "Leave initialization failed",
+                    "LEAVE_INIT_ERROR",
+                    e.getMessage()
+            ));
         }
     }
 

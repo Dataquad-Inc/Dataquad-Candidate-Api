@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 
-@FeignClient(name = "user-service", url = "http://dataquad-userregister-prod:8083/users")
+@FeignClient(name = "user-service", url = "${user.service.url:http://localhost:8083/users}")
 public interface UserClient {
 
     @PostMapping("/register")
