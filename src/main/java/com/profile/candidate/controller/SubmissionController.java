@@ -71,6 +71,8 @@ public class SubmissionController {
             @RequestParam(required = false) String preferredLocation,
             @RequestParam(required = false) String skills,
             @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String candidateEmailId,
+            @RequestParam(required = false) String contactNumber,
 
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -100,6 +102,8 @@ public class SubmissionController {
                             size,
                             globalSearch,
                             candidateId,
+                            candidateEmailId,
+                            contactNumber,
                             fullName,
                             clientName,
                             recruiterName,
@@ -130,7 +134,9 @@ public class SubmissionController {
                         currentLocation,
                         preferredLocation,
                         skills,
-                        tag
+                        tag,
+                        candidateEmailId,
+                        contactNumber
                 ),
                 HttpStatus.OK
         );
@@ -153,7 +159,9 @@ public class SubmissionController {
             @RequestParam(required = false) String currentLocation,
             @RequestParam(required = false) String preferredLocation,
             @RequestParam(required = false) String skills,
-            @RequestParam(required = false) String tag) {
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) String contactNumber,
+            @RequestParam(required = false) String candidateEmailId) {
 
         SubmissionsGetResponse submissions =
                 submissionService.getAllSubmissionsByDateRange(
@@ -172,7 +180,9 @@ public class SubmissionController {
                         currentLocation,
                         preferredLocation,
                         skills,
-                        tag
+                        tag,
+                        contactNumber,
+                        candidateEmailId
                 );
 
         return ResponseEntity.ok(submissions);
