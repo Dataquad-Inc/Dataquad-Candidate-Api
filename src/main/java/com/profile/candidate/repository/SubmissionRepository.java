@@ -168,12 +168,12 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
     Optional<Submissions> findByCandidateCandidateIdAndJobId(String candidateId, String jobId);
 
     @Query(value = """
-    SELECT 
+    SELECT
         s.submission_id,
         s.candidate_id,
         s.job_id,
         s.resume_file_path,
-        NULL as resume,
+        NULL AS resume,
         s.preferred_location,
         s.skills,
         s.tag,
@@ -187,53 +187,217 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
         s.user_email,
         s.user_id,
         s.status
-    FROM production.candidate_submissions s 
-    JOIN production.candidates c ON s.candidate_id = c.candidate_id 
-    JOIN production.requirements_model r ON s.job_id = r.job_id 
-    WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-    AND (:globalSearch IS NULL OR :globalSearch = '' OR
-        s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
-        c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
-        r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
-        s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
-        s.job_id LIKE CONCAT('%', :globalSearch, '%')
+    FROM production.candidate_submissions s
+
+    JOIN production.candidates c
+        ON s.candidate_id = c.candidate_id
+
+    JOIN production.requirements_model r
+        ON s.job_id = r.job_id
+
+    WHERE s.profile_received_date BETWEEN :startDate AND :endDate
+
+    /* ================= GLOBAL SEARCH ================= */
+    AND (
+        :globalSearch IS NULL
+        OR :globalSearch = ''
+        OR LOWER(s.candidate_id) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(c.full_name) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(r.client_name) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.recruiter_name) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.job_id) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.status) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.skills) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.tag) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
     )
-    AND NOT EXISTS (
-        SELECT 1
-        FROM production.interview_details i
-        WHERE i.candidate_id = s.candidate_id
-          AND i.interview_status = 'INTERNAL_REJECTED'
-          AND i.interview_status = 1
+
+    /* ================= COLUMN FILTERS ================= */
+
+    AND (
+        :candidateId IS NULL
+        OR :candidateId = ''
+        OR LOWER(s.candidate_id) LIKE LOWER(CONCAT('%', :candidateId, '%'))
     )
+
+    AND (
+        :fullName IS NULL
+        OR :fullName = ''
+        OR LOWER(c.full_name) LIKE LOWER(CONCAT('%', :fullName, '%'))
+    )
+
+    AND (
+        :clientName IS NULL
+        OR :clientName = ''
+        OR LOWER(r.client_name) LIKE LOWER(CONCAT('%', :clientName, '%'))
+    )
+
+    AND (
+        :recruiterName IS NULL
+        OR :recruiterName = ''
+        OR LOWER(s.recruiter_name) LIKE LOWER(CONCAT('%', :recruiterName, '%'))
+    )
+
+    AND (
+        :jobId IS NULL
+        OR :jobId = ''
+        OR LOWER(s.job_id) LIKE LOWER(CONCAT('%', :jobId, '%'))
+    )
+
+    AND (
+        :status IS NULL
+        OR :status = ''
+        OR LOWER(s.status) LIKE LOWER(CONCAT('%', :status, '%'))
+    )
+
+    AND (
+        :technology IS NULL
+        OR :technology = ''
+        OR LOWER(r.technology) LIKE LOWER(CONCAT('%', :technology, '%'))
+    )
+
+    AND (
+        :currentLocation IS NULL
+        OR :currentLocation = ''
+        OR LOWER(c.current_location) LIKE LOWER(CONCAT('%', :currentLocation, '%'))
+    )
+
+    AND (
+        :preferredLocation IS NULL
+        OR :preferredLocation = ''
+        OR LOWER(s.preferred_location) LIKE LOWER(CONCAT('%', :preferredLocation, '%'))
+    )
+
+    AND (
+        :skills IS NULL
+        OR :skills = ''
+        OR LOWER(s.skills) LIKE LOWER(CONCAT('%', :skills, '%'))
+    )
+
+    AND (
+        :tag IS NULL
+        OR :tag = ''
+        OR LOWER(s.tag) LIKE LOWER(CONCAT('%', :tag, '%'))
+    )
+
     ORDER BY s.profile_received_date DESC
     """,
+
             countQuery = """
-        SELECT COUNT(*)
-        FROM production.candidate_submissions s 
-        JOIN production.candidates c ON s.candidate_id = c.candidate_id 
-        JOIN production.requirements_model r ON s.job_id = r.job_id 
-        WHERE s.profile_received_date BETWEEN :startDate AND :endDate 
-        AND (:globalSearch IS NULL OR :globalSearch = '' OR
-            s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
-            c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
-            r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
-            s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
-            s.job_id LIKE CONCAT('%', :globalSearch, '%')
-        )
-        AND NOT EXISTS (
-            SELECT 1
-            FROM production.interview_details i
-            WHERE i.candidate_id = s.candidate_id
-              AND i.interview_status = 'INTERNAL_REJECTED'
-              AND i.interview_status = 1
-        )
-        """,
-            nativeQuery = true)
+    SELECT COUNT(*)
+    FROM production.candidate_submissions s
+
+    JOIN production.candidates c
+        ON s.candidate_id = c.candidate_id
+
+    JOIN production.requirements_model r
+        ON s.job_id = r.job_id
+
+    WHERE s.profile_received_date BETWEEN :startDate AND :endDate
+
+    /* ================= GLOBAL SEARCH ================= */
+    AND (
+        :globalSearch IS NULL
+        OR :globalSearch = ''
+        OR LOWER(s.candidate_id) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(c.full_name) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(r.client_name) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.recruiter_name) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.job_id) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.status) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.skills) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+        OR LOWER(s.tag) LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+    )
+
+    /* ================= COLUMN FILTERS ================= */
+
+    AND (
+        :candidateId IS NULL
+        OR :candidateId = ''
+        OR LOWER(s.candidate_id) LIKE LOWER(CONCAT('%', :candidateId, '%'))
+    )
+
+    AND (
+        :fullName IS NULL
+        OR :fullName = ''
+        OR LOWER(c.full_name) LIKE LOWER(CONCAT('%', :fullName, '%'))
+    )
+
+    AND (
+        :clientName IS NULL
+        OR :clientName = ''
+        OR LOWER(r.client_name) LIKE LOWER(CONCAT('%', :clientName, '%'))
+    )
+
+    AND (
+        :recruiterName IS NULL
+        OR :recruiterName = ''
+        OR LOWER(s.recruiter_name) LIKE LOWER(CONCAT('%', :recruiterName, '%'))
+    )
+
+    AND (
+        :jobId IS NULL
+        OR :jobId = ''
+        OR LOWER(s.job_id) LIKE LOWER(CONCAT('%', :jobId, '%'))
+    )
+
+    AND (
+        :status IS NULL
+        OR :status = ''
+        OR LOWER(s.status) LIKE LOWER(CONCAT('%', :status, '%'))
+    )
+
+    AND (
+        :technology IS NULL
+        OR :technology = ''
+        OR LOWER(r.technology) LIKE LOWER(CONCAT('%', :technology, '%'))
+    )
+
+    AND (
+        :currentLocation IS NULL
+        OR :currentLocation = ''
+        OR LOWER(c.current_location) LIKE LOWER(CONCAT('%', :currentLocation, '%'))
+    )
+
+    AND (
+        :preferredLocation IS NULL
+        OR :preferredLocation = ''
+        OR LOWER(s.preferred_location) LIKE LOWER(CONCAT('%', :preferredLocation, '%'))
+    )
+
+    AND (
+        :skills IS NULL
+        OR :skills = ''
+        OR LOWER(s.skills) LIKE LOWER(CONCAT('%', :skills, '%'))
+    )
+
+    AND (
+        :tag IS NULL
+        OR :tag = ''
+        OR LOWER(s.tag) LIKE LOWER(CONCAT('%', :tag, '%'))
+    )
+    """,
+
+            nativeQuery = true
+    )
     Page<Submissions> findSubmissionsWithFiltersAndPagination(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("globalSearch") String globalSearch,
-            Pageable pageable);
+
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("clientName") String clientName,
+            @Param("recruiterName") String recruiterName,
+            @Param("jobId") String jobId,
+            @Param("status") String status,
+            @Param("technology") String technology,
+            @Param("currentLocation") String currentLocation,
+            @Param("preferredLocation") String preferredLocation,
+            @Param("skills") String skills,
+            @Param("tag") String tag,
+
+            Pageable pageable
+    );
 
 
     List<Submissions> findByJobId(String jobId);
@@ -563,60 +727,291 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
               AND JSON_SEARCH(teamLead.team_assignments, 'one', teamLead.user_id, NULL, '$[*].teamLeadId') IS NOT NULL
             """, nativeQuery = true)
     List<String> findCoordinatorTeamLeadIds(@Param("coordinatorId") String coordinatorId);
-
     @Query(value = """
-            SELECT
-                s.submission_id,
-                s.candidate_id,
-                s.job_id,
-                s.resume_file_path,
-                NULL as resume,
-                s.preferred_location,
-                s.skills,
-                s.client_name,
-                s.communication_skills,
-                s.required_technologies_rating,
-                s.overall_feedback,
-                s.profile_received_date,
-                s.submitted_at,
-                s.recruiter_name,
-                s.user_email,
-                s.user_id,
-                s.status
-            FROM candidate_submissions s
-            JOIN candidates c ON s.candidate_id = c.candidate_id
-            JOIN requirements_model r ON s.job_id = r.job_id
-            WHERE s.user_id IN (:userIds)
-              AND s.profile_received_date BETWEEN :startDate AND :endDate
-              AND (:globalSearch IS NULL OR :globalSearch = '' OR
-                  s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
-                  c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
-                  r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
-                  s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
-                  s.job_id LIKE CONCAT('%', :globalSearch, '%')
-              )
-            ORDER BY s.profile_received_date DESC
-            """,
+    SELECT
+        s.submission_id,
+        s.candidate_id,
+        s.job_id,
+        s.resume_file_path,
+        NULL AS resume,
+        s.preferred_location,
+        s.skills,
+        s.tag,
+        s.client_name,
+        s.communication_skills,
+        s.required_technologies_rating,
+        s.overall_feedback,
+        s.profile_received_date,
+        s.submitted_at,
+        s.recruiter_name,
+        s.user_email,
+        s.user_id,
+        s.status
+    FROM production.candidate_submissions s
+
+    JOIN production.candidates c
+        ON s.candidate_id = c.candidate_id
+
+    JOIN production.requirements_model r
+        ON s.job_id = r.job_id
+
+    WHERE s.user_id IN (:userIds)
+
+      AND s.profile_received_date BETWEEN :startDate AND :endDate
+
+      /* ================= GLOBAL SEARCH ================= */
+      AND (
+            :globalSearch IS NULL
+            OR :globalSearch = ''
+
+            OR LOWER(s.candidate_id)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(c.full_name)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(r.client_name)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.recruiter_name)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.job_id)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.status)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.skills)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.tag)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+      )
+
+      /* ================= COLUMN FILTERS ================= */
+
+      AND (
+            :candidateId IS NULL
+            OR :candidateId = ''
+            OR LOWER(s.candidate_id)
+                LIKE LOWER(CONCAT('%', :candidateId, '%'))
+      )
+
+      AND (
+            :fullName IS NULL
+            OR :fullName = ''
+            OR LOWER(c.full_name)
+                LIKE LOWER(CONCAT('%', :fullName, '%'))
+      )
+
+      AND (
+            :clientName IS NULL
+            OR :clientName = ''
+            OR LOWER(r.client_name)
+                LIKE LOWER(CONCAT('%', :clientName, '%'))
+      )
+
+      AND (
+            :recruiterName IS NULL
+            OR :recruiterName = ''
+            OR LOWER(s.recruiter_name)
+                LIKE LOWER(CONCAT('%', :recruiterName, '%'))
+      )
+
+      AND (
+            :jobId IS NULL
+            OR :jobId = ''
+            OR LOWER(s.job_id)
+                LIKE LOWER(CONCAT('%', :jobId, '%'))
+      )
+
+      AND (
+            :status IS NULL
+            OR :status = ''
+            OR LOWER(s.status)
+                LIKE LOWER(CONCAT('%', :status, '%'))
+      )
+
+      AND (
+            :technology IS NULL
+            OR :technology = ''
+            OR LOWER(r.technology)
+                LIKE LOWER(CONCAT('%', :technology, '%'))
+      )
+
+      AND (
+            :currentLocation IS NULL
+            OR :currentLocation = ''
+            OR LOWER(c.current_location)
+                LIKE LOWER(CONCAT('%', :currentLocation, '%'))
+      )
+
+      AND (
+            :preferredLocation IS NULL
+            OR :preferredLocation = ''
+            OR LOWER(s.preferred_location)
+                LIKE LOWER(CONCAT('%', :preferredLocation, '%'))
+      )
+
+      AND (
+            :skills IS NULL
+            OR :skills = ''
+            OR LOWER(s.skills)
+                LIKE LOWER(CONCAT('%', :skills, '%'))
+      )
+
+      AND (
+            :tag IS NULL
+            OR :tag = ''
+            OR LOWER(s.tag)
+                LIKE LOWER(CONCAT('%', :tag, '%'))
+      )
+
+    ORDER BY s.profile_received_date DESC
+    """,
+
             countQuery = """
-            SELECT COUNT(*)
-            FROM candidate_submissions s
-            JOIN candidates c ON s.candidate_id = c.candidate_id
-            JOIN requirements_model r ON s.job_id = r.job_id
-            WHERE s.user_id IN (:userIds)
-              AND s.profile_received_date BETWEEN :startDate AND :endDate
-              AND (:globalSearch IS NULL OR :globalSearch = '' OR
-                  s.candidate_id LIKE CONCAT('%', :globalSearch, '%') OR
-                  c.full_name LIKE CONCAT('%', :globalSearch, '%') OR
-                  r.client_name LIKE CONCAT('%', :globalSearch, '%') OR
-                  s.recruiter_name LIKE CONCAT('%', :globalSearch, '%') OR
-                  s.job_id LIKE CONCAT('%', :globalSearch, '%')
-              )
-            """,
-            nativeQuery = true)
+    SELECT COUNT(*)
+    FROM production.candidate_submissions s
+
+    JOIN production.candidates c
+        ON s.candidate_id = c.candidate_id
+
+    JOIN production.requirements_model r
+        ON s.job_id = r.job_id
+
+    WHERE s.user_id IN (:userIds)
+
+      AND s.profile_received_date BETWEEN :startDate AND :endDate
+
+      AND (
+            :globalSearch IS NULL
+            OR :globalSearch = ''
+
+            OR LOWER(s.candidate_id)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(c.full_name)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(r.client_name)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.recruiter_name)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.job_id)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.status)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.skills)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+
+            OR LOWER(s.tag)
+                LIKE LOWER(CONCAT('%', :globalSearch, '%'))
+      )
+
+      AND (
+            :candidateId IS NULL
+            OR :candidateId = ''
+            OR LOWER(s.candidate_id)
+                LIKE LOWER(CONCAT('%', :candidateId, '%'))
+      )
+
+      AND (
+            :fullName IS NULL
+            OR :fullName = ''
+            OR LOWER(c.full_name)
+                LIKE LOWER(CONCAT('%', :fullName, '%'))
+      )
+
+      AND (
+            :clientName IS NULL
+            OR :clientName = ''
+            OR LOWER(r.client_name)
+                LIKE LOWER(CONCAT('%', :clientName, '%'))
+      )
+
+      AND (
+            :recruiterName IS NULL
+            OR :recruiterName = ''
+            OR LOWER(s.recruiter_name)
+                LIKE LOWER(CONCAT('%', :recruiterName, '%'))
+      )
+
+      AND (
+            :jobId IS NULL
+            OR :jobId = ''
+            OR LOWER(s.job_id)
+                LIKE LOWER(CONCAT('%', :jobId, '%'))
+      )
+
+      AND (
+            :status IS NULL
+            OR :status = ''
+            OR LOWER(s.status)
+                LIKE LOWER(CONCAT('%', :status, '%'))
+      )
+
+      AND (
+            :technology IS NULL
+            OR :technology = ''
+            OR LOWER(r.technology)
+                LIKE LOWER(CONCAT('%', :technology, '%'))
+      )
+
+      AND (
+            :currentLocation IS NULL
+            OR :currentLocation = ''
+            OR LOWER(c.current_location)
+                LIKE LOWER(CONCAT('%', :currentLocation, '%'))
+      )
+
+      AND (
+            :preferredLocation IS NULL
+            OR :preferredLocation = ''
+            OR LOWER(s.preferred_location)
+                LIKE LOWER(CONCAT('%', :preferredLocation, '%'))
+      )
+
+      AND (
+            :skills IS NULL
+            OR :skills = ''
+            OR LOWER(s.skills)
+                LIKE LOWER(CONCAT('%', :skills, '%'))
+      )
+
+      AND (
+            :tag IS NULL
+            OR :tag = ''
+            OR LOWER(s.tag)
+                LIKE LOWER(CONCAT('%', :tag, '%'))
+      )
+    """,
+
+            nativeQuery = true
+    )
     Page<Submissions> findCoordinatorSubmissionsWithFiltersAndPagination(
             @Param("userIds") List<String> userIds,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("globalSearch") String globalSearch,
-            Pageable pageable);
+
+            @Param("candidateId") String candidateId,
+            @Param("fullName") String fullName,
+            @Param("clientName") String clientName,
+            @Param("recruiterName") String recruiterName,
+            @Param("jobId") String jobId,
+            @Param("status") String status,
+            @Param("technology") String technology,
+            @Param("currentLocation") String currentLocation,
+            @Param("preferredLocation") String preferredLocation,
+            @Param("skills") String skills,
+            @Param("tag") String tag,
+
+            Pageable pageable
+    );
 }

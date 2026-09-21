@@ -58,29 +58,123 @@ public class SubmissionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String globalSearch,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+
+            // Column filters
+            @RequestParam(required = false) String candidateId,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String clientName,
+            @RequestParam(required = false) String recruiterName,
+            @RequestParam(required = false) String jobId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String technology,
+            @RequestParam(required = false) String currentLocation,
+            @RequestParam(required = false) String preferredLocation,
+            @RequestParam(required = false) String skills,
+            @RequestParam(required = false) String tag,
+
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate startDate,
+
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate endDate,
+
             @RequestParam(required = false) String userId,
             @RequestParam(required = false) String coordinatorId,
-            @RequestParam(defaultValue = "false") boolean coordinator){
+            @RequestParam(defaultValue = "false") boolean coordinator) {
 
         if (coordinator) {
-            String requestedCoordinatorId = (userId != null && !userId.isBlank()) ? userId : coordinatorId;
-            return new ResponseEntity<>(submissionService.getCoordinatorSubmissions(
-                    requestedCoordinatorId, startDate, endDate, page, size, globalSearch), HttpStatus.OK);
+
+            String requestedCoordinatorId =
+                    (userId != null && !userId.isBlank())
+                            ? userId
+                            : coordinatorId;
+
+            return new ResponseEntity<>(
+                    submissionService.getCoordinatorSubmissions(
+                            requestedCoordinatorId,
+                            startDate,
+                            endDate,
+                            page,
+                            size,
+                            globalSearch,
+                            candidateId,
+                            fullName,
+                            clientName,
+                            recruiterName,
+                            jobId,
+                            status,
+                            technology,
+                            currentLocation,
+                            preferredLocation,
+                            skills,
+                            tag
+                    ),
+                    HttpStatus.OK
+            );
         }
-        return new ResponseEntity<>(submissionService.getAllSubmissions(page, size,globalSearch), HttpStatus.OK);
+
+        return new ResponseEntity<>(
+                submissionService.getAllSubmissions(
+                        page,
+                        size,
+                        globalSearch,
+                        candidateId,
+                        fullName,
+                        clientName,
+                        recruiterName,
+                        jobId,
+                        status,
+                        technology,
+                        currentLocation,
+                        preferredLocation,
+                        skills,
+                        tag
+                ),
+                HttpStatus.OK
+        );
     }
     @GetMapping("/submissions/filterByDate")
     public ResponseEntity<SubmissionsGetResponse> getAllSubmissionsByDateRange(
-            @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam("startDate") LocalDate startDate,
+            @RequestParam("endDate") LocalDate endDate,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String globalSearch) {
-        SubmissionsGetResponse submissions = submissionService.getAllSubmissionsByDateRange(
-                startDate, endDate, page, size, globalSearch);
-        logger.info("Fetched submissions between {} and {} with pagination", startDate, endDate);
+            @RequestParam(required = false) String globalSearch,
+
+            @RequestParam(required = false) String candidateId,
+            @RequestParam(required = false) String fullName,
+            @RequestParam(required = false) String clientName,
+            @RequestParam(required = false) String recruiterName,
+            @RequestParam(required = false) String jobId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String technology,
+            @RequestParam(required = false) String currentLocation,
+            @RequestParam(required = false) String preferredLocation,
+            @RequestParam(required = false) String skills,
+            @RequestParam(required = false) String tag) {
+
+        SubmissionsGetResponse submissions =
+                submissionService.getAllSubmissionsByDateRange(
+                        startDate,
+                        endDate,
+                        page,
+                        size,
+                        globalSearch,
+                        candidateId,
+                        fullName,
+                        clientName,
+                        recruiterName,
+                        jobId,
+                        status,
+                        technology,
+                        currentLocation,
+                        preferredLocation,
+                        skills,
+                        tag
+                );
+
         return ResponseEntity.ok(submissions);
     }
     @GetMapping("/submissions/{userId}/filterByDate")
