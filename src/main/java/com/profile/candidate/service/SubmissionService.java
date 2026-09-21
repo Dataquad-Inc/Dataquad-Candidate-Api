@@ -66,7 +66,9 @@ public class SubmissionService {
             String currentLocation,
             String preferredLocation,
             String skills,
-            String tag) {
+            String tag,
+            String contactNumber,
+            String candidateEmailId) {
 
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
         LocalDate endOfMonth =
@@ -90,6 +92,8 @@ public class SubmissionService {
                         preferredLocation,
                         skills,
                         tag,
+                        contactNumber,
+                        candidateEmailId,
                         pageable
                 );
 
@@ -130,7 +134,9 @@ public class SubmissionService {
             String currentLocation,
             String preferredLocation,
             String skills,
-            String tag) {
+            String tag,
+            String candidateEmailId,
+            String contactNumber) {
 
         LocalDate startOfMonth =
                 LocalDate.now().withDayOfMonth(1);
@@ -155,7 +161,9 @@ public class SubmissionService {
                 currentLocation,
                 preferredLocation,
                 skills,
-                tag
+                tag,
+                candidateEmailId,
+                contactNumber
         );
     }
 
@@ -176,7 +184,9 @@ public class SubmissionService {
             String currentLocation,
             String preferredLocation,
             String skills,
-            String tag) {
+            String tag,
+            String candidateEmailId,
+            String contactNumber) {
 
         if (coordinatorId == null || coordinatorId.isBlank()) {
             throw new ResourceNotFoundException(
@@ -244,6 +254,8 @@ public class SubmissionService {
                                 preferredLocation,
                                 skills,
                                 tag,
+                                candidateEmailId,
+                                contactNumber,
                                 pageable
                         );
 
@@ -900,7 +912,9 @@ public class SubmissionService {
             String currentLocation,
             String preferredLocation,
             String skills,
-            String tag) {
+            String tag,
+            String contactNumber,
+            String candidateEmailId) {
 
         if (endDate.isBefore(startDate)) {
             throw new DateRangeValidationException(
@@ -926,6 +940,8 @@ public class SubmissionService {
                         preferredLocation,
                         skills,
                         tag,
+                        contactNumber,
+                        candidateEmailId,
                         pageable
                 );
 
