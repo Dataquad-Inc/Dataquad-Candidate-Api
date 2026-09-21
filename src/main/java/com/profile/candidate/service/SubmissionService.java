@@ -52,25 +52,61 @@ public class SubmissionService {
 
     private static final Logger logger = LoggerFactory.getLogger(SubmissionService.class);
 
-    public SubmissionsGetResponse getAllSubmissions(int page, int size, String globalSearch) {
+    public SubmissionsGetResponse getAllSubmissions(
+            int page,
+            int size,
+            String globalSearch,
+            String candidateId,
+            String fullName,
+            String clientName,
+            String recruiterName,
+            String jobId,
+            String status,
+            String technology,
+            String currentLocation,
+            String preferredLocation,
+            String skills,
+            String tag) {
+
         LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-        LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
+        LocalDate endOfMonth =
+                startOfMonth.plusMonths(1).minusDays(1);
 
         Pageable pageable = PageRequest.of(page, size);
 
-        // Fetch paginated submissions with filters (interview exclusion now in DB query)
-        Page<Submissions> submissionPage = submissionRepository.findSubmissionsWithFiltersAndPagination(
-                startOfMonth, endOfMonth, globalSearch, pageable);
+        Page<Submissions> submissionPage =
+                submissionRepository.findSubmissionsWithFiltersAndPagination(
+                        startOfMonth,
+                        endOfMonth,
+                        globalSearch,
+                        candidateId,
+                        fullName,
+                        clientName,
+                        recruiterName,
+                        jobId,
+                        status,
+                        technology,
+                        currentLocation,
+                        preferredLocation,
+                        skills,
+                        tag,
+                        pageable
+                );
 
-        // Convert to response DTO (no need for additional filtering)
-        List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
-                .map(this::convertToSubmissionsGetResponse)
-                .collect(Collectors.toList());
+        List<SubmissionsGetResponse.GetSubmissionData> data =
+                submissionPage.getContent()
+                        .stream()
+                        .map(this::convertToSubmissionsGetResponse)
+                        .collect(Collectors.toList());
 
-        logger.info("Paginated Submissions (Page {}, Size {}): Total={}, Returned={}",
-                page, size, submissionPage.getTotalElements(), data.size());
+        SubmissionsGetResponse response =
+                new SubmissionsGetResponse(
+                        true,
+                        "Filtered Submissions Found",
+                        data,
+                        null
+                );
 
-        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
         response.setTotalElements(submissionPage.getTotalElements());
         response.setTotalPages(submissionPage.getTotalPages());
         response.setCurrentPage(page);
@@ -79,63 +115,191 @@ public class SubmissionService {
         return response;
     }
 
-    public SubmissionsGetResponse getCoordinatorSubmissions(String coordinatorId, int page, int size, String globalSearch) {
-        LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-        LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
-        return getCoordinatorSubmissions(coordinatorId, startOfMonth, endOfMonth, page, size, globalSearch);
+    public SubmissionsGetResponse getCoordinatorSubmissions(
+            String coordinatorId,
+            int page,
+            int size,
+            String globalSearch,
+            String candidateId,
+            String fullName,
+            String clientName,
+            String recruiterName,
+            String jobId,
+            String status,
+            String technology,
+            String currentLocation,
+            String preferredLocation,
+            String skills,
+            String tag) {
+
+        LocalDate startOfMonth =
+                LocalDate.now().withDayOfMonth(1);
+
+        LocalDate endOfMonth =
+                startOfMonth.plusMonths(1).minusDays(1);
+
+        return getCoordinatorSubmissions(
+                coordinatorId,
+                startOfMonth,
+                endOfMonth,
+                page,
+                size,
+                globalSearch,
+                candidateId,
+                fullName,
+                clientName,
+                recruiterName,
+                jobId,
+                status,
+                technology,
+                currentLocation,
+                preferredLocation,
+                skills,
+                tag
+        );
     }
 
-    public SubmissionsGetResponse getCoordinatorSubmissions(String coordinatorId, LocalDate startDate, LocalDate endDate,
-                                                            int page, int size, String globalSearch) {
+    public SubmissionsGetResponse getCoordinatorSubmissions(
+            String coordinatorId,
+            LocalDate startDate,
+            LocalDate endDate,
+            int page,
+            int size,
+            String globalSearch,
+            String candidateId,
+            String fullName,
+            String clientName,
+            String recruiterName,
+            String jobId,
+            String status,
+            String technology,
+            String currentLocation,
+            String preferredLocation,
+            String skills,
+            String tag) {
+
         if (coordinatorId == null || coordinatorId.isBlank()) {
-            throw new ResourceNotFoundException("userId is required when coordinator=true.");
+            throw new ResourceNotFoundException(
+                    "userId is required when coordinator=true."
+            );
         }
+
         if (startDate == null) {
             startDate = LocalDate.now().withDayOfMonth(1);
         }
+
         if (endDate == null) {
             endDate = startDate.plusMonths(1).minusDays(1);
         }
+
         if (endDate.isBefore(startDate)) {
-            throw new DateRangeValidationException("End date cannot be before start date.");
+            throw new DateRangeValidationException(
+                    "End date cannot be before start date."
+            );
         }
 
         Pageable pageable = PageRequest.of(page, size);
 
-        Set<String> userIds = getCoordinatorAssociatedUserIds(coordinatorId.trim());
+        Set<String> userIds =
+                getCoordinatorAssociatedUserIds(coordinatorId.trim());
+
         if (userIds.isEmpty()) {
-            logger.info("No coordinator-associated users found for coordinatorId: {}", coordinatorId);
-            SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", Collections.emptyList(), null);
+
+            logger.info(
+                    "No coordinator-associated users found for coordinatorId: {}",
+                    coordinatorId
+            );
+
+            SubmissionsGetResponse response =
+                    new SubmissionsGetResponse(
+                            true,
+                            "Filtered Submissions Found",
+                            Collections.emptyList(),
+                            null
+                    );
+
             response.setTotalElements(0);
             response.setTotalPages(0);
             response.setCurrentPage(page);
             response.setPageSize(size);
+
             return response;
         }
 
-        Page<Submissions> submissionPage = submissionRepository.findCoordinatorSubmissionsWithFiltersAndPagination(
-                new ArrayList<>(userIds), startDate, endDate, globalSearch, pageable);
+        Page<Submissions> submissionPage =
+                submissionRepository
+                        .findCoordinatorSubmissionsWithFiltersAndPagination(
+                                new ArrayList<>(userIds),
+                                startDate,
+                                endDate,
+                                globalSearch,
+                                candidateId,
+                                fullName,
+                                clientName,
+                                recruiterName,
+                                jobId,
+                                status,
+                                technology,
+                                currentLocation,
+                                preferredLocation,
+                                skills,
+                                tag,
+                                pageable
+                        );
 
-        List<String> interviewedCandidateIds = interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
-        Set<String> interviewedSet = interviewedCandidateIds.stream()
-                .filter(Objects::nonNull)
-                .map(id -> id.trim().toLowerCase())
-                .collect(Collectors.toSet());
+        List<String> interviewedCandidateIds =
+                interviewRepository.findInternalRejectedCandidateIdsLatestOnly();
 
-        List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
-                .filter(sub -> sub.getCandidate() != null
-                        && !interviewedSet.contains(sub.getCandidate().getCandidateId().trim().toLowerCase()))
-                .map(this::convertToSubmissionsGetResponse)
-                .collect(Collectors.toList());
+        Set<String> interviewedSet =
+                interviewedCandidateIds.stream()
+                        .filter(Objects::nonNull)
+                        .map(id -> id.trim().toLowerCase())
+                        .collect(Collectors.toSet());
 
-        logger.info("Coordinator submissions for coordinatorId {} scopedUsers={} page={} size={} total={} returned={}",
-                coordinatorId, userIds.size(), page, size, submissionPage.getTotalElements(), data.size());
+        List<SubmissionsGetResponse.GetSubmissionData> data =
+                submissionPage.getContent()
+                        .stream()
+                        .filter(sub ->
+                                sub.getCandidate() != null
+                                        && !interviewedSet.contains(
+                                        sub.getCandidate()
+                                                .getCandidateId()
+                                                .trim()
+                                                .toLowerCase()
+                                )
+                        )
+                        .map(this::convertToSubmissionsGetResponse)
+                        .collect(Collectors.toList());
 
-        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Filtered Submissions Found", data, null);
-        response.setTotalElements(submissionPage.getTotalElements());
-        response.setTotalPages(submissionPage.getTotalPages());
+        logger.info(
+                "Coordinator submissions for coordinatorId {} scopedUsers={} page={} size={} total={} returned={}",
+                coordinatorId,
+                userIds.size(),
+                page,
+                size,
+                submissionPage.getTotalElements(),
+                data.size()
+        );
+
+        SubmissionsGetResponse response =
+                new SubmissionsGetResponse(
+                        true,
+                        "Filtered Submissions Found",
+                        data,
+                        null
+                );
+
+        response.setTotalElements(
+                submissionPage.getTotalElements()
+        );
+
+        response.setTotalPages(
+                submissionPage.getTotalPages()
+        );
+
         response.setCurrentPage(page);
         response.setPageSize(size);
+
         return response;
     }
 
@@ -720,22 +884,73 @@ public class SubmissionService {
         return userIds;
     }
 
-    public SubmissionsGetResponse getAllSubmissionsByDateRange(LocalDate startDate, LocalDate endDate, int page, int size, String globalSearch) {
+    public SubmissionsGetResponse getAllSubmissionsByDateRange(
+            LocalDate startDate,
+            LocalDate endDate,
+            int page,
+            int size,
+            String globalSearch,
+            String candidateId,
+            String fullName,
+            String clientName,
+            String recruiterName,
+            String jobId,
+            String status,
+            String technology,
+            String currentLocation,
+            String preferredLocation,
+            String skills,
+            String tag) {
+
         if (endDate.isBefore(startDate)) {
-            throw new DateRangeValidationException("End date cannot be before start date.");
+            throw new DateRangeValidationException(
+                    "End date cannot be before start date."
+            );
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<Submissions> submissionPage = submissionRepository.findSubmissionsWithFiltersAndPagination(
-                startDate, endDate, globalSearch, pageable);
 
-        List<SubmissionsGetResponse.GetSubmissionData> data = submissionPage.getContent().stream()
-                .map(this::convertToSubmissionsGetResponse)
-                .collect(Collectors.toList());
+        Page<Submissions> submissionPage =
+                submissionRepository.findSubmissionsWithFiltersAndPagination(
+                        startDate,
+                        endDate,
+                        globalSearch,
+                        candidateId,
+                        fullName,
+                        clientName,
+                        recruiterName,
+                        jobId,
+                        status,
+                        technology,
+                        currentLocation,
+                        preferredLocation,
+                        skills,
+                        tag,
+                        pageable
+                );
 
-        SubmissionsGetResponse response = new SubmissionsGetResponse(true, "Submissions Found", data, null);
-        response.setTotalElements(submissionPage.getTotalElements());
-        response.setTotalPages(submissionPage.getTotalPages());
+        List<SubmissionsGetResponse.GetSubmissionData> data =
+                submissionPage.getContent()
+                        .stream()
+                        .map(this::convertToSubmissionsGetResponse)
+                        .collect(Collectors.toList());
+
+        SubmissionsGetResponse response =
+                new SubmissionsGetResponse(
+                        true,
+                        "Submissions Found",
+                        data,
+                        null
+                );
+
+        response.setTotalElements(
+                submissionPage.getTotalElements()
+        );
+
+        response.setTotalPages(
+                submissionPage.getTotalPages()
+        );
+
         response.setCurrentPage(page);
         response.setPageSize(size);
 
