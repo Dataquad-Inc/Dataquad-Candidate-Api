@@ -957,7 +957,7 @@ public class InterviewService {
 
         String role = interviewRepository.findRoleByUserId(userId);
         logger.info("Fetched role '{}' for userId '{}'", role, userId);
-        if (coordinator) {
+        if (Boolean.TRUE.equals(coordinator)) {
             List<InterviewDetails> coordinatorInterviews = getCoordinatorScopedInterviews(userId, startDateTime, endDateTime);
             if (!coordinatorInterviews.isEmpty()) {
                 logger.info("Fetched {} coordinator-scoped interviews for userId: {}", coordinatorInterviews.size(), userId);
@@ -1150,10 +1150,16 @@ public class InterviewService {
                             .findByCandidateCandidateIdAndJobId(i.getCandidateId(), i.getJobId())
                             .orElse(null);
                     String skills = submission != null ? submission.getSkills() : "";
+                    String submissionStatus = submission != null ? submission.getStatus() : null;
 
                     String technology = interviewRepository.findJobTitleByJobId(i.getJobId());
+                    String latestStatus = latestInterviewStatusFromJson(i.getInterviewStatus());
+                    String coordinatorName = i.getCoordinatorName();
+                    if ((coordinatorName == null || coordinatorName.isBlank()) && i.getAssignedTo() != null) {
+                        coordinatorName = interviewRepository.findUsernameByUserId(i.getAssignedTo());
+                    }
 
-                    return new GetInterviewResponse.InterviewData(
+                    GetInterviewResponse.InterviewData data = new GetInterviewResponse.InterviewData(
                             i.getInterviewId(),
                             i.getJobId(),
                             i.getCandidateId(),
@@ -1169,7 +1175,7 @@ public class InterviewService {
                             i.getClientEmailList(),
                             i.getClientName(),
                             i.getInterviewLevel(),
-                            latestInterviewStatusFromJson(i.getInterviewStatus()),
+                            latestStatus,
                             i.getIsPlaced(),
                             i.getRecruiterName(),
                             totalExperience,
@@ -1177,8 +1183,23 @@ public class InterviewService {
                             skills,
                             technology
                     );
+                    data.setInternalFeedback(i.getInternalFeedback());
+                    data.setComments(i.getComments());
+                    data.setCoordinatorName(coordinatorName);
+                    data.setProfileHoldStatus(resolveProfileHoldStatus(latestStatus, submissionStatus));
+                    return data;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private String resolveProfileHoldStatus(String latestInterviewStatus, String submissionStatus) {
+        if (latestInterviewStatus != null && latestInterviewStatus.toUpperCase().contains("HOLD")) {
+            return latestInterviewStatus;
+        }
+        if (submissionStatus != null && submissionStatus.toUpperCase().contains("HOLD")) {
+            return submissionStatus;
+        }
+        return null;
     }
 
 
@@ -1445,7 +1466,7 @@ public class InterviewService {
         List<GetInterviewResponseDto> response = new ArrayList<>();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        if (coordinator) {
+        if (Boolean.TRUE.equals(coordinator)) {
             List<InterviewDetails> coordinatorInterviews = getCoordinatorScopedInterviews(userId, startDateTime, endDateTime);
             logger.info("Fetched {} coordinator-scoped interviews for userId: {}", coordinatorInterviews.size(), userId);
             for (InterviewDetails interview : coordinatorInterviews) {
@@ -1652,11 +1673,17 @@ public class InterviewService {
                 .findByCandidateCandidateIdAndJobId(interview.getCandidateId(), interview.getJobId())
                 .orElse(null);
         String skills = submission != null ? submission.getSkills() : "";
+        String submissionStatus = submission != null ? submission.getStatus() : null;
 
         // Fetch job title as technology
         String technology = interviewRepository.findJobTitleByJobId(interview.getJobId());
+        String latestStatus = latestInterviewStatusFromJson(interview.getInterviewStatus());
+        String coordinatorName = interview.getCoordinatorName();
+        if ((coordinatorName == null || coordinatorName.isBlank()) && interview.getAssignedTo() != null) {
+            coordinatorName = interviewRepository.findUsernameByUserId(interview.getAssignedTo());
+        }
 
-        return new GetInterviewResponseDto(
+        GetInterviewResponseDto dto = new GetInterviewResponseDto(
                 interview.getInterviewId(),
                 interview.getJobId(),
                 interview.getCandidateId(),
@@ -1675,13 +1702,16 @@ public class InterviewService {
                 interview.getClientEmailList(),
                 interview.getClientName(),
                 interview.getInterviewLevel(),
-                latestInterviewStatusFromJson(interview.getInterviewStatus()),
+                latestStatus,
                 interview.getRecruiterName(),
                 interview.getIsPlaced(),
                 technology,
                 interview.getInternalFeedback(),
                 interview.getComments()
         );
+        dto.setCoordinatorName(coordinatorName);
+        dto.setProfileHoldStatus(resolveProfileHoldStatus(latestStatus, submissionStatus));
+        return dto;
 
     }
 
@@ -1845,12 +1875,16 @@ public class InterviewService {
 
     public InterviewResponseDto updateInterviewByCoordinator(String coordinatorId,String interviewId,CoordinatorInterviewUpdateDto  dto){
 
-        InterviewDetails interview=interviewRepository.findByInterviewIdAndAssignedTo(interviewId,coordinatorId);
+        // Lookup by interview id only. Callers include SUPERADMIN/TL/BDM who are not
+        // assigned_to on the row — findByInterviewIdAndAssignedTo was dropping their saves.
+        InterviewDetails interview = interviewRepository.findById(interviewId).orElse(null);
 
-        if(interview==null) throw new NoInterviewsFoundException("No Interview Found InterviewId"+interviewId+" for CoordinatorId "+coordinatorId);
+        if(interview==null) throw new NoInterviewsFoundException("No Interview Found InterviewId "+interviewId);
 
         else {
-            interview.setInternalFeedback(dto.getInternalFeedBack());
+            if (dto.getInternalFeedBack() != null) {
+                interview.setInternalFeedback(dto.getInternalFeedBack());
+            }
             if (dto.getInterviewStatus() != null && !dto.getInterviewStatus().isEmpty()) {
                 ObjectMapper objectMapper = new ObjectMapper();
                 ArrayNode historyArray;
@@ -2016,7 +2050,8 @@ public class InterviewService {
         dto.setInterviewId(interviewDetails.getInterviewId());
         dto.setFullName(interviewDetails.getFullName());
         dto.setInterviewLevel(interviewDetails.getInterviewLevel());
-        dto.setInterviewStatus(latestInterviewStatusFromJson(interviewDetails.getInterviewStatus()));
+        String latestStatus = latestInterviewStatusFromJson(interviewDetails.getInterviewStatus());
+        dto.setInterviewStatus(latestStatus);
         dto.setCandidateId(interviewDetails.getCandidateId());
         dto.setCandidateEmailId(interviewDetails.getCandidateEmailId());
         dto.setContactNumber(interviewDetails.getContactNumber());
@@ -2034,6 +2069,11 @@ public class InterviewService {
         dto.setZoomLink(interviewDetails.getZoomLink());
         dto.setUserId(interviewDetails.getUserId());
         dto.setTechnology(technology);
+        String coordinatorName = interviewDetails.getCoordinatorName();
+        dto.setCoordinatorName(coordinatorName);
+        if (latestStatus != null && latestStatus.toUpperCase().contains("HOLD")) {
+            dto.setProfileHoldStatus(latestStatus);
+        }
         return dto;
     }
 

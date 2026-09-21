@@ -23,6 +23,8 @@ public class CoordinatorInterviewDto {
     private String comments;
     private String recruiterName;
     private String technology;
+    private String coordinatorName;
+    private String profileHoldStatus;
 
     public String getTechnology() {
         return technology;
@@ -174,5 +176,21 @@ public class CoordinatorInterviewDto {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    public String getCoordinatorName() {
+        return coordinatorName;
+    }
+
+    public void setCoordinatorName(String coordinatorName) {
+        this.coordinatorName = coordinatorName;
+    }
+
+    public String getProfileHoldStatus() {
+        return profileHoldStatus;
+    }
+
+    public void setProfileHoldStatus(String profileHoldStatus) {
+        this.profileHoldStatus = profileHoldStatus;
     }
 }

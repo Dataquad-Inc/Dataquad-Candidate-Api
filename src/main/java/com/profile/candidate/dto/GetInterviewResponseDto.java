@@ -31,6 +31,11 @@ public class GetInterviewResponseDto {
     private String internalFeedback;
     private String comments;
 
+    /** Coordinator display name (from assigned_to) */
+    private String coordinatorName;
+    /** Profile / position hold derived from submission or interview status */
+    private String profileHoldStatus;
+
     public String getSkills() {
         return skills;
     }
@@ -256,6 +261,22 @@ public class GetInterviewResponseDto {
 
     public void setComments(String comments) {
         this.comments = comments;
+    }
+
+    public String getCoordinatorName() {
+        return coordinatorName;
+    }
+
+    public void setCoordinatorName(String coordinatorName) {
+        this.coordinatorName = coordinatorName;
+    }
+
+    public String getProfileHoldStatus() {
+        return profileHoldStatus;
+    }
+
+    public void setProfileHoldStatus(String profileHoldStatus) {
+        this.profileHoldStatus = profileHoldStatus;
     }
 
     @Override

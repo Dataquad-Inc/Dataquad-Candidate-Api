@@ -1,9 +1,14 @@
 package com.profile.candidate.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class CoordinatorInterviewUpdateDto {
 
     private String interviewStatus;
 
+    @JsonProperty("internalFeedBack")
+    @JsonAlias({"internalFeedback", "internal_feedback"})
     private String internalFeedBack;
 
     private boolean skipNotification;

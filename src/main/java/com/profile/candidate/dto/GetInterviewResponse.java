@@ -71,6 +71,10 @@ public class GetInterviewResponse {
 
         private String technology;
         //private String emailId;
+        private String internalFeedback;
+        private String comments;
+        private String coordinatorName;
+        private String profileHoldStatus;
 
         public InterviewData(String interviewId, String jobId, String candidateId, String candidateFullName, String candidateContactNo, String candidateEmailId, String userEmail, String userId, OffsetDateTime interviewDateTime, Integer duration, String zoomLink, LocalDateTime interviewScheduledTimestamp, List<String> clientEmail, String clientName, String interviewLevel, String latestInterviewStatus, boolean isPlaced, String recruiterName, float totalExperience, float relevantExperience, String skills, String technology) {
             this.interviewId = interviewId;
@@ -276,6 +280,38 @@ public class GetInterviewResponse {
 
         public void setSkills(String skills) {
             this.skills = skills;
+        }
+
+        public String getInternalFeedback() {
+            return internalFeedback;
+        }
+
+        public void setInternalFeedback(String internalFeedback) {
+            this.internalFeedback = internalFeedback;
+        }
+
+        public String getComments() {
+            return comments;
+        }
+
+        public void setComments(String comments) {
+            this.comments = comments;
+        }
+
+        public String getCoordinatorName() {
+            return coordinatorName;
+        }
+
+        public void setCoordinatorName(String coordinatorName) {
+            this.coordinatorName = coordinatorName;
+        }
+
+        public String getProfileHoldStatus() {
+            return profileHoldStatus;
+        }
+
+        public void setProfileHoldStatus(String profileHoldStatus) {
+            this.profileHoldStatus = profileHoldStatus;
         }
     }
 }
