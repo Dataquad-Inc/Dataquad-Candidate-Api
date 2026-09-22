@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Repository
 public interface PlacementUsRepository extends JpaRepository<PlacementDetailsUS, String> {
     boolean existsByCandidateEmailId(String candidateEmailId);
@@ -34,6 +37,72 @@ public interface PlacementUsRepository extends JpaRepository<PlacementDetailsUS,
             @Param("status") String status,
             Pageable pageable);
 
+    @Query("""
+    SELECT p
+    FROM PlacementDetailsUS p
+    WHERE
+        p.startDate >= :startDate
+        AND p.startDate <= :endDate
+
+        AND (
+            :status IS NULL
+            OR LOWER(p.status) = LOWER(:status)
+        )
+
+        AND (
+            :search IS NULL
+            OR LOWER(p.candidateFullName)
+                LIKE LOWER(CONCAT('%', :search, '%'))
+
+            OR LOWER(p.candidateEmailId)
+                LIKE LOWER(CONCAT('%', :search, '%'))
+
+            OR LOWER(p.technology)
+                LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+    """)
+    Page<PlacementDetailsUS> findUsPlacementsByDateRange(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("search") String search,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
+    @Query("""
+    SELECT p
+    FROM PlacementDetailsUS p
+    WHERE
+        p.userId = :userId
+
+        AND p.startDate >= :startDate
+        AND p.startDate <= :endDate
+
+        AND (
+            :status IS NULL
+            OR LOWER(p.status) = LOWER(:status)
+        )
+
+        AND (
+            :search IS NULL
+            OR LOWER(p.candidateFullName)
+                LIKE LOWER(CONCAT('%', :search, '%'))
+
+            OR LOWER(p.candidateEmailId)
+                LIKE LOWER(CONCAT('%', :search, '%'))
+
+            OR LOWER(p.technology)
+                LIKE LOWER(CONCAT('%', :search, '%'))
+        )
+    """)
+    Page<PlacementDetailsUS> findUsPlacementsByUserIdAndDateRange(
+            @Param("userId") String userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("search") String search,
+            @Param("status") String status,
+            Pageable pageable
+    );
     @Query("""
          SELECT p FROM PlacementDetailsUS p
          WHERE
