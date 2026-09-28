@@ -364,8 +364,11 @@ public class PlacementService {
         Optional.ofNullable(dto.getVendorName()).ifPresent(existing::setVendorName);
         Optional.ofNullable(dto.getStartDate()).ifPresent(start ->
                 existing.setStartDate(LocalDate.parse(start, formatter)));
-        Optional.ofNullable(dto.getEndDate()).ifPresent(end ->
-                existing.setEndDate(LocalDate.parse(end, formatter)));
+        if (dto.getEndDate() != null && !dto.getEndDate().trim().isEmpty()) {
+            existing.setEndDate(LocalDate.parse(dto.getEndDate(), formatter));
+        } else {
+            existing.setEndDate(null);
+        }
         Optional.ofNullable(dto.getRecruiterName()).ifPresent(existing::setRecruiterName);
         Optional.ofNullable(dto.getSales()).ifPresent(existing::setSales);
         Optional.ofNullable(dto.getEmploymentType()).ifPresent(existing::setEmploymentType);
