@@ -313,7 +313,38 @@ public class PlacementService {
             return placementUsRepository.searchUsPlacements(search,status, pageable);
         }
     }
+    public Page<PlacementDetailsUS> getUsPlacementsByDateRange(
+            String userId,
+            LocalDate startDate,
+            LocalDate endDate,
+            String search,
+            String status,
+            Pageable pageable
+    ) {
+        logger.info("Fetching US placements by start date between {} and {}", startDate, endDate);
+        Page<PlacementDetailsUS> placements;
+        if (userId != null && !userId.isBlank()) {
+            placements = placementUsRepository.findUsPlacementsByUserIdAndDateRange(
+                                    userId,
+                                    startDate,
+                                    endDate,
+                                    search,
+                                    status,
+                                    pageable
+                            );
 
+        } else {
+            placements = placementUsRepository.findUsPlacementsByDateRange(
+                                    startDate,
+                                    endDate,
+                                    search,
+                                    status,
+                                    pageable
+                            );
+        }
+        logger.info("Total US placements found: {}", placements.getTotalElements());
+        return placements;
+    }
     public PlacementResponseDto updatePlacement(String id, String userId,PlacementDto dto) {
         PlacementDetails existing = placementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Placement not found with ID: " + id));
@@ -333,8 +364,11 @@ public class PlacementService {
         Optional.ofNullable(dto.getVendorName()).ifPresent(existing::setVendorName);
         Optional.ofNullable(dto.getStartDate()).ifPresent(start ->
                 existing.setStartDate(LocalDate.parse(start, formatter)));
-        Optional.ofNullable(dto.getEndDate()).ifPresent(end ->
-                existing.setEndDate(LocalDate.parse(end, formatter)));
+        if (dto.getEndDate() != null && !dto.getEndDate().trim().isEmpty()) {
+            existing.setEndDate(LocalDate.parse(dto.getEndDate(), formatter));
+        } else {
+            existing.setEndDate(null);
+        }
         Optional.ofNullable(dto.getRecruiterName()).ifPresent(existing::setRecruiterName);
         Optional.ofNullable(dto.getSales()).ifPresent(existing::setSales);
         Optional.ofNullable(dto.getEmploymentType()).ifPresent(existing::setEmploymentType);

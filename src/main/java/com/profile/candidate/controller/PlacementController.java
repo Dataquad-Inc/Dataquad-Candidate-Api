@@ -118,6 +118,75 @@ public class PlacementController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/us-placement/filterByDate")
+    public ResponseEntity<?> getUsPlacementsByDateRange(
+            @RequestParam("startDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam("endDate")
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String sort
+    ) {
+        try {
+            if (endDate.isBefore(startDate)) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("success", false,
+                                "message", "End date cannot be before start date"
+                        )
+                );
+            }
+            Sort.Direction direction = Sort.Direction.DESC;
+            String sortField = "createdAt";
+            if (sort != null && !sort.isBlank()) {
+                String[] parts = sort.split(":");
+                sortField = parts[0];
+                if (parts.length > 1 && "asc".equalsIgnoreCase(parts[1])) {
+                    direction = Sort.Direction.ASC;
+                }
+            }
+            Pageable pageable = PageRequest.of(
+                    page,
+                    size,
+                    Sort.by(direction, sortField)
+            );
+            Page<PlacementDetailsUS> placements = placementService.getUsPlacementsByDateRange(
+                            userId,
+                            startDate,
+                            endDate,
+                            search,
+                            status,
+                            pageable
+                    );
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "US placements fetched successfully");
+            response.put("timestamp", LocalDateTime.now());
+            response.put("data", placements.getContent());
+            response.put("pagination", Map.of(
+                            "currentPage",
+                            placements.getNumber(),
+                            "pageSize",
+                            placements.getSize(),
+                            "totalElements",
+                            placements.getTotalElements(),
+                            "totalPages",
+                            placements.getTotalPages(),
+                            "isLast",
+                            placements.isLast()));
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error fetching US placements by date range", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body
+                    (Map.of("success", false,
+                            "message",
+                            "Failed to fetch US placements",
+                            "error", e.getMessage() != null ? e.getMessage() : "Internal server error"));
+        }
+    }
     // Update placement by ID
     @PutMapping("/placement/update-placement/{id}/{userId}")
     public ResponseEntity<?> updatePlacement(@PathVariable String id,
