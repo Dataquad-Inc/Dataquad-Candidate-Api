@@ -26,12 +26,13 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
             SELECT *
             FROM interview_details i
             WHERE i.assigned_to = :userId
-              AND i.interview_date_time BETWEEN :startDateTime AND :endDateTime
+              AND i.interview_date_time IS NOT NULL
+              AND DATE(i.interview_date_time) BETWEEN :startDate AND :endDate
             """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByAssignedToAndDateRange(
             @Param("userId") String userId,
-            @Param("startDateTime") LocalDateTime startDateTime,
-            @Param("endDateTime") LocalDateTime endDateTime);
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
     @Query(value = "SELECT email FROM user_details  " +
             "WHERE user_id = :userId ", nativeQuery = true)
@@ -68,27 +69,30 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
     // Native query: interview_date_time is OffsetDateTime on the entity; JPQL BETWEEN
     // with LocalDateTime fails on Hibernate 6 ("Argument [...] LocalDateTime did not match").
+    // Use DATE() so IST/UTC binding does not drop same-day interviews for recruiters/coordinators.
     @Query(value = """
             SELECT *
             FROM interview_details i
             WHERE i.user_id = :userId
-              AND i.interview_date_time BETWEEN :startDateTime AND :endDateTime
+              AND i.interview_date_time IS NOT NULL
+              AND DATE(i.interview_date_time) BETWEEN :startDate AND :endDate
             """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByUserIdAndDateRange(
             @Param("userId") String userId,
-            @Param("startDateTime") LocalDateTime startDateTime,
-            @Param("endDateTime") LocalDateTime endDateTime);
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
     @Query(value = """
             SELECT *
             FROM interview_details i
             WHERE i.user_id IN (:userIds)
-              AND i.interview_date_time BETWEEN :startDateTime AND :endDateTime
+              AND i.interview_date_time IS NOT NULL
+              AND DATE(i.interview_date_time) BETWEEN :startDate AND :endDate
             """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByUserIdsAndDateRange(
             @Param("userIds") List<String> userIds,
-            @Param("startDateTime") LocalDateTime startDateTime,
-            @Param("endDateTime") LocalDateTime endDateTime);
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
     @Query(value = """
             SELECT DISTINCT u.user_id

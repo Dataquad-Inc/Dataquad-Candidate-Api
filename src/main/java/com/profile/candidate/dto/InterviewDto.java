@@ -1,6 +1,8 @@
 package com.profile.candidate.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -34,6 +36,10 @@ public class InterviewDto {
 
     // Added interviewStatus field
     private String interviewStatus;
+
+    // UI historically sends internalFeedBack; keep both names bound.
+    @JsonProperty("internalFeedback")
+    @JsonAlias({"internalFeedBack", "internal_feedback"})
     private String internalFeedback;
     private String comments;
 
