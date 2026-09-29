@@ -66,7 +66,14 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
     @Query(value = "SELECT user_name FROM user_details WHERE user_id = :userId", nativeQuery = true)
     String findUsernameByUserId(@Param("userId") String userId);
 
-    @Query("SELECT i FROM InterviewDetails i WHERE i.userId = :userId AND i.interviewDateTime BETWEEN :startDateTime AND :endDateTime")
+    // Native query: interview_date_time is OffsetDateTime on the entity; JPQL BETWEEN
+    // with LocalDateTime fails on Hibernate 6 ("Argument [...] LocalDateTime did not match").
+    @Query(value = """
+            SELECT *
+            FROM interview_details i
+            WHERE i.user_id = :userId
+              AND i.interview_date_time BETWEEN :startDateTime AND :endDateTime
+            """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
