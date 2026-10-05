@@ -769,6 +769,8 @@ public class PlacementService {
         entity.setInterviewId(dto.getInterviewId());
         entity.setGrossProfit(dto.getGrossProfit());
         entity.setUserId(dto.getUserId());
+        entity.setCurrency(dto.getCurrency());
+        entity.setRatePeriod(dto.getRatePeriod());
         return entity;
     }
 
