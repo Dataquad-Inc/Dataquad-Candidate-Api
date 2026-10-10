@@ -31,7 +31,9 @@ com\profile\candidate\exceptions\NoInterviewsFoundException.class
 com\profile\candidate\model\BenchDetails.class
 com\profile\candidate\controller\BenchController$1.class
 com\profile\candidate\dto\PlacementResponseDto.class
+com\profile\candidate\tenant\TenantResolver.class
 com\profile\candidate\exceptions\CandidateNotFoundException.class
+com\profile\candidate\config\TenantBusinessBackfill.class
 com\profile\candidate\dto\DeleteCandidateResponseDto.class
 com\profile\candidate\dto\GetInterviewResponseDto.class
 com\profile\candidate\exceptions\InvalidRateException.class
@@ -52,10 +54,12 @@ com\profile\candidate\repository\BenchRepository.class
 com\profile\candidate\service\InterviewService$1.class
 com\profile\candidate\service\InterviewEmailService.class
 com\profile\candidate\exceptions\InvalidClientException.class
+com\profile\candidate\tenant\TenantInterceptor.class
 com\profile\candidate\exceptions\InvalidCandidateDataException.class
 com\profile\candidate\exceptions\ErrorResponse$ErrorDto.class
 com\profile\candidate\dto\BenchResponseDto$Payload.class
 com\profile\candidate\exceptions\InterviewNotScheduledException.class
+com\profile\candidate\tenant\TenantAccess.class
 com\profile\candidate\controller\InterviewController.class
 com\profile\candidate\exceptions\InterviewAlreadyScheduledException.class
 com\profile\candidate\dto\DeleteSubmissionResponseDto$SubmissionData.class
@@ -71,6 +75,7 @@ com\profile\candidate\dto\SubmissionGetResponseDto.class
 com\profile\candidate\configurations\WebConfig.class
 com\profile\candidate\dto\BenchDetailsDto.class
 com\profile\candidate\dto\SubmissionsGetResponse.class
+com\profile\candidate\tenant\TenantContext.class
 com\profile\candidate\dto\ErrorResponseDto.class
 com\profile\candidate\exceptions\SubmissionNotFoundException.class
 com\profile\candidate\repository\InterviewRepository.class

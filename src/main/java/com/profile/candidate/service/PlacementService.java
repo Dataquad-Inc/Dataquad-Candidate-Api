@@ -16,6 +16,7 @@ import com.profile.candidate.repository.InterviewUsRepository;
 import com.profile.candidate.repository.PlacementDocsRepository;
 import com.profile.candidate.repository.PlacementRepository;
 import com.profile.candidate.repository.PlacementUsRepository;
+import com.profile.candidate.tenant.TenantContext;
 import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
@@ -181,6 +182,9 @@ public class PlacementService {
         // Default values for placement
         placementDetails.setEmployeeWorkingType("MONTHLY");
         placementDetails.setStatus("Pending");
+        if (placementDetails.getTenantId() == null || placementDetails.getTenantId().isBlank()) {
+            placementDetails.setTenantId(TenantContext.getTenantId());
+        }
 
         // Save placement details
         PlacementDetails saved = placementRepository.save(placementDetails);

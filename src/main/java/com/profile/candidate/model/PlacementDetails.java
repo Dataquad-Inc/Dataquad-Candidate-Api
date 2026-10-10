@@ -23,6 +23,9 @@ public class PlacementDetails {
     @Column(name = "id", updatable = false, nullable = false)
     private String id;
 
+    @Column(name = "tenant_id")
+    private String tenantId;
+
     @Column(name = "candidateFullName")
     private String candidateFullName;
 

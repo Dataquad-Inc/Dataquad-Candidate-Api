@@ -44,6 +44,9 @@ public class InterviewDetails {
     private String assignedTo;
     private String coordinatorName;
 
+    @Column(name = "tenant_id")
+    private String tenantId;
+
     private String internalFeedback;
 
     private String comments;
@@ -267,6 +270,14 @@ public class InterviewDetails {
 
     public void setCoordinatorName(String coordinatorName) {
         this.coordinatorName = coordinatorName;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }
 

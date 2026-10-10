@@ -34,6 +34,9 @@ public class Submissions {
 
     private String clientName;
 
+    @Column(name = "tenant_id")
+    private String tenantId;
+
     private String communicationSkills;
 
     private Double requiredTechnologiesRating;
@@ -181,6 +184,14 @@ public class Submissions {
 
     public void setClientName(String clientName) {
         this.clientName = clientName;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getRecruiterName() {

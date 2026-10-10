@@ -12,6 +12,7 @@ import com.profile.candidate.model.CandidateDetails;
 import com.profile.candidate.model.Submissions;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.SubmissionRepository;
+import com.profile.candidate.tenant.TenantContext;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.transaction.Transactional;
@@ -132,6 +133,7 @@ public class CandidateService {
         submission.setUserEmail(submissionDetails.getUserEmail());
 
         submission.setStatus("PROCESSED FOR INTERVIEW");
+        submission.setTenantId(TenantContext.getTenantId());
         // Save the submission
         submissionRepository.save(submission);
 

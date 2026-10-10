@@ -27,12 +27,14 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
             FROM interview_details i
             WHERE i.assigned_to = :userId
               AND i.interview_date_time IS NOT NULL
+              AND i.tenant_id = :tenantId
               AND DATE(i.interview_date_time) BETWEEN :startDate AND :endDate
             """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByAssignedToAndDateRange(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
+            @Param("endDate") LocalDate endDate,
+            @Param("tenantId") String tenantId);
 
     @Query(value = "SELECT email FROM user_details  " +
             "WHERE user_id = :userId ", nativeQuery = true)
@@ -75,24 +77,28 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
             FROM interview_details i
             WHERE i.user_id = :userId
               AND i.interview_date_time IS NOT NULL
+              AND i.tenant_id = :tenantId
               AND DATE(i.interview_date_time) BETWEEN :startDate AND :endDate
             """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
+            @Param("endDate") LocalDate endDate,
+            @Param("tenantId") String tenantId);
 
     @Query(value = """
             SELECT *
             FROM interview_details i
             WHERE i.user_id IN (:userIds)
               AND i.interview_date_time IS NOT NULL
+              AND i.tenant_id = :tenantId
               AND DATE(i.interview_date_time) BETWEEN :startDate AND :endDate
             """, nativeQuery = true)
     List<InterviewDetails> findScheduledInterviewsByUserIdsAndDateRange(
             @Param("userIds") List<String> userIds,
             @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
+            @Param("endDate") LocalDate endDate,
+            @Param("tenantId") String tenantId);
 
     @Query(value = """
             SELECT DISTINCT u.user_id
@@ -152,10 +158,12 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
 
     @Query("SELECT i FROM InterviewDetails i " +
             "WHERE i.interviewDateTime IS NOT NULL " +
+            "AND i.tenantId = :tenantId " +
             "AND FUNCTION('DATE', i.interviewDateTime) BETWEEN :startDate AND :endDate")
     List<InterviewDetails> findScheduledInterviewsByDateOnly(
             @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
+            @Param("endDate") LocalDate endDate,
+            @Param("tenantId") String tenantId);
 
 
     @Query(value = """
@@ -199,12 +207,14 @@ public interface InterviewRepository extends JpaRepository<InterviewDetails,Stri
        AND s.job_id = c.job_id
     WHERE c.assigned_to = :userId
       AND c.interview_date_time IS NOT NULL
+      AND c.tenant_id = :tenantId
       AND c.timestamp BETWEEN :startDateTime AND :endDateTime
     """, nativeQuery = true)
     List<Tuple> findScheduledInterviewsByBdmUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDateTime") LocalDateTime startDateTime,
-            @Param("endDateTime") LocalDateTime endDateTime
+            @Param("endDateTime") LocalDateTime endDateTime,
+            @Param("tenantId") String tenantId
     );
 
     @Query("SELECT CASE WHEN COUNT(i) > 0 THEN true ELSE false END " +

@@ -47,11 +47,12 @@ public interface SubmissionRepository extends JpaRepository<Submissions,String> 
 """, nativeQuery = true)
     String findRoleByUserId(@Param("userId") String userId);
     
-    @Query("SELECT s FROM Submissions s  WHERE s.userId = :userId AND s.profileReceivedDate BETWEEN :startDate AND :endDate")
+    @Query("SELECT s FROM Submissions s  WHERE s.userId = :userId AND s.profileReceivedDate BETWEEN :startDate AND :endDate AND s.tenantId = :tenantId")
     List<Submissions> findByUserIdAndProfileReceivedDateBetween(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
+            @Param("endDate") LocalDate endDate,
+            @Param("tenantId") String tenantId
     );
 
     @Query(value = """
@@ -66,14 +67,21 @@ public interface SubmissionRepository extends JpaRepository<Submissions,String> 
         WHERE u.user_id = :userId
     )
     AND c.profile_received_date BETWEEN :startDate AND :endDate
+    AND c.tenant_id = :tenantId
 """, nativeQuery = true)
     List<Submissions> findSubmissionsByBdmUserIdAndDateRange(
             @Param("userId") String userId,
             @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate
+            @Param("endDate") LocalDate endDate,
+            @Param("tenantId") String tenantId
     );
     
-    List<Submissions> findByProfileReceivedDateBetween(LocalDate start, LocalDate end);
+    @Query("SELECT s FROM Submissions s WHERE s.profileReceivedDate BETWEEN :start AND :end AND s.tenantId = :tenantId")
+    List<Submissions> findByProfileReceivedDateBetween(
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end,
+            @Param("tenantId") String tenantId
+    );
 
 	@Query(value = """    
 SELECT 
@@ -187,7 +195,8 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             s.recruiter_name,
             s.user_email,
             s.user_id,
-            s.status
+            s.status,
+            s.tenant_id
         FROM production.candidate_submissions s
 
         JOIN production.candidates c
@@ -197,6 +206,7 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             ON s.job_id = r.job_id
 
         WHERE s.profile_received_date BETWEEN :startDate AND :endDate
+        AND s.tenant_id = :tenantId
 
         /* ================= GLOBAL SEARCH ================= */
 
@@ -322,6 +332,7 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             ON s.job_id = r.job_id
 
         WHERE s.profile_received_date BETWEEN :startDate AND :endDate
+        AND s.tenant_id = :tenantId
 
         /* ================= GLOBAL SEARCH ================= */
 
@@ -455,6 +466,7 @@ AND cs.profile_received_date BETWEEN :startDate AND :endDate""", nativeQuery = t
             @Param("tag") String tag,
             @Param("candidateEmailId") String candidateEmailId,
             @Param("contactNumber") String contactNumber,
+            @Param("tenantId") String tenantId,
 
             Pageable pageable
     );

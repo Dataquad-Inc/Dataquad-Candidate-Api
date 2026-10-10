@@ -10,6 +10,8 @@ import com.profile.candidate.repository.BenchRepository;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.SubmissionRepository;
+import com.profile.candidate.tenant.TenantAccess;
+import com.profile.candidate.tenant.TenantContext;
 import jakarta.persistence.Tuple;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -94,6 +96,7 @@ public class SubmissionService {
                         tag,
                         contactNumber,
                         candidateEmailId,
+                        TenantContext.getTenantId(),
                         pageable
                 );
 
@@ -335,6 +338,9 @@ public class SubmissionService {
         }
 
         Submissions submission = submissionOpt.get();
+        if (TenantAccess.isForeignTenant(submission.getTenantId())) {
+            throw new SubmissionNotFoundException("Invalid SubmissionId " + submissionId);
+        }
         String candidateId = submission.getCandidate() != null ? submission.getCandidate().getCandidateId() : null;
 
         if (candidateId == null) {
@@ -746,9 +752,11 @@ public class SubmissionService {
         List<Submissions> submissions;
 
         if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            submissions = submissionRepository.findByUserIdAndProfileReceivedDateBetween(userId, startOfMonth, endOfMonth);
+            submissions = submissionRepository.findByUserIdAndProfileReceivedDateBetween(
+                    userId, startOfMonth, endOfMonth, TenantContext.getTenantId());
         } else if ("BDM".equalsIgnoreCase(role)) {
-            submissions = submissionRepository.findSubmissionsByBdmUserIdAndDateRange(userId, startOfMonth, endOfMonth);
+            submissions = submissionRepository.findSubmissionsByBdmUserIdAndDateRange(
+                    userId, startOfMonth, endOfMonth, TenantContext.getTenantId());
         } else {
             throw new UnsupportedOperationException("Only EMPLOYEE and BDM roles are supported.");
         }
@@ -942,6 +950,7 @@ public class SubmissionService {
                         tag,
                         contactNumber,
                         candidateEmailId,
+                        TenantContext.getTenantId(),
                         pageable
                 );
 
@@ -979,7 +988,8 @@ public class SubmissionService {
             throw new DateRangeValidationException("End date cannot be before start date.");
         }
 
-        List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(startDate, endDate);
+        List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(
+                startDate, endDate, TenantContext.getTenantId());
         logger.info("Fetched {} submissions between {} and {}", submissions.size(), startDate, endDate);
 
         if (submissions.isEmpty()) {
@@ -1016,7 +1026,8 @@ public class SubmissionService {
 
     public SubmissionsGetResponse getAllSubmissionsFilterByDate(LocalDate startDate, LocalDate endDate) {
 
-        List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(startDate,endDate);
+        List<Submissions> submissions = submissionRepository.findByProfileReceivedDateBetween(
+                startDate, endDate, TenantContext.getTenantId());
         List<SubmissionsGetResponse.GetSubmissionData> data =submissions.stream()
                 .map(this::convertToSubmissionsGetResponse)
                 .collect(Collectors.toList());
@@ -1346,6 +1357,8 @@ public class SubmissionService {
 
             submission.setResume(
                     bench.getResume());
+
+            submission.setTenantId(TenantContext.getTenantId());
 
             submissions.add(submission);
 

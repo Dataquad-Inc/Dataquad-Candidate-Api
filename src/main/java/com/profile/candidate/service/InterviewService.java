@@ -15,6 +15,8 @@ import com.profile.candidate.model.Submissions;
 import com.profile.candidate.repository.CandidateRepository;
 import com.profile.candidate.repository.InterviewRepository;
 import com.profile.candidate.repository.SubmissionRepository;
+import com.profile.candidate.tenant.TenantAccess;
+import com.profile.candidate.tenant.TenantContext;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.persistence.Tuple;
@@ -42,6 +44,16 @@ public class InterviewService {
     private  InterviewRepository interviewRepository;
     @Autowired
     SubmissionRepository submissionRepository;
+
+    private static String currentTenantId() {
+        return TenantContext.getTenantId();
+    }
+
+    private static void stampTenant(InterviewDetails interview) {
+        if (interview.getTenantId() == null || interview.getTenantId().isBlank()) {
+            interview.setTenantId(currentTenantId());
+        }
+    }
 
     private static final Logger logger = LoggerFactory.getLogger(InterviewService.class);
 
@@ -137,6 +149,7 @@ public class InterviewService {
         }
         // Save candidate details to the database
         try {
+            stampTenant(interviewDetails);
             interviewRepository.save(interviewDetails);
             logger.info("Interview Scheduled Successfully");
         } catch (Exception e) {
@@ -343,6 +356,7 @@ public class InterviewService {
         // Save updated candidate details
         // updating isPlaced field if status is Placed.
 
+        stampTenant(interviewDetails);
         interviewRepository.save(interviewDetails);
         logger.info("Interview details updated successfully for candidateId: {}", candidateId);
         // Prepare email content
@@ -358,6 +372,7 @@ public class InterviewService {
         String subject = "Interview Update for " + interviewDetails.getFullName();
 
         interviewDetails.setTimestamp(LocalDateTime.now());
+        stampTenant(interviewDetails);
         interviewRepository.save(interviewDetails);
         String userName = interviewRepository.findUsernameByUserId(userId);
         String jobTitle = interviewRepository.findJobTitleByJobId(jobId);
@@ -559,6 +574,7 @@ public class InterviewService {
         // Update timestamp
         interviewDetails.setTimestamp(LocalDateTime.now());
         // Save updated candidate details
+        stampTenant(interviewDetails);
         interviewRepository.save(interviewDetails);
         logger.info("Interview details updated successfully for candidateId: {}", candidateId);
         // Prepare email content
@@ -640,7 +656,7 @@ public class InterviewService {
 
         // Use your custom query to fetch scheduled interviews for the current month
         List<InterviewDetails> interviewDetails = interviewRepository
-                .findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth);
+                .findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth, currentTenantId());
 
         List<GetInterviewResponse.InterviewData> dataList = interviewDetails.stream()
                 .map(i -> {
@@ -768,6 +784,9 @@ public class InterviewService {
         }
 
         InterviewDetails i = optionalInterviewDetails.get();
+        if (TenantAccess.isForeignTenant(i.getTenantId())) {
+            throw new NoInterviewsFoundException("Invalid Interview Id " + interviewId);
+        }
 
         // Fetch candidate info
         Optional<CandidateDetails> optionalCandidate = candidateRepository.findById(i.getCandidateId());
@@ -903,6 +922,7 @@ public class InterviewService {
         }
         // Save candidate details to the database
         try {
+            stampTenant(interviewDetails);
             interviewRepository.save(interviewDetails);
             System.out.println("Candidate saved successfully.");
         } catch (Exception e) {
@@ -965,7 +985,7 @@ public class InterviewService {
             payloadList.addAll(buildInterviewDataList(coordinatorInterviews, false));
         }
         else if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDate, endDate);
+            List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startDate, endDate, currentTenantId());
             logger.info("Fetched {} interviews for EMPLOYEE userId: {}", interviewDetails.size(), userId);
             payloadList.addAll(buildInterviewDataList(interviewDetails, true));
         }
@@ -976,7 +996,8 @@ public class InterviewService {
                 List<Tuple> bdmInterviews = interviewRepository.findScheduledInterviewsByBdmUserIdAndDateRange(
                                 userId,
                                 startDateTime,
-                                endDateTime);
+                                endDateTime,
+                                currentTenantId());
 
                 int addedCount = 0;
                 int rejectedCount = 0;
@@ -1119,7 +1140,7 @@ public class InterviewService {
                 );
             }
             if ("SUPERADMIN".equalsIgnoreCase(role)) {
-                List<InterviewDetails> superAdminInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate);
+                List<InterviewDetails> superAdminInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate, currentTenantId());
                 logger.info("Fetched {} interviews for SUPERADMIN", superAdminInterviews.size());
                 payloadList.addAll(buildInterviewDataList(superAdminInterviews, true));
             }
@@ -1402,7 +1423,7 @@ public class InterviewService {
         LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
 
         logger.info("Fetching scheduled interviews between {} and {}", startDateTime, endDateTime);
-        List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate);
+        List<InterviewDetails> interviewDetails = interviewRepository.findScheduledInterviewsByDateOnly(startDate, endDate, currentTenantId());
 
         if (interviewDetails.isEmpty()) {
             logger.warn("No interviews found between {} and {}", startDate, endDate);
@@ -1482,7 +1503,7 @@ public class InterviewService {
             }
 
         } else if ("EMPLOYEE".equalsIgnoreCase(role)) {
-            List<InterviewDetails> employeeInterviews = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startOfMonth, endOfMonth);
+            List<InterviewDetails> employeeInterviews = interviewRepository.findScheduledInterviewsByUserIdAndDateRange(userId, startOfMonth, endOfMonth, currentTenantId());
             logger.info("Fetched {} interviews for EMPLOYEE userId: {}", employeeInterviews.size(), userId);
             for (InterviewDetails interview : employeeInterviews) {
                 response.add(toDto(interview));
@@ -1491,7 +1512,8 @@ public class InterviewService {
         } else {
             switch (role != null ? role.toUpperCase() : "") {
                 case "BDM" -> {
-                    List<Tuple> bdmInterviews = interviewRepository.findScheduledInterviewsByBdmUserIdAndDateRange(userId, startDateTime, endDateTime);
+                    List<Tuple> bdmInterviews = interviewRepository.findScheduledInterviewsByBdmUserIdAndDateRange(
+                            userId, startDateTime, endDateTime, currentTenantId());
                     logger.info("Fetched {} interviews for BDM userId: {}", bdmInterviews.size(), userId);
 
                     for (Tuple tuple : bdmInterviews) {
@@ -1555,7 +1577,8 @@ public class InterviewService {
                 }
 
                 case "SUPERADMIN" -> {
-                    List<InterviewDetails> allInterviews = interviewRepository.findScheduledInterviewsByDateOnly(startOfMonth, endOfMonth);
+                    List<InterviewDetails> allInterviews = interviewRepository.findScheduledInterviewsByDateOnly(
+                            startOfMonth, endOfMonth, currentTenantId());
                     logger.info("Fetched {} interviews for SUPERADMIN", allInterviews.size());
                     for (InterviewDetails interview : allInterviews) {
                         //if (interview.getInterviewDateTime() != null && !isInternalRejected(interview.getInterviewStatus(), interview.getCandidateEmailId())) {
@@ -1587,7 +1610,7 @@ public class InterviewService {
     private List<InterviewDetails> getCoordinatorScopedInterviews(String coordinatorId, LocalDate startDate, LocalDate endDate) {
         Map<String, InterviewDetails> interviewsById = new LinkedHashMap<>();
 
-        interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(coordinatorId, startDate, endDate)
+        interviewRepository.findScheduledInterviewsByAssignedToAndDateRange(coordinatorId, startDate, endDate, currentTenantId())
                 .forEach(interview -> {
                     if (interview.getInterviewId() != null) {
                         interviewsById.put(interview.getInterviewId(), interview);
@@ -1596,7 +1619,8 @@ public class InterviewService {
 
         Set<String> userIds = getCoordinatorAssociatedUserIds(coordinatorId);
         if (!userIds.isEmpty()) {
-            interviewRepository.findScheduledInterviewsByUserIdsAndDateRange(new ArrayList<>(userIds), startDate, endDate)
+            interviewRepository.findScheduledInterviewsByUserIdsAndDateRange(
+                    new ArrayList<>(userIds), startDate, endDate, currentTenantId())
                     .forEach(interview -> {
                         if (interview.getInterviewId() != null) {
                             interviewsById.putIfAbsent(interview.getInterviewId(), interview);
@@ -1891,7 +1915,8 @@ public class InterviewService {
         // assigned_to on the row — findByInterviewIdAndAssignedTo was dropping their saves.
         InterviewDetails interview = interviewRepository.findById(interviewId).orElse(null);
 
-        if(interview==null) throw new NoInterviewsFoundException("No Interview Found InterviewId "+interviewId);
+        if(interview==null || TenantAccess.isForeignTenant(interview.getTenantId()))
+            throw new NoInterviewsFoundException("No Interview Found InterviewId "+interviewId);
 
         else {
             if (dto.getInternalFeedBack() != null) {
@@ -1939,6 +1964,7 @@ public class InterviewService {
                 }
             }
         }
+        stampTenant(interview);
         interviewRepository.save(interview);
 
         // ✅ Update submission status for SELECTED or REJECTED
